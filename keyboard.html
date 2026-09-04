@@ -78,6 +78,12 @@
         .input-btn.active { background: #f1c40f; color: #222; border-color: #fff; font-weight: bold; }
         .btn-add { background: #2ecc71; width: 100%; padding: 10px; font-size: 1.1rem; border:none; border-radius:8px; color:white; cursor:pointer;}
 
+        .chord-text { width:100%; height:90px; background:#222; color:#eee; border:1px solid #666; border-radius:8px; padding:8px 10px; font-family:inherit; font-size:1rem; resize:vertical; box-sizing:border-box; margin-bottom:8px; }
+        .song-list { display:flex; flex-direction:column; gap:5px; max-height:160px; overflow:auto; text-align:left; }
+        .song-row { display:flex; align-items:center; gap:6px; background:#222; border:1px solid #555; border-radius:8px; padding:6px 10px; }
+        .song-row .nm { flex:1; font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .song-row button { background:#444; border:1px solid #666; color:#ddd; border-radius:6px; padding:3px 8px; cursor:pointer; font-family:inherit; }
+        .score-bar.half { flex-direction:column; font-size:1rem; line-height:1.15; }
         .nav-controls { display: flex; gap: 10px; justify-content: center; margin: 10px 0; }
         .nav-btn { background: #95a5a6; border: none; padding: 10px; border-radius: 30px; color: white; flex: 1; font-family: inherit; cursor: pointer;}
 
@@ -141,8 +147,9 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="setTab('manual')">✍️ 수동 입력</button>
-            <button class="tab-btn" onclick="setTab('scan')">📸 악보 스캔</button>
+            <button class="tab-btn active" onclick="setTab('manual')">✍️ 하나씩</button>
+            <button class="tab-btn" onclick="setTab('text')">📝 한 줄로 붙여넣기</button>
+            <button class="tab-btn" onclick="setTab('song')">💾 곡 저장·불러오기</button>
         </div>
 
         <div id="panel-manual" class="panel show">
@@ -163,10 +170,23 @@
             <button class="btn-add" onclick="addChordManual()">⬇️ 넣기 (<span id="preview-chord">C</span>)</button>
         </div>
 
-        <div id="panel-scan" class="panel">
-            <button class="btn-add" style="background:#e74c3c; height:80px;" onclick="runScanSimulation()">
-                📸 찰칵! (자동 입력)
-            </button>
+        <div id="panel-text" class="panel">
+            <textarea id="chordText" class="chord-text" placeholder="예)  C  G  Am  F | C  G  F  C
+· 띄어쓰기로 코드를 나누고, | 는 줄 바꿈(안 써도 됨)
+· 한 마디에 코드 둘이면  C/G  처럼 붙여 쓰기
+· 마이너 m, 7화음 7  (예: Am, G7, Dm7)"></textarea>
+            <div style="display:flex; gap:6px;">
+                <button class="btn-add" onclick="applyChordText()">⬇ 이 진행으로 넣기</button>
+                <button class="btn-add" style="background:#8e44ad;" onclick="importFromProduction()" title="뮤지컬메이커에서 만든 넘버의 코드 진행을 Gemini가 만들어 줘요">🎬 프로덕션 넘버 코드 받기</button>
+            </div>
+            <div id="importMsg" style="font-size:0.85rem; color:#ccc; margin-top:6px; text-align:left;"></div>
+        </div>
+        <div id="panel-song" class="panel">
+            <div style="display:flex; gap:6px; margin-bottom:8px;">
+                <input id="songName" class="chord-text" style="height:auto; flex:1;" placeholder="곡 이름 (예: 봄날의 이야기 1막)">
+                <button class="btn-add" style="width:auto; padding:8px 14px;" onclick="saveSong()">💾 저장</button>
+            </div>
+            <div id="songList" class="song-list"></div>
         </div>
 
         <div class="nav-controls">
@@ -408,17 +428,21 @@
                     if (document.getElementById('loopChk').checked) autoIdx = 0;
                     else { Tone.Draw.schedule(() => stopAuto(), time + 0.01); return; }
                 }
-                const c = chordList[autoIdx]; const notes = chordNotesOf(c);
-                const root = notes[0], upper = notes.slice(1), bass = Tone.Frequency(root).transpose(-12).toNote();
+                const c = chordList[autoIdx];
                 const hit = (grp, t, dur) => synth.triggerAttackRelease(grp, dur, t);
-                switch (currentRhythm) {
-                    case 'whole':  hit([bass, ...notes], time, '1m'); break;
-                    case '4beat':  for (let b = 0; b < beats; b++) hit(notes, time + b*beat, '8n'); break;
-                    case '8beat':  for (let b = 0; b < beats*2; b++) hit(notes, time + b*beat/2, '16n'); break;
-                    case 'ballad': hit([bass, root], time, '8n'); for (let b = 1; b < beats; b++) hit(upper, time + b*beat, '8n'); break;
-                    case 'arp':    { const seq = notes.length === 4 ? [0,1,2,3,2,1,0,1] : [0,1,2,1,0,1,2,1]; for (let b = 0; b < beats*2; b++) hit(notes[seq[b % seq.length]], time + b*beat/2, '8n'); } break;
-                    case 'waltz':  hit([bass, root], time, '8n'); hit(upper, time + beat, '8n'); hit(upper, time + 2*beat, '8n'); break;
-                }
+                const playChord = (ch, t0, nb) => {   // nb = 이 코드가 차지하는 박 수
+                    const notes = chordNotesOf(ch), root = notes[0], upper = notes.slice(1), bass = Tone.Frequency(root).transpose(-12).toNote();
+                    switch (currentRhythm) {
+                        case 'whole':  hit([bass, ...notes], t0, nb * beat); break;
+                        case '4beat':  for (let b = 0; b < nb; b++) hit(notes, t0 + b*beat, '8n'); break;
+                        case '8beat':  for (let b = 0; b < nb*2; b++) hit(notes, t0 + b*beat/2, '16n'); break;
+                        case 'ballad': hit([bass, root], t0, '8n'); for (let b = 1; b < nb; b++) hit(upper, t0 + b*beat, '8n'); break;
+                        case 'arp':    { const seq = notes.length === 4 ? [0,1,2,3,2,1,0,1] : [0,1,2,1,0,1,2,1]; for (let b = 0; b < nb*2; b++) hit(notes[seq[b % seq.length]], t0 + b*beat/2, '8n'); } break;
+                        case 'waltz':  hit([bass, root], t0, '8n'); for (let b = 1; b < nb; b++) hit(upper, t0 + b*beat, '8n'); break;
+                    }
+                };
+                if (c.second) { const half = Math.floor(beats/2); playChord(c, time, half); playChord(c.second, time + half*beat, beats - half); }
+                else playChord(c, time, beats);
                 if (document.getElementById('metro').checked) for (let b = 0; b < beats; b++) metro.triggerAttackRelease(b === 0 ? 'C6' : 'G5', '32n', time + b*beat);
                 const idxNow = autoIdx;
                 Tone.Draw.schedule(() => { currentIdx = idxNow; renderScoreBoard(); updateGuide(); document.querySelectorAll('.score-bar')[idxNow]?.classList.add('playing'); }, time);
@@ -442,31 +466,122 @@
         }
 
         function setTab(mode) {
-            document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+            const idx = { manual:0, text:1, song:2 }[mode] ?? 0;
+            document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active', i===idx));
             document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
-            if(mode === 'manual') {
-                document.querySelector('.tab-btn:first-child').classList.add('active');
-                document.getElementById('panel-manual').classList.add('show');
-            } else {
-                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-                document.getElementById('panel-scan').classList.add('show');
-            }
+            document.getElementById('panel-' + mode).classList.add('show');
+            if (mode === 'song') renderSongList();
         }
 
         function selRoot(r) { tempR = r; updatePreview(); markPad(); }
         function selType(t) { tempT = t; updatePreview(); markPad(); }
         function markPad() {
-            document.querySelectorAll('.chord-pad .input-btn').forEach(b => b.classList.toggle('active', b.innerText.trim() === tempR));
+            document.querySelectorAll('.chord-pad .input-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === tempR));
             const typeLabel = { '': 'Maj', 'm': 'min', '7': '7' }[tempT];
-            document.querySelectorAll('.type-pad .input-btn').forEach(b => b.classList.toggle('active', b.innerText.trim() === typeLabel));
+            document.querySelectorAll('.type-pad .input-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === typeLabel));
         }
         function updatePreview() { document.getElementById('preview-chord').innerText = tempR + tempT; }
         
         function addChordManual() { try { addChordToData(tempR, tempT); } catch(e) { alert('코드 넣기 오류: ' + e.message); console.error(e); } }
-        function runScanSimulation() {
-            chordList = [];
-            addChordToData('C', ''); addChordToData('G', ''); addChordToData('A', 'm'); addChordToData('F', '');
+
+
+        const FLAT2SHARP = { 'C#':'Db', 'D#':'Eb', 'F#':'Gb', 'G#':'Ab', 'A#':'Bb' };
+        function parseChordToken(tok) {
+            const m = tok.trim().match(/^([A-G][#b]?)(maj7|m7|M7|dim|sus4|sus2|m|7)?$/i);
+            if (!m) return null;
+            let root = m[1][0].toUpperCase() + (m[1][1] || '');
+            root = FLAT2SHARP[root] || root; if (!keys.includes(root)) return null;
+            const q = (m[2] || '').toLowerCase();
+            const type = q === 'm' || q === 'm7' || q === 'dim' ? 'm' : q === '7' ? '7' : '';
+            return { root, type, name: root + (m[2] || '') };
+        }
+        function applyChordText() {
+            const raw = document.getElementById('chordText').value.replace(/\|/g, ' ').trim();
+            if (!raw) return;
+            if (autoPlaying) stopAuto();
+            const bars = raw.split(/\s+/).map(tok => tok.split('/').map(parseChordToken).filter(Boolean)).filter(b => b.length);
+            if (!bars.length) { alert('읽을 수 있는 코드가 없어요. 예: C G Am F'); return; }
+            chordList = bars.map(b => b.length === 1 ? { ...b[0] } : { name: b.map(c=>c.name).join('/'), root: b[0].root, type: b[0].type, second: b[1] });
+            currentIdx = 0; renderScoreBoard(); updateGuide();
+            document.getElementById('importMsg').textContent = `${chordList.length}마디를 넣었어요`;
+        }
+        // 저장·불러오기
+        const SONG_KEY = 'eaim_keyboard_songs';
+        function loadSongs(){ try { return JSON.parse(localStorage.getItem(SONG_KEY) || '[]'); } catch { return []; } }
+        function saveSong() {
+            const name = document.getElementById('songName').value.trim(); if (!name) { alert('곡 이름을 적어주세요'); return; }
+            if (!chordList.length) { alert('저장할 코드가 없어요'); return; }
+            const list = loadSongs().filter(x => x.name !== name);
+            list.unshift({ name, chords: chordList, key: songKey, rhythm: currentRhythm, bpm: Tone.Transport.bpm.value, ts: Date.now() });
+            localStorage.setItem(SONG_KEY, JSON.stringify(list)); renderSongList();
+        }
+        const RHYTHM_LABEL = { none:'반주 없음', whole:'온음', '4beat':'4비트', '8beat':'8비트', ballad:'발라드', arp:'아르페지오', waltz:'왈츠' };
+        function setRhythmByName(name) {
+            const btn = [...document.querySelectorAll('.opt-btn.rhythm')].find(b => b.getAttribute('onclick').includes(`'${name}'`));
+            if (btn) setRhythm(name, btn);
+        }
+        function loadSong(sng) {
+            if (autoPlaying) stopAuto();
+            chordList = JSON.parse(JSON.stringify(sng.chords));
+            songKey = sng.key || 0; document.querySelectorAll('.key-btn').forEach((b,j)=>b.classList.toggle('active', j===songKey));
+            if (sng.rhythm) setRhythmByName(sng.rhythm);
+            if (sng.bpm) { document.getElementById('bpm').value = Math.round(sng.bpm); setBpm(Math.round(sng.bpm)); }
+            document.getElementById('songName').value = sng.name;
+            currentIdx = 0; renderScoreBoard(); updateGuide();
             setTab('manual');
+            document.getElementById('score-board').scrollIntoView({ behavior:'smooth', block:'center' });
+        }
+        function renderSongList() {
+            const el = document.getElementById('songList'); const list = loadSongs();
+            el.innerHTML = list.length ? '' : '<div style="color:#888; font-size:0.9rem; text-align:center;">저장된 곡이 없어요</div>';
+            list.forEach((sng, i) => {
+                const row = document.createElement('div'); row.className = 'song-row';
+                row.innerHTML = `<span class="nm">🎵 ${sng.name} <small style="color:#888">(${sng.chords.length}마디 · ${RHYTHM_LABEL[sng.rhythm] || '반주 없음'})</small></span><button style="background:#2ecc71;color:#fff;border-color:#2ecc71">▶ 바로 연주</button><button>불러오기</button><button>삭제</button>`;
+                const btns = row.querySelectorAll('button');
+                btns[0].onclick = () => { loadSong(sng); if (currentRhythm === 'none') setRhythmByName('ballad'); startAuto(); };
+                btns[1].onclick = () => loadSong(sng);
+                btns[2].onclick = () => { if (!confirm(`"${sng.name}"을 지울까요?`)) return; const l = loadSongs(); l.splice(i,1); localStorage.setItem(SONG_KEY, JSON.stringify(l)); renderSongList(); };
+                el.appendChild(row);
+            });
+        }
+        // 프로덕션(뮤지컬메이커) 넘버 → Gemini가 코드 진행 생성
+        async function importFromProduction() {
+            const msg = document.getElementById('importMsg');
+            let d = null; try { d = JSON.parse(localStorage.getItem('mm_draft') || localStorage.getItem('eaim_musical_data') || 'null'); } catch {}
+            const apiKey = (localStorage.getItem('mm_teacher_api') || '').trim();
+            if (!d) { msg.textContent = '뮤지컬메이커 작품이 이 기기에 없어요. 같은 브라우저에서 뮤지컬메이커를 먼저 열어주세요.'; return; }
+            if (!apiKey) { msg.textContent = 'API 키가 없어요. 뮤지컬메이커(선생님 로그인 또는 초대 링크)를 먼저 열면 이 기기에 남아요.'; return; }
+            const numbers = [];
+            if (d.opening?.songTitle) numbers.push({ label: '오프닝 · ' + d.opening.songTitle, lyrics: d.opening.lyrics, style: d.opening.sunoPrompt });
+            (d.scenes || []).forEach((sc, i) => { if (sc.songTitle) numbers.push({ label: `${i+1}막 · ${sc.songTitle}`, lyrics: sc.lyrics, style: sc.sunoPrompt }); });
+            if (d.curtain?.songTitle) numbers.push({ label: '커튼콜 · ' + d.curtain.songTitle, lyrics: d.curtain.lyrics, style: d.curtain.sunoPrompt });
+            if (d.song?.title) numbers.push({ label: '낭독극 · ' + d.song.title, lyrics: d.song.lyrics, style: d.song.sunoPrompt });
+            if (!numbers.length) { msg.textContent = '작품에 넘버가 없어요.'; return; }
+            const pick = prompt('어느 넘버의 코드를 받을까요? 번호를 입력하세요.\n' + numbers.map((n,i)=>`${i+1}. ${n.label}`).join('\n'), '1');
+            const n = numbers[Number(pick) - 1]; if (!n) return;
+            msg.textContent = '코드 진행을 만들고 있어요…';
+            try {
+                const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', { method:'POST', headers:{ 'Content-Type':'application/json', 'x-goog-api-key': apiKey },
+                    body: JSON.stringify({ contents:[{ parts:[{ text:
+`중학생 뮤지컬 넘버의 피아노 반주용 코드 진행을 만들어 주세요. 가사 한 줄을 대략 두 마디로 보고, 8~24마디 안에서 자연스러운 진행(다이아토닉 위주, I-V-vi-IV 같은 대중적 패턴)으로. 조는 C, G, D, F, Am, Em 중 하나.
+반드시 JSON만 출력: {"key":"C","bpm":90,"chords":"C G Am F | C G F C"}
+· chords는 마디를 공백으로 구분, 한 마디에 두 코드면 "C/G"
+· 코드는 C, Dm, G7 형태만 (복잡한 텐션 금지)
+
+곡 스타일: ${n.style || ''}
+가사:
+${(n.lyrics || '').trim()}` }] }], generationConfig:{ temperature:0.6, maxOutputTokens:400, responseMimeType:'application/json' } }) });
+                if (!res.ok) throw new Error('오류 ' + res.status);
+                const j = await res.json(); const txt = j.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('') || '';
+                const data = JSON.parse(txt.replace(/```json|```/g,'').trim());
+                document.getElementById('chordText').value = data.chords || '';
+                applyChordText();
+                const ki = keys.indexOf(FLAT2SHARP[(data.key||'C').replace('m','')] || (data.key||'C').replace('m',''));
+                if (ki >= 0) { songKey = 0; document.querySelectorAll('.key-btn').forEach((b,j)=>b.classList.toggle('active', j===0)); }
+                if (data.bpm) { document.getElementById('bpm').value = data.bpm; setBpm(data.bpm); }
+                document.getElementById('songName').value = n.label;
+                msg.textContent = `✅ "${n.label}" 코드 ${chordList.length}마디 (${data.key||''}, ${data.bpm||''} BPM) — 마음에 안 들면 위 칸에서 고쳐서 다시 넣기`;
+            } catch (e) { msg.textContent = '❌ ' + e.message; }
         }
 
         function addChordToData(root, type) {
@@ -484,10 +599,9 @@
                 div.className = `score-bar ${i === currentIdx ? 'active' : ''}`;
                 div.onclick = () => { currentIdx = i; renderScoreBoard(); updateGuide(); };
                 let num = document.createElement('span'); num.className = 'bar-number'; num.innerText = i + 1; div.appendChild(num);
-                let rootIdx = keys.indexOf(c.root);
-                let guideIdx = rootIdx - songKey;
-                if(guideIdx < 0) guideIdx += 12;
-                div.append(keys[guideIdx] + c.type);
+                const tr = (ch) => { let gi = keys.indexOf(ch.root) - songKey; if (gi < 0) gi += 12; return keys[gi] + ch.type; };
+                if (c.second) { div.classList.add('half'); div.append(tr(c)); const s2 = document.createElement('span'); s2.style.opacity = '.8'; s2.textContent = tr(c.second); div.appendChild(s2); }
+                else div.append(tr(c));
                 board.appendChild(div);
             });
             let activeEl = board.querySelector('.active');
