@@ -68,4 +68,75 @@
   }
 
   global.EAIMSound = { SampleKit, toneSampler, INSTRUMENTS, midi, nameOf, CDN };
+
+  /* ═══ 코드 이론 (요즘 팝·K-pop 코드까지) ═══ */
+  const PC = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const FLAT = { 'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#','Cb':'B','Fb':'E' };
+  const QUAL = {
+    '':[0,4,7], 'maj':[0,4,7], 'm':[0,3,7], 'min':[0,3,7], '-':[0,3,7],
+    '7':[0,4,7,10], 'maj7':[0,4,7,11], 'm7':[0,3,7,10], 'mmaj7':[0,3,7,11],
+    'sus2':[0,2,7], 'sus4':[0,5,7], 'sus':[0,5,7], '7sus4':[0,5,7,10], '9sus4':[0,5,7,10,14],
+    'add9':[0,4,7,14], 'add2':[0,4,7,14], 'madd9':[0,3,7,14], 'add4':[0,4,5,7], 'add11':[0,4,7,17],
+    '2':[0,4,7,14], 'sus2sus4':[0,2,5,7], 'add2sus4':[0,2,5,7],
+    '9':[0,4,7,10,14], 'm9':[0,3,7,10,14], 'maj9':[0,4,7,11,14], 'add9maj7':[0,4,7,11,14],
+    '6':[0,4,7,9], 'm6':[0,3,7,9], '69':[0,4,7,9,14], '6/9':[0,4,7,9,14],
+    'dim':[0,3,6], 'dim7':[0,3,6,9], 'm7b5':[0,3,6,10], 'ø':[0,3,6,10], 'aug':[0,4,8], '+':[0,4,8],
+    '7b9':[0,4,7,10,13], '11':[0,4,7,10,14,17], '13':[0,4,7,10,14,21],
+  };
+  function parseChord(tok) {
+    if (!tok) return null;
+    let t = String(tok).trim().replace(/[()]/g,'').replace(/△|Δ/g,'maj7').replace(/°/g,'dim');
+    const m = t.match(/^([A-G][#b]?)(.*?)(?:\/([A-G][#b]?))?$/);
+    if (!m) return null;
+    const norm = (r) => { r = r[0].toUpperCase() + (r[1] || ''); return FLAT[r] || r; };
+    const root = norm(m[1]); if (!PC.includes(root)) return null;
+    let q = (m[2] || '').replace(/M7/g,'maj7').replace(/Maj/g,'maj').replace(/MAJ/g,'maj').replace(/mi(?=n?7|n?$)/,'m').replace(/min/,'m');
+    if (!(q in QUAL)) { q = q.toLowerCase(); if (!(q in QUAL)) { const base = q.replace(/[^a-z0-9#+ø]/g,''); if (!(base in QUAL)) return null; q = base; } }
+    const bass = m[3] ? norm(m[3]) : null;
+    const iv = QUAL[q];
+    const type = iv[1] === 3 ? 'm' : (iv.includes(10) ? '7' : '');   // 옛 앱 호환용 단순 분류
+    return { root, quality: q, intervals: iv, bass, type, name: root + q + (bass ? '/' + bass : '') };
+  }
+  const pcOf = (root, iv) => PC[(PC.indexOf(root) + iv) % 12];
+  const tones = (c) => c.intervals.map(i => pcOf(c.root, i));
+  /** 연주용 음 배열 (옥타브 포함). 9·11·13은 위 옥타브, 베이스는 따로 */
+  function voicing(c, oct = 4) {
+    const ri = PC.indexOf(c.root);
+    return c.intervals.map(i => { const n = ri + i; return PC[n % 12] + (oct + Math.floor(n / 12)); });
+  }
+  const bassNote = (c, oct = 2) => (c.bass || c.root) + oct;
+  /** 단순화: 트라이어드로 */
+  const simplify = (c) => ({ ...c, quality: c.type === 'm' ? 'm' : '', intervals: c.type === 'm' ? [0,3,7] : [0,4,7], name: c.root + (c.type === 'm' ? 'm' : '') + (c.bass ? '/' + c.bass : '') });
+
+  /* ═══ 반주 패턴 (박 단위 이벤트) — 요즘 팝 위주 ═══
+     각 이벤트: { at: 박(0부터, 소수 가능), what: 'bass'|'chord'|'top'|'arp:i'|'stab', len: 박, vel: 0~1 } */
+  const PATTERNS = {
+    whole:   { name:'온음 (한 번)',        beats:4, ev:[{at:0,what:'bass',len:4,vel:.8},{at:0,what:'chord',len:4,vel:.6}] },
+    beat4:   { name:'4비트',               beats:4, ev:[0,1,2,3].map(b=>({at:b,what:'chord',len:.5,vel:.6})) },
+    beat8:   { name:'8비트',               beats:4, ev:[0,.5,1,1.5,2,2.5,3,3.5].map(b=>({at:b,what:'chord',len:.3,vel:b%1?.4:.6})) },
+    ballad:  { name:'발라드 (쿵 짝짝짝)',   beats:4, ev:[{at:0,what:'bass',len:1,vel:.9},{at:1,what:'top',len:.8,vel:.55},{at:2,what:'top',len:.8,vel:.55},{at:3,what:'top',len:.8,vel:.55}] },
+    kpop:    { name:'K-pop 발라드 아르페지오', beats:4, ev:[{at:0,what:'bass',len:4,vel:.8},{at:0,what:'arp:0',len:.6,vel:.6},{at:.5,what:'arp:2',len:.6,vel:.5},{at:1,what:'arp:top',len:.6,vel:.55},{at:1.5,what:'arp:2',len:.6,vel:.45},{at:2,what:'arp:1',len:.6,vel:.5},{at:2.5,what:'arp:2',len:.6,vel:.45},{at:3,what:'arp:top',len:.6,vel:.55},{at:3.5,what:'arp:2',len:.6,vel:.45}] },
+    pop16:   { name:'16비트 팝 (싱커페이션)', beats:4, ev:[{at:0,what:'bass',len:1.5,vel:.9},{at:0,what:'chord',len:1.2,vel:.65},{at:1.5,what:'chord',len:.4,vel:.5},{at:2,what:'bass',len:1.5,vel:.9},{at:2,what:'chord',len:.9,vel:.6},{at:2.75,what:'stab',len:.25,vel:.45},{at:3.5,what:'chord',len:.5,vel:.55},{at:3.5,what:'bass',len:.5,vel:.8}] },
+    rnb:     { name:'R&B 그루브',           beats:4, ev:[{at:0,what:'bass',len:1,vel:.9},{at:0,what:'chord',len:.6,vel:.6},{at:1.5,what:'stab',len:.3,vel:.45},{at:2.5,what:'bass',len:.5,vel:.8},{at:2.5,what:'chord',len:.9,vel:.6},{at:3.75,what:'stab',len:.25,vel:.4}] },
+    dance:   { name:'댄스 (4온더플로어)',    beats:4, ev:[{at:0,what:'bass',len:.5,vel:.9},{at:1,what:'bass',len:.5,vel:.9},{at:2,what:'bass',len:.5,vel:.9},{at:3,what:'bass',len:.5,vel:.9},{at:.5,what:'stab',len:.3,vel:.55},{at:1.5,what:'stab',len:.3,vel:.55},{at:2.5,what:'stab',len:.3,vel:.55},{at:3.5,what:'stab',len:.3,vel:.55}] },
+    synth:   { name:'신스팝 (패드 + 스탭)',   beats:4, ev:[{at:0,what:'chord',len:4,vel:.35},{at:0,what:'bass',len:.75,vel:.9},{at:.75,what:'bass',len:.5,vel:.7},{at:1.5,what:'bass',len:.5,vel:.9},{at:2.5,what:'bass',len:.5,vel:.9},{at:3.25,what:'bass',len:.5,vel:.7},{at:1.5,what:'stab',len:.3,vel:.5},{at:3.5,what:'stab',len:.3,vel:.5}] },
+    waltz:   { name:'왈츠 3박',             beats:3, ev:[{at:0,what:'bass',len:1,vel:.9},{at:1,what:'top',len:.8,vel:.55},{at:2,what:'top',len:.8,vel:.55}] },
+  };
+  /** 패턴 이벤트를 실제 음으로 풀기. play(notesArray, atBeat, lenBeat, vel) 콜백 */
+  function renderPattern(patKey, c, play, beats) {
+    const P = PATTERNS[patKey] || PATTERNS.beat4;
+    const v = voicing(c, 4), top = v.slice(1), bass = bassNote(c, 2), bassHi = bassNote(c, 3);
+    const stab = v.length >= 4 ? v.slice(1) : v;                     // 텐션 있는 코드는 3음 이상 위 성부만
+    const arpSet = v.length >= 4 ? [bassHi, v[1], v[2], v[3]] : [bassHi, v[1], v[2], v[0].replace(/\d/, m => +m + 1)];
+    const nb = beats || P.beats;
+    P.ev.forEach(e => {
+      if (e.at >= nb) return;
+      if (e.what === 'bass') play([bass], e.at, e.len, e.vel);
+      else if (e.what === 'chord') play(v, e.at, e.len, e.vel);
+      else if (e.what === 'top') play(top, e.at, e.len, e.vel);
+      else if (e.what === 'stab') play(stab, e.at, e.len, e.vel);
+      else if (e.what.startsWith('arp:')) { const k = e.what.slice(4); play([k === 'top' ? arpSet[3] : arpSet[+k]], e.at, e.len, e.vel); }
+    });
+  }
+  global.EAIMChord = { parse: parseChord, tones, voicing, bassNote, simplify, PATTERNS, renderPattern, PC, QUAL };
 })(window);

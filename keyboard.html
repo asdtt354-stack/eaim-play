@@ -128,12 +128,15 @@
             <div class="control-row">
                 <span class="control-label">반주</span>
                 <button class="opt-btn rhythm active" onclick="setRhythm('none', this)">없음</button>
-                <button class="opt-btn rhythm" onclick="setRhythm('whole', this)">온음 (한 번)</button>
-                <button class="opt-btn rhythm" onclick="setRhythm('4beat', this)">4비트 ♩♩♩♩</button>
-                <button class="opt-btn rhythm" onclick="setRhythm('8beat', this)">8비트 ♪♪♪♪</button>
-                <button class="opt-btn rhythm" onclick="setRhythm('ballad', this)">발라드 (쿵·짝짝짝)</button>
-                <button class="opt-btn rhythm" onclick="setRhythm('arp', this)">아르페지오</button>
-                <button class="opt-btn rhythm" onclick="setRhythm('waltz', this)">왈츠 3박 (쿵·짝·짝)</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('kpop', this)">K-pop 발라드</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('pop16', this)">16비트 팝</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('rnb', this)">R&B</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('dance', this)">댄스</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('synth', this)">신스팝</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('ballad', this)">발라드 기본</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('beat8', this)">8비트</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('whole', this)">온음</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('waltz', this)">왈츠 3박</button>
             </div>
         </div>
 
@@ -162,19 +165,24 @@
                 <button class="input-btn" onclick="selRoot('A')">A</button>
                 <button class="input-btn" onclick="selRoot('B')">B</button>
             </div>
-            <div class="type-pad">
+            <div class="type-pad" style="flex-wrap:wrap;">
                 <button class="input-btn" style="flex:1" onclick="selType('')">Maj</button>
-                <button class="input-btn" style="flex:1" onclick="selType('m')">min</button>
+                <button class="input-btn" style="flex:1" onclick="selType('m')">m</button>
                 <button class="input-btn" style="flex:1" onclick="selType('7')">7</button>
+                <button class="input-btn" style="flex:1" onclick="selType('maj7')">maj7</button>
+                <button class="input-btn" style="flex:1" onclick="selType('m7')">m7</button>
+                <button class="input-btn" style="flex:1" onclick="selType('add9')">add9</button>
+                <button class="input-btn" style="flex:1" onclick="selType('sus2')">sus2</button>
+                <button class="input-btn" style="flex:1" onclick="selType('sus4')">sus4</button>
             </div>
             <button class="btn-add" onclick="addChordManual()">⬇️ 넣기 (<span id="preview-chord">C</span>)</button>
         </div>
 
         <div id="panel-text" class="panel">
-            <textarea id="chordText" class="chord-text" placeholder="예)  C  G  Am  F | C  G  F  C
-· 띄어쓰기로 코드를 나누고, | 는 줄 바꿈(안 써도 됨)
-· 한 마디에 코드 둘이면  C/G  처럼 붙여 쓰기
-· 마이너 m, 7화음 7  (예: Am, G7, Dm7)"></textarea>
+            <textarea id="chordText" class="chord-text" placeholder="예)  Cadd9  G/B  Am7  Fmaj7 | Dm7  G7sus4  Cmaj7  C
+· 띄어쓰기 = 마디, | 는 보기용
+· 한 마디에 코드 둘이면  C-G  (붙임표)
+· add9, sus2, sus4, maj7, m7, 9, 6, dim 다 돼요. 분수코드 G/B 도 OK"></textarea>
             <div style="display:flex; gap:6px;">
                 <button class="btn-add" onclick="applyChordText()">⬇ 이 진행으로 넣기</button>
                 <button class="btn-add" style="background:#8e44ad;" onclick="importFromProduction()" title="뮤지컬메이커에서 만든 넘버의 코드 진행을 Gemini가 만들어 줘요">🎬 프로덕션 넘버 코드 받기</button>
@@ -340,9 +348,7 @@
             // 현재 코드 소리 (리듬 반주용)
             let chordNotes = null;
             if(currentIdx !== -1 && chordList[currentIdx]) {
-                let target = chordList[currentIdx];
-                let scale = target.type === 'm' ? [0, 3, 7] : target.type === '7' ? [0, 4, 7, 10] : [0, 4, 7];
-                chordNotes = scale.map(interval => Tone.Frequency(target.root + "4").transpose(interval).toNote());
+                chordNotes = chordNotesOf(chordList[currentIdx]);
             }
             // 리듬이 꺼져 있으면 누른 음이 그대로 나고, 리듬을 켜면 코드 반주 패턴이 나옴
             let targetNotes = (currentRhythm === 'none' || !chordNotes || autoPlaying) ? single : chordNotes;
@@ -368,54 +374,34 @@
 
         function startRhythmPattern(notes) {
             Tone.Transport.stop(); Tone.Transport.cancel();
-            let pattern = rhythmPatterns[currentRhythm];
-            const root = notes[0], upper = notes.slice(1);
-            const bass = Tone.Frequency(root).transpose(-12).toNote(); // 한 옥타브 아래 베이스
-
-            if(currentRhythm === 'whole') {
-                new Tone.Loop(time => { synth.triggerAttackRelease([bass, ...notes], "1m", time); }, "1m").start(0);
-            }
-            else if(currentRhythm === '4beat') {
-                new Tone.Loop(time => { synth.triggerAttackRelease(notes, "8n", time); }, "4n").start(0);
-            }
-            else if(currentRhythm === '8beat') {
-                new Tone.Loop(time => { synth.triggerAttackRelease(notes, "16n", time); }, "8n").start(0);
-            }
-            else if(currentRhythm === 'ballad') {
-                // 쿵(베이스) · 짝짝짝(코드) — 4박
-                new Tone.Sequence((time, grp) => { synth.triggerAttackRelease(grp, "8n", time); }, [[bass, root], upper, upper, upper], "4n").start(0);
-            }
-            else if(currentRhythm === 'arp') {
-                const seq = notes.length === 4 ? [0,1,2,3,2,1] : [0,1,2,1];
-                new Tone.Sequence((time, noteIdx) => {
-                    if(notes[noteIdx]) synth.triggerAttackRelease(notes[noteIdx], "8n", time);
-                }, seq, "8n").start(0);
-            }
-            else if(currentRhythm === 'waltz') {
-                new Tone.Sequence((time, grp) => { synth.triggerAttackRelease(grp, "8n", time); }, [[bass, root], upper, upper], "4n").start(0);
-            }
+            const c = (currentIdx !== -1 && chordList[currentIdx]) ? transposed(chordList[currentIdx]) : EAIMChord.parse(Tone.Frequency(notes[0]).toNote().replace(/\d/,''));
+            const P = EAIMChord.PATTERNS[currentRhythm] || EAIMChord.PATTERNS.beat4;
+            Tone.Transport.timeSignature = P.beats;
+            const beat = Tone.Time('4n').toSeconds();
+            new Tone.Loop((time) => {
+                EAIMChord.renderPattern(currentRhythm, c, (ns, at, len, vel) => synth.triggerAttackRelease(ns, len * beat, time + at * beat, vel), P.beats);
+            }, '1m').start(0);
             Tone.Transport.start();
         }
 
         // ══ 자동 반주: 마디마다 코드가 넘어가며 반주 패턴이 흐름 ══
         let autoPlaying = false, autoLoop = null, autoIdx = 0;
         let metro = null;
-        function chordNotesOf(c) {
-            const iv = c.type === 'm' ? [0,3,7] : c.type === '7' ? [0,4,7,10] : [0,4,7];
-            const gi = ((keys.indexOf(c.root) - songKey) + 12) % 12;      // 악보 Key 반영
-            const rootName = keys[gi] + '4';
-            return iv.map(i => Tone.Frequency(rootName).transpose(i).toNote());
+        function transposed(c) {   // 악보 Key 만큼 옮긴 코드 객체
+            const sh = (r) => keys[((keys.indexOf(r) - songKey) + 12) % 12];
+            return { ...c, root: sh(c.root), bass: c.bass ? sh(c.bass) : null, intervals: c.intervals || (c.type === 'm' ? [0,3,7] : c.type === '7' ? [0,4,7,10] : [0,4,7]) };
         }
+        function chordNotesOf(c) { return EAIMChord.voicing(transposed(c), 4); }
         function setBpm(v) { Tone.Transport.bpm.value = Number(v); document.getElementById('bpmLbl').textContent = v; }
         function toggleAuto() {
             if (autoPlaying) { stopAuto(); return; }
             if (chordList.length === 0) { alert('먼저 코드를 넣어주세요 (예: C · Dm · G · C)'); return; }
-            if (currentRhythm === 'none') { alert('반주 종류를 하나 고르세요 (4비트, 발라드 등)'); return; }
+            if (currentRhythm === 'none') { alert('반주 종류를 하나 고르세요 (K-pop 발라드, 16비트 팝 등)'); return; }
             startAuto();
         }
         function startAuto() {
             Tone.Transport.stop(); Tone.Transport.cancel(); synth.releaseAll();
-            const isWaltz = currentRhythm === 'waltz';
+            const isWaltz = (EAIMChord.PATTERNS[currentRhythm] || {}).beats === 3;
             Tone.Transport.timeSignature = isWaltz ? 3 : 4;
             if (!metro) { metro = new Tone.Synth({ oscillator:{type:'sine'}, envelope:{attack:0.001, decay:0.05, sustain:0, release:0.02} }).connect(vol); metro.volume.value = -8; }
             autoIdx = 0; autoPlaying = true;
@@ -431,15 +417,7 @@
                 const c = chordList[autoIdx];
                 const hit = (grp, t, dur) => synth.triggerAttackRelease(grp, dur, t);
                 const playChord = (ch, t0, nb) => {   // nb = 이 코드가 차지하는 박 수
-                    const notes = chordNotesOf(ch), root = notes[0], upper = notes.slice(1), bass = Tone.Frequency(root).transpose(-12).toNote();
-                    switch (currentRhythm) {
-                        case 'whole':  hit([bass, ...notes], t0, nb * beat); break;
-                        case '4beat':  for (let b = 0; b < nb; b++) hit(notes, t0 + b*beat, '8n'); break;
-                        case '8beat':  for (let b = 0; b < nb*2; b++) hit(notes, t0 + b*beat/2, '16n'); break;
-                        case 'ballad': hit([bass, root], t0, '8n'); for (let b = 1; b < nb; b++) hit(upper, t0 + b*beat, '8n'); break;
-                        case 'arp':    { const seq = notes.length === 4 ? [0,1,2,3,2,1,0,1] : [0,1,2,1,0,1,2,1]; for (let b = 0; b < nb*2; b++) hit(notes[seq[b % seq.length]], t0 + b*beat/2, '8n'); } break;
-                        case 'waltz':  hit([bass, root], t0, '8n'); for (let b = 1; b < nb; b++) hit(upper, t0 + b*beat, '8n'); break;
-                    }
+                    EAIMChord.renderPattern(currentRhythm, transposed(ch), (ns, at, len, vel) => { if (at < nb) synth.triggerAttackRelease(ns, Math.min(len, nb - at) * beat, t0 + at * beat, vel); }, nb);
                 };
                 if (c.second) { const half = Math.floor(beats/2); playChord(c, time, half); playChord(c.second, time + half*beat, beats - half); }
                 else playChord(c, time, beats);
@@ -477,7 +455,7 @@
         function selType(t) { tempT = t; updatePreview(); markPad(); }
         function markPad() {
             document.querySelectorAll('.chord-pad .input-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === tempR));
-            const typeLabel = { '': 'Maj', 'm': 'min', '7': '7' }[tempT];
+            const typeLabel = tempT === '' ? 'Maj' : tempT;
             document.querySelectorAll('.type-pad .input-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === typeLabel));
         }
         function updatePreview() { document.getElementById('preview-chord').innerText = tempR + tempT; }
@@ -487,21 +465,16 @@
 
         const FLAT2SHARP = { 'C#':'Db', 'D#':'Eb', 'F#':'Gb', 'G#':'Ab', 'A#':'Bb' };
         function parseChordToken(tok) {
-            const m = tok.trim().match(/^([A-G][#b]?)(maj7|m7|M7|dim|sus4|sus2|m|7)?$/i);
-            if (!m) return null;
-            let root = m[1][0].toUpperCase() + (m[1][1] || '');
-            root = FLAT2SHARP[root] || root; if (!keys.includes(root)) return null;
-            const q = (m[2] || '').toLowerCase();
-            const type = q === 'm' || q === 'm7' || q === 'dim' ? 'm' : q === '7' ? '7' : '';
-            return { root, type, name: root + (m[2] || '') };
+            const c = EAIMChord.parse(tok); if (!c) return null;
+            return { root: c.root, type: c.type, quality: c.quality, intervals: c.intervals, bass: c.bass, name: c.name };
         }
         function applyChordText() {
             const raw = document.getElementById('chordText').value.replace(/\|/g, ' ').trim();
             if (!raw) return;
             if (autoPlaying) stopAuto();
-            const bars = raw.split(/\s+/).map(tok => tok.split('/').map(parseChordToken).filter(Boolean)).filter(b => b.length);
+            const bars = raw.split(/\s+/).map(tok => tok.split(/-(?=[A-G])/).map(parseChordToken).filter(Boolean)).filter(b => b.length);
             if (!bars.length) { alert('읽을 수 있는 코드가 없어요. 예: C G Am F'); return; }
-            chordList = bars.map(b => b.length === 1 ? { ...b[0] } : { name: b.map(c=>c.name).join('/'), root: b[0].root, type: b[0].type, second: b[1] });
+            chordList = bars.map(b => b.length === 1 ? { ...b[0] } : { ...b[0], name: b.map(c=>c.name).join(' - '), second: b[1] });
             currentIdx = 0; renderScoreBoard(); updateGuide();
             document.getElementById('importMsg').textContent = `${chordList.length}마디를 넣었어요`;
         }
@@ -515,7 +488,7 @@
             list.unshift({ name, chords: chordList, key: songKey, rhythm: currentRhythm, bpm: Tone.Transport.bpm.value, ts: Date.now() });
             localStorage.setItem(SONG_KEY, JSON.stringify(list)); renderSongList();
         }
-        const RHYTHM_LABEL = { none:'반주 없음', whole:'온음', '4beat':'4비트', '8beat':'8비트', ballad:'발라드', arp:'아르페지오', waltz:'왈츠' };
+        const RHYTHM_LABEL = Object.fromEntries(Object.entries(EAIMChord.PATTERNS).map(([k,p]) => [k, p.name])); RHYTHM_LABEL.none = '반주 없음';
         function setRhythmByName(name) {
             const btn = [...document.querySelectorAll('.opt-btn.rhythm')].find(b => b.getAttribute('onclick').includes(`'${name}'`));
             if (btn) setRhythm(name, btn);
@@ -565,8 +538,8 @@
                     body: JSON.stringify({ contents:[{ parts:[{ text:
 `중학생 뮤지컬 넘버의 피아노 반주용 코드 진행을 만들어 주세요. 가사 한 줄을 대략 두 마디로 보고, 8~24마디 안에서 자연스러운 진행(다이아토닉 위주, I-V-vi-IV 같은 대중적 패턴)으로. 조는 C, G, D, F, Am, Em 중 하나.
 반드시 JSON만 출력: {"key":"C","bpm":90,"chords":"C G Am F | C G F C"}
-· chords는 마디를 공백으로 구분, 한 마디에 두 코드면 "C/G"
-· 코드는 C, Dm, G7 형태만 (복잡한 텐션 금지)
+· chords는 마디를 공백으로 구분, 한 마디에 두 코드면 "C-G" (붙임표)
+· 요즘 K-pop처럼 add9, sus4, maj7, m7, 분수코드(G/B)를 자연스럽게 섞어도 좋음. dim·aug·13 같은 건 금지
 
 곡 스타일: ${n.style || ''}
 가사:
@@ -585,7 +558,8 @@ ${(n.lyrics || '').trim()}` }] }], generationConfig:{ temperature:0.6, maxOutput
         }
 
         function addChordToData(root, type) {
-            chordList.push({ name: root+type, root: root, type: type });
+            const c = parseChordToken(root + type) || { name: root+type, root, type, quality: type, intervals: [0,4,7] };
+            chordList.push(c);
             renderScoreBoard();
             if(currentIdx === -1) { currentIdx = 0; renderScoreBoard(); updateGuide(); }
         }
@@ -599,7 +573,7 @@ ${(n.lyrics || '').trim()}` }] }], generationConfig:{ temperature:0.6, maxOutput
                 div.className = `score-bar ${i === currentIdx ? 'active' : ''}`;
                 div.onclick = () => { currentIdx = i; renderScoreBoard(); updateGuide(); };
                 let num = document.createElement('span'); num.className = 'bar-number'; num.innerText = i + 1; div.appendChild(num);
-                const tr = (ch) => { let gi = keys.indexOf(ch.root) - songKey; if (gi < 0) gi += 12; return keys[gi] + ch.type; };
+                const tr = (ch) => { const t = transposed(ch); return t.root + (ch.quality ?? ch.type) + (t.bass ? '/' + t.bass : ''); };
                 if (c.second) { div.classList.add('half'); div.append(tr(c)); const s2 = document.createElement('span'); s2.style.opacity = '.8'; s2.textContent = tr(c.second); div.appendChild(s2); }
                 else div.append(tr(c));
                 board.appendChild(div);
@@ -623,7 +597,7 @@ ${(n.lyrics || '').trim()}` }] }], generationConfig:{ temperature:0.6, maxOutput
             let guideIdx = rootIdx - songKey;
             if(guideIdx < 0) guideIdx += 12;
             let guideRoot = keys[guideIdx];
-            let iv = target.type === 'm' ? [0,3,7] : target.type === '7' ? [0,4,7,10] : [0,4,7];
+            let iv = target.intervals || (target.type === 'm' ? [0,3,7] : target.type === '7' ? [0,4,7,10] : [0,4,7]);
             let notes = iv.map(i => keys[(keys.indexOf(guideRoot)+i)%12]);
             notes.forEach(n => {
                 let map = n + "4";
