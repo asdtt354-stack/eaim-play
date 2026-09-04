@@ -106,6 +106,7 @@ textarea.in{width:100%;background:var(--panel2);border:1px solid var(--line);bor
   <div class="row" style="justify-content:center;margin-top:12px">
     <button class="btn r" id="recBtn" onclick="recordBar()">🔴 이 마디 녹음</button>
     <button class="btn" onclick="clearBar()">🧹 이 마디 지우기</button>
+    <button class="btn" onclick="resetAll()">🔄 전부 지우기</button>
     <label><input type="checkbox" id="fix" checked> 프로듀서 도깨비 (틀린 음 코드 음으로)</label>
     <label><input type="checkbox" id="quant" checked> 8분음표 맞춤</label>
   </div>
@@ -123,7 +124,7 @@ textarea.in{width:100%;background:var(--panel2);border:1px solid var(--line);bor
     <label><input type="checkbox" id="withBand" checked> 밴드 반주</label>
     <label>멜로디 악기 <select id="leadInst" style="background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 6px"><option value="piano">피아노</option><option value="epiano">일렉 피아노</option><option value="vibraphone">비브라폰</option><option value="flute">플루트</option><option value="synth">신스</option></select></label>
   </div>
-  <div class="row" style="justify-content:center;margin-top:10px"><button class="btn" onclick="addSection()">➕ 4마디 더 (2절)</button><button class="btn" onclick="exportWav()">💾 WAV 저장</button></div>
+  <div class="row" style="justify-content:center;margin-top:10px"><button class="btn" onclick="addSection()">➕ 4마디 더 (2절)</button><button class="btn" onclick="exportWav()">💾 WAV 저장</button><button class="btn" onclick="resetAll()">🔄 처음부터</button></div>
 </div><div class="nav"><button class="btn" onclick="go(3)">← 녹음</button><button class="btn p" onclick="go(5)">일지 쓰기 →</button></div></section>
 
 <!-- 5 일지 -->
@@ -195,7 +196,7 @@ function loadLead(inst){const k=new EAIMSound.SampleKit(ctx,inst,{low:55,high:88
 $('leadInst').onchange=e=>loadLead(e.target.value);
 const held={};
 function keyDown(n){if(!ctx)return;let play=n;if(rec.active&&$('fix').checked){play=fixNote(n,S.bars[rec.bar%S.bars.length]);if(play!==n)flash(play)}const k=leadKit&&leadKit.ready?leadKit:kits.piano;const r=k&&k.ready?k.play(play,ctx.currentTime,2,master,.8,{release:.4}):null;held[n]={r,t:ctx.currentTime,play};
- if(rec.active){const at=(ctx.currentTime-rec.t0)/beatSec();if(at>=-0.08&&at<4)rec.buf.push({at:Math.max(0,at),note:play})}}
+ if(rec.active){const at=(ctx.currentTime-rec.t0)/beatSec();if(at>=-0.6&&at<3.9)rec.buf.push({at:Math.max(0,at),note:play})}}   // 첫 박을 살짝 앞서 쳐도(-0.6박) 0박으로 붙임
 function keyUp(n){const h=held[n];if(!h)return;if(h.r&&h.r.stop)h.r.stop();const dur=(ctx.currentTime-h.t)/beatSec();if(rec.active){const last=[...rec.buf].reverse().find(x=>x.note===h.play&&x.len===undefined);if(last)last.len=Math.max(.25,Math.min(dur,4-last.at))}delete held[n]}
 function flash(n){const k=document.querySelector(`.key[data-n="${n}"]`);if(!k)return;k.style.boxShadow='0 0 18px #d500f9';setTimeout(()=>k.style.boxShadow='',250)}
 function fixNote(n,c){const pc=n.replace(/\d/,''),oct=n.match(/\d/)[0];const t=C.tones(c);if(t.includes(pc))return n;const scale=majorScale(S.bars[0].root);if(scale.includes(pc)&&!rec.strict)return n; // 스케일 음은 살려둠 (지나가는 음)
@@ -219,11 +220,14 @@ function preview(){stopAll();const beat=beatSec();let t=ctx.currentTime+.1;S.bar
 
 /* ═════ 녹음 (③ 단계) ═════ */
 const rec={active:false,bar:0,t0:0,buf:[],strict:false};
-function recordBar(){if(!ctx)return;if(rec.active){stopAll();return}stopAll();const bar=sel,c=S.bars[bar%S.bars.length];const beat=beatSec();const t0=ctx.currentTime+.1;
+function recordBar(){if(!ctx)return;if(rec.active||$('recBtn').textContent.startsWith('■')){stopAll();$('msg3').textContent='취소했어요';return}stopAll();$('recBtn').textContent='■ 취소';const bar=sel,c=S.bars[bar%S.bars.length];const beat=beatSec();const t0=ctx.currentTime+.1;
  // 카운트인 한 마디
  for(let b=0;b<4;b++){click(t0+b*beat,b===0);timers.push(setTimeout(()=>{$('msg3').textContent=['하나','둘','셋','넷'][b]+' …';beatDot($('beat3'),b)},(b*beat+.1)*1000))}
  const tRec=t0+4*beat;bandBar(c,tRec,.7);for(let b=0;b<4;b++){click(tRec+b*beat,b===0);timers.push(setTimeout(()=>beatDot($('beat3'),b),(4*beat+b*beat+.1)*1000))}
- timers.push(setTimeout(()=>{rec.active=true;rec.bar=bar;rec.t0=tRec;rec.buf=[];S.notes=S.notes.filter(n=>n.bar!==bar);$('msg3').textContent='🔴 녹음 중 — 박에 맞춰 치세요';$('msg3').classList.add('rec');$('recBtn').textContent='■ 취소';document.querySelectorAll('#bars3 .bar')[bar]?.classList.add('rec');const fill=document.querySelectorAll('#bars3 .bar')[bar]?.querySelector('.fill');if(fill){fill.style.transition=`width ${4*beat}s linear`;fill.style.width='100%'}},(4*beat+.1)*1000));
+ // 녹음 창은 카운트인 '넷'의 중간부터 열림 (첫 박을 앞서 쳐도 잡히게). 표시는 5번째 박에.
+ rec.bar=bar;rec.t0=tRec;rec.buf=[];S.notes=S.notes.filter(n=>n.bar!==bar);
+ timers.push(setTimeout(()=>{rec.active=true},(3.5*beat+.1)*1000));
+ timers.push(setTimeout(()=>{$('msg3').textContent='🔴 녹음 중 — 박에 맞춰 치세요';$('msg3').classList.add('rec');$('recBtn').textContent='■ 취소';document.querySelectorAll('#bars3 .bar')[bar]?.classList.add('rec');const fill=document.querySelectorAll('#bars3 .bar')[bar]?.querySelector('.fill');if(fill){fill.style.transition=`width ${4*beat}s linear`;fill.style.width='100%'}},(4*beat+.1)*1000));
  timers.push(setTimeout(()=>{finishBar()},(8*beat+.15)*1000))}
 function finishBar(){if(!rec.active)return;rec.active=false;const q=$('quant').checked;const notes=rec.buf.map(n=>({bar:rec.bar,note:n.note,at:q?Math.round(n.at*2)/2:n.at,len:n.len||.5})).filter(n=>n.at<4);
  // 같은 자리에 겹친 음은 하나만 (격자 맞춤 때문에 생기는 중복)
@@ -233,6 +237,7 @@ function finishBar(){if(!rec.active)return;rec.active=false;const q=$('quant').c
  // 방금 녹음한 마디 바로 들려주기
  const t=ctx.currentTime+.3;bandBar(S.bars[rec.bar%S.bars.length],t,.6);melodyBar(rec.bar,t)}
 function clearBar(){S.notes=S.notes.filter(n=>n.bar!==sel);renderAll();toast('지웠어요')}
+function resetAll(){if(S.notes.length&&!confirm('녹음한 멜로디를 모두 지우고 처음부터 할까요? (기분·코드는 그대로)'))return;stopAll();S.notes=[];S.sections=1;sel=0;['j1','j2','j3'].forEach(id=>{const e=$(id);if(e)e.value=''});renderAll();toast('초기화됐어요')}
 function beatDot(el,b){el.querySelectorAll('i').forEach((d,k)=>d.classList.toggle('on',k===b))}
 
 /* ═════ 듣기 (④ 단계) ═════ */
