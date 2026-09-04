@@ -60,11 +60,11 @@
   }
 
   /* ── Tone.js용 ── */
-  function toneSampler(inst, { low = 36, high = 96, step = 3, release = 1 } = {}) {
+  function toneSampler(inst, { low = 36, high = 96, step = 3, release = 1, onload, onerror } = {}) {
     if (!global.Tone) throw new Error('Tone.js가 필요해요');
-    const urls = {}; for (let m = low; m <= high; m += step) urls[nameOf(m).replace('b', 'b')] = `${nameOf(m)}.mp3`;
-    // Tone.Sampler는 키 이름을 표준 표기로 받음 (Db4 등 그대로 사용 가능)
-    return new global.Tone.Sampler({ urls, baseUrl: `${CDN}${gm(inst)}-mp3/`, release });
+    const urls = {}; for (let m = low; m <= high; m += step) urls[nameOf(m)] = `${nameOf(m)}.mp3`;
+    // onload/onerror는 생성자 옵션으로만 동작함 (나중에 .onload = 를 붙여도 호출되지 않음)
+    return new global.Tone.Sampler({ urls, baseUrl: `${CDN}${gm(inst)}-mp3/`, release, onload, onerror });
   }
 
   global.EAIMSound = { SampleKit, toneSampler, INSTRUMENTS, midi, nameOf, CDN };
