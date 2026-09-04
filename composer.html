@@ -87,6 +87,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
 </style>
 </head>
 <body>
+<div id="errbar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:2000;background:#c0392b;color:#fff;padding:8px 12px;font-size:.85rem;text-align:center"></div>
 <div class="gate" id="gate"><h1>🎼 이야기 작곡실</h1><p>이야기를 통한 작곡 — 이야기에서 감정을 꺼내 4박 동기를 만들고, 반복과 변주로 한 곡으로 키워요. 소리를 켜려면 시작을 눌러주세요.</p><button onclick="startApp()">시작하기</button></div>
 <header><div class="logo">STORY ROOM</div><div class="tag">EAIM 연주실 · 이야기 작곡실 — 이야기를 통한 작곡</div></header>
 <div class="steps" id="steps"></div>
@@ -95,7 +96,8 @@ input[type=range]{accent-color:var(--gold);width:120px}
 <!-- 1 이야기 -->
 <section class="page on" id="p1"><div class="card">
   <h2>① 이야기</h2><div class="desc">오늘 음악으로 만들 이야기를 자유롭게 써요. 한 줄이어도 좋아요. 막히면 아래 힌트를 눌러 보세요.</div>
-  <div class="lbl">이야기 전체 (한 줄이어도 좋아요)</div><textarea class="in" id="story" placeholder="예: 비 오는 날 집에 가는 길, 우산이 없어서 뛰었는데 이상하게 신났다. 집에 오니 엄마가 수건을 들고 서 있었다"></textarea>
+  <div class="lbl">이야기 전체 (한 줄이어도 좋아요)</div><textarea class="in" id="story" oninput="const m=document.getElementById('storyMsg');if(m)m.style.display='none'" placeholder="예: 비 오는 날 집에 가는 길, 우산이 없어서 뛰었는데 이상하게 신났다. 집에 오니 엄마가 수건을 들고 서 있었다"></textarea>
+  <div id="storyMsg" class="st err" style="display:none"></div>
   <div class="chips" style="margin-top:6px">
     <div class="chip hint" onclick="hint('언제였나요? ')">언제</div><div class="chip hint" onclick="hint('어디서? ')">어디서</div><div class="chip hint" onclick="hint('누가? ')">누가</div><div class="chip hint" onclick="hint('무슨 일이? ')">무슨 일</div><div class="chip hint" onclick="hint('그때 마음은? ')">그때 마음</div><div class="chip hint" onclick="hint('그래서 어떻게 됐나요? ')">그래서</div>
   </div>
@@ -185,6 +187,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
 
 <script>
 'use strict';
+window.addEventListener('error',e=>{const b=document.getElementById('errbar');if(!b)return;b.style.display='block';b.textContent='⚠️ 오류: '+e.message+' ('+(e.lineno||'')+'줄) — 이 문구를 선생님께 알려주세요'});
 if(!window.EAIMSound||!window.EAIMChord||!window.EAIMKey){document.body.innerHTML='<div style="padding:40px;text-align:center;color:#fff;background:#141021;min-height:100vh"><h2>⚠️ play-sound.js / play-key.js 가 옛 버전이에요</h2></div>';throw new Error('deps')}
 const $=id=>document.getElementById(id);
 const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2000)};
@@ -199,13 +202,13 @@ const PIECES={A:'A 원형',A1:'A′ 리듬 잘게',A2:'A↑ 위로',A3:'A↔ 거
 const SCENE_NAMES=['처음','가운데','끝'];
 const DEFAULT_FORMS=[['A','A1','A','A1'],['B','B1','B','A3'],['A','A1','A2','A']];
 const S={emo:'happy',mode:'major',story:'',scene:null,scenes:[{emo:'happy',text:'',mode:'major',form:['A','A1','A','A1'],why:['','','','']},{emo:'excited',text:'',mode:'major',form:['B','B1','B','A3'],why:['','','','']},{emo:'calm',text:'',mode:'major',form:['A','A1','A2','A'],why:['','','','']}],motif:{A:[],B:[]},style:'pop16',progMajor:0,progMinor:0,lead:'piano',bpm:92,target:'A',len:1};
-try{const saved=JSON.parse(localStorage.getItem('eaim_story_state')||'{}');if(saved.scenes)Object.assign(S,saved);else{['motif','style','lead','bpm','story'].forEach(k=>{if(saved[k]!==undefined)S[k]=saved[k]})}}catch{}
+try{const saved=JSON.parse(localStorage.getItem('eaim_story_state')||'{}');if(Array.isArray(saved.scenes)&&saved.scenes.length===3)Object.assign(S,saved);else{['motif','style','lead','bpm','story'].forEach(k=>{if(saved[k]!==undefined)S[k]=saved[k]})}if(!S.motif||!Array.isArray(S.motif.A))S.motif={A:[],B:[]}}catch{}
 const persist=()=>localStorage.setItem('eaim_story_state',JSON.stringify(S));
 
 /* ═════ 단계 ═════ */
 const STEP=['이야기','동기','형식','입히기','남기기'];let cur=1;
 function renderSteps(){$('steps').innerHTML=STEP.map((s,i)=>`<div class="step ${i+1===cur?'on':''}" onclick="go(${i+1})">${i+1} ${s}</div>`).join('')}
-function go(n){S.story=$('story').value;if(n===2&&!S.story.trim()&&!S.scenes.some(sc=>sc.text.trim())){toast('이야기를 한 줄이라도 적어주세요');return}if(n===2&&!S.scenes.some(sc=>sc.text.trim())&&S.story.trim())splitManual();stopAll();cur=n;EAIMKey.ping('이야기 작곡실',n);document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));$('p'+n).classList.add('on');renderSteps();window.scrollTo(0,0);persist();
+function go(n){S.story=$('story').value;S.scenes.forEach(sc=>{sc.text=sc.text||'';sc.why=sc.why||['','','',''];sc.form=sc.form||['A','A1','A','A1']});const hasScene=S.scenes.some(sc=>sc.text.trim());if(n===2&&!S.story.trim()&&!hasScene){toast('이야기를 한 줄이라도 적어주세요');const m=$('storyMsg');if(m){m.style.display='block';m.textContent='⬆ 이야기를 한 줄이라도 적어야 동기를 만들 수 있어요';$('story').focus()}return}if(n===2&&!hasScene&&S.story.trim())splitManual();stopAll();cur=n;EAIMKey.ping('이야기 작곡실',n);document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));$('p'+n).classList.add('on');renderSteps();window.scrollTo(0,0);persist();
  if(n===2){setMotifTarget(S.target||'A')}if(n===3)renderForm();if(n===4)renderDress();if(n===5){renderScore();if(!$('q1box').dataset.done)aiQuestion()}}
 
 /* ═════ ① 이야기 → 장면 3개 ═════ */
