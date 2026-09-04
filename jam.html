@@ -192,12 +192,14 @@ function killBus(){if(!bus)return;const old=bus,now=ctx.currentTime;old.gain.can
 function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.9;comp=ctx.createDynamicsCompressor();master.connect(comp);comp.connect(ctx.destination);dest=ctx.createMediaStreamDestination();comp.connect(dest);newBus();
  const spec={piano:['piano',{low:40,high:96}],guitar:['guitar',{low:40,high:76}],bass:['bass',{low:28,high:55}]};for(const[k,[i,r]]of Object.entries(spec)){kits[k]=new EAIMSound.SampleKit(ctx,i,{...r,step:3});kits[k].load()}
  loadLead('piano');$('gate').style.display='none';setMood('happy');toast('🎻 악기 소리 불러오는 중…')}
-function loadLead(inst){const k=new EAIMSound.SampleKit(ctx,inst,{low:55,high:88,step:3});k.load().then(()=>{leadKit=k});leadKit=kits.piano}
+function loadLead(inst){const k=new EAIMSound.SampleKit(ctx,inst,{low:55,high:88,step:3});k.load().then(ok=>{leadKit=k;if(ok)toast('🎹 건반 소리 준비 완료')});leadKit=kits.piano}
 $('leadInst').onchange=e=>loadLead(e.target.value);
 const held={};
-function keyDown(n){if(!ctx)return;let play=n;if(rec.active&&$('fix').checked){play=fixNote(n,S.bars[rec.bar%S.bars.length]);if(play!==n)flash(play)}const k=leadKit&&leadKit.ready?leadKit:kits.piano;const r=k&&k.ready?k.play(play,ctx.currentTime,2,master,.8,{release:.4}):null;held[n]={r,t:ctx.currentTime,play};
+function keyDown(n){if(!ctx)return;let play=n;if(rec.active&&$('fix').checked){play=fixNote(n,S.bars[rec.bar%S.bars.length]);if(play!==n)flash(play)}const k=leadKit&&leadKit.ready?leadKit:kits.piano;const r=k&&k.ready?k.play(play,ctx.currentTime,2,master,.8,{release:.4}):tempTone(play);held[n]={r,t:ctx.currentTime,play};
  if(rec.active){const at=(ctx.currentTime-rec.t0)/beatSec();if(at>=-0.6&&at<3.9)rec.buf.push({at:Math.max(0,at),note:play})}}   // 첫 박을 살짝 앞서 쳐도(-0.6박) 0박으로 붙임
 function keyUp(n){const h=held[n];if(!h)return;if(h.r&&h.r.stop)h.r.stop();const dur=(ctx.currentTime-h.t)/beatSec();if(rec.active){const last=[...rec.buf].reverse().find(x=>x.note===h.play&&x.len===undefined);if(last)last.len=Math.max(.25,Math.min(dur,4-last.at))}delete held[n]}
+// 샘플이 아직 안 왔을 때 임시 소리
+function tempTone(n){const midi=EAIMSound.midi(n);if(midi==null)return null;const o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=440*Math.pow(2,(midi-69)/12);const t=ctx.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.35,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+1.2);o.connect(g);g.connect(master);o.start(t);o.stop(t+1.3);return{stop:(w)=>{const x=w??ctx.currentTime;g.gain.cancelScheduledValues(x);g.gain.setValueAtTime(g.gain.value,x);g.gain.linearRampToValueAtTime(.0001,x+.15);try{o.stop(x+.2)}catch{}}}}
 function flash(n){const k=document.querySelector(`.key[data-n="${n}"]`);if(!k)return;k.style.boxShadow='0 0 18px #d500f9';setTimeout(()=>k.style.boxShadow='',250)}
 function fixNote(n,c){const pc=n.replace(/\d/,''),oct=n.match(/\d/)[0];const t=C.tones(c);if(t.includes(pc))return n;const scale=majorScale(S.bars[0].root);if(scale.includes(pc)&&!rec.strict)return n; // 스케일 음은 살려둠 (지나가는 음)
  const i=PC.indexOf(pc);let best=t[0],d=99;t.forEach(x=>{const dd=Math.min((PC.indexOf(x)-i+12)%12,(i-PC.indexOf(x)+12)%12);if(dd<d){d=dd;best=x}});return best+oct}
