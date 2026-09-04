@@ -6,6 +6,7 @@
     <title>스마트 가이드 피아노 V8</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="play-sound.js"></script>
+    <script src="play-key.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         
@@ -185,7 +186,8 @@
 · add9, sus2, sus4, maj7, m7, 9, 6, dim 다 돼요. 분수코드 G/B 도 OK"></textarea>
             <div style="display:flex; gap:6px;">
                 <button class="btn-add" onclick="applyChordText()">⬇ 이 진행으로 넣기</button>
-                <button class="btn-add" style="background:#8e44ad;" onclick="importFromProduction()" title="뮤지컬메이커에서 만든 넘버의 코드 진행을 Gemini가 만들어 줘요">🎬 프로덕션 넘버 코드 받기</button>
+                <button class="btn-add" style="background:#8e44ad;" onclick="aiProgression()" title="분위기·가사를 주면 Gemini가 코드 진행을 만들어요">✨ AI에게 코드 진행 부탁</button>
+                <button class="btn-add" style="background:#6c5ce7;" onclick="importFromProduction()" title="같은 주소에 뮤지컬메이커가 있을 때">🎬 넘버 코드 받기</button>
             </div>
             <div id="importMsg" style="font-size:0.85rem; color:#ccc; margin-top:6px; text-align:left;"></div>
         </div>
@@ -213,7 +215,11 @@
 
     </div>
 
+    <div id="errbar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:2000;background:#c0392b;color:#fff;padding:8px 12px;font-size:.85rem;text-align:center"></div>
     <script>
+        window.addEventListener('error', e => { const b = document.getElementById('errbar'); b.style.display = 'block'; b.textContent = '⚠️ 오류: ' + e.message + ' (' + (e.lineno||'') + '줄)'; });
+        window.addEventListener('unhandledrejection', e => { const b = document.getElementById('errbar'); b.style.display = 'block'; b.textContent = '⚠️ 오류: ' + (e.reason && e.reason.message || e.reason); });
+        if(!window.EAIMChord){ const b=document.getElementById('errbar'); b.style.display='block'; b.textContent='⚠️ play-sound.js 가 옛 버전이에요 — 최신 play-sound.js 를 저장소에 올리고 시크릿 창으로 다시 여세요'; }
         // --- 오디오 엔진 설정 ---
         let synth;
         const vol = new Tone.Volume(-5).toDestination();
@@ -321,9 +327,11 @@
 
         function setInst(type, btn) {
             currentInst = type;
-            updateInstSound();
             btn.parentNode.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('active'));
             btn.classList.add('active');
+            try { updateInstSound(); } catch(e) { console.error(e); const b = document.getElementById('errbar'); b.style.display='block'; b.textContent = '⚠️ 악기 바꾸기 오류: ' + e.message; }
+            const m = document.getElementById('load-msg');
+            if (!samplers[type]) { /* 아직 샘플이 안 왔으면 합성음으로 */ }
         }
         function updateInstSound() {
             if(synth) { try{ synth.releaseAll(); }catch(e){} }
@@ -517,13 +525,29 @@
                 el.appendChild(row);
             });
         }
+        // 분위기·가사 → Gemini 코드 진행
+        async function aiProgression() {
+            const msg = document.getElementById('importMsg');
+            const desc = prompt('어떤 곡인가요? 분위기·장르·가사 일부를 적어주세요.\n예) 설레는 봄 K-pop 발라드, "바람이 불어오는 이 교정 위에"', '');
+            if (!desc) return;
+            msg.textContent = '코드 진행을 만들고 있어요…';
+            try {
+                const d = await EAIMKey.gemini(`중학생 반주용 코드 진행을 만들어 주세요. 8~16마디, 다이아토닉 위주에 요즘 팝처럼 add9·sus4·maj7·m7·분수코드(G/B)를 자연스럽게 섞어도 좋아요. 조는 C, G, D, F, Am, Em 중. dim·aug·13 같은 건 금지.
+JSON만: {"key":"C","bpm":90,"chords":"Cadd9 G/B Am7 Fmaj7 | Dm7 G7sus4 C C"}  (마디는 공백, 한 마디 두 코드는 "C-G")
+설명: ${desc}`, { json: true, temperature: .7, maxTokens: 300 });
+                document.getElementById('chordText').value = d.chords || ''; applyChordText();
+                if (d.bpm) { document.getElementById('bpm').value = d.bpm; setBpm(d.bpm); }
+                document.getElementById('songName').value = desc.slice(0, 20);
+                msg.textContent = `✅ ${chordList.length}마디 (${d.key || ''}, ${d.bpm || ''} BPM) — 위 칸에서 고쳐 다시 넣어도 돼요`;
+            } catch (e) { msg.textContent = '❌ ' + e.message; }
+        }
         // 프로덕션(뮤지컬메이커) 넘버 → Gemini가 코드 진행 생성
         async function importFromProduction() {
             const msg = document.getElementById('importMsg');
             let d = null; try { d = JSON.parse(localStorage.getItem('mm_draft') || localStorage.getItem('eaim_musical_data') || 'null'); } catch {}
-            const apiKey = (localStorage.getItem('mm_teacher_api') || '').trim();
-            if (!d) { msg.textContent = '뮤지컬메이커 작품이 이 기기에 없어요. 같은 브라우저에서 뮤지컬메이커를 먼저 열어주세요.'; return; }
-            if (!apiKey) { msg.textContent = 'API 키가 없어요. 뮤지컬메이커(선생님 로그인 또는 초대 링크)를 먼저 열면 이 기기에 남아요.'; return; }
+            const apiKey = await EAIMKey.get();
+            if (!d) { msg.textContent = '뮤지컬메이커 작품이 이 기기(같은 주소)에 없어요. 대신 "한 줄로 붙여넣기"에 코드를 직접 넣거나, 아래 AI에게 코드 진행을 부탁할 수 있어요.'; return; }
+            if (!apiKey) { msg.textContent = EAIMKey.NO_KEY_MSG; return; }
             const numbers = [];
             if (d.opening?.songTitle) numbers.push({ label: '오프닝 · ' + d.opening.songTitle, lyrics: d.opening.lyrics, style: d.opening.sunoPrompt });
             (d.scenes || []).forEach((sc, i) => { if (sc.songTitle) numbers.push({ label: `${i+1}막 · ${sc.songTitle}`, lyrics: sc.lyrics, style: sc.sunoPrompt }); });
@@ -534,8 +558,7 @@
             const n = numbers[Number(pick) - 1]; if (!n) return;
             msg.textContent = '코드 진행을 만들고 있어요…';
             try {
-                const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', { method:'POST', headers:{ 'Content-Type':'application/json', 'x-goog-api-key': apiKey },
-                    body: JSON.stringify({ contents:[{ parts:[{ text:
+                const data = await EAIMKey.gemini(
 `중학생 뮤지컬 넘버의 피아노 반주용 코드 진행을 만들어 주세요. 가사 한 줄을 대략 두 마디로 보고, 8~24마디 안에서 자연스러운 진행(다이아토닉 위주, I-V-vi-IV 같은 대중적 패턴)으로. 조는 C, G, D, F, Am, Em 중 하나.
 반드시 JSON만 출력: {"key":"C","bpm":90,"chords":"C G Am F | C G F C"}
 · chords는 마디를 공백으로 구분, 한 마디에 두 코드면 "C-G" (붙임표)
@@ -543,10 +566,7 @@
 
 곡 스타일: ${n.style || ''}
 가사:
-${(n.lyrics || '').trim()}` }] }], generationConfig:{ temperature:0.6, maxOutputTokens:400, responseMimeType:'application/json' } }) });
-                if (!res.ok) throw new Error('오류 ' + res.status);
-                const j = await res.json(); const txt = j.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('') || '';
-                const data = JSON.parse(txt.replace(/```json|```/g,'').trim());
+${(n.lyrics || '').trim()}`, { json: true, temperature: .6, maxTokens: 400 });
                 document.getElementById('chordText').value = data.chords || '';
                 applyChordText();
                 const ki = keys.indexOf(FLAT2SHARP[(data.key||'C').replace('m','')] || (data.key||'C').replace('m',''));

@@ -86,10 +86,31 @@ main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
     </a>
   </section>
 
+  <div class="box" style="margin-bottom:14px">
+    <h3>선생님 설정 — AI 기능 열기</h3>
+    <p>건반실의 AI 코드 진행, 밴드실의 악보 사진 읽기, 작곡실의 동기 제안·노래 만들기는 Gemini 키가 있어야 해요. 이 기기에 한 번 넣어두면 모든 방에서 쓰입니다. 학생이 초대 링크(<b>?teacher=선생님UID</b>)로 들어오면 뮤지컬메이커에 저장된 키를 자동으로 가져와요.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">
+      <input id="keyIn" type="password" placeholder="Gemini API 키" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#faf8ff;outline:none;font-family:inherit">
+      <button onclick="saveKey()" style="padding:9px 14px;border-radius:9px;border:0;background:var(--gold2);font-weight:700;cursor:pointer;font-family:inherit">저장</button>
+      <button onclick="clearKey()" style="padding:9px 14px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit">지우기</button>
+      <span id="keySt" style="font-size:.82rem;color:var(--sub)"></span>
+    </div>
+  </div>
   <div class="box">
     <h3>쓰는 법</h3>
     <p>모든 방은 <b>로그인 없이</b> 바로 열립니다. 첫 화면의 시작 버튼을 눌러야 소리가 나요(브라우저 규칙). 합주실·작곡실의 결과물은 <b>WAV·TXT로 내려받아</b> 프로덕션 음향팀에 가져갈 수 있습니다.</p>
   </div>
 </main>
+<script src="play-key.js"></script>
+<script>
+(function(){
+  const st=document.getElementById('keySt');
+  function show(){ EAIMKey.get().then(k=>{ st.textContent = k ? (localStorage.getItem('eaim_play_api') ? '✅ 이 기기에 저장됨' : '✅ 초대 링크로 연결됨') : '키 없음'; }); }
+  window.saveKey=()=>{ const v=document.getElementById('keyIn').value.trim(); if(v.length<10){ st.textContent='키가 너무 짧아요'; return; } EAIMKey.set(v); document.getElementById('keyIn').value=''; show(); };
+  window.clearKey=()=>{ EAIMKey.set(''); show(); };
+  document.querySelectorAll('a.room').forEach(a=>{ a.href=EAIMKey.link(a.getAttribute('href')); });
+  show();
+})();
+</script>
 </body>
 </html>

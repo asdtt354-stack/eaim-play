@@ -6,6 +6,7 @@
 <title>🎸 밴드실 | EAIM 연주실</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
 <script src="play-sound.js"></script>
+<script src="play-key.js"></script>
 <style>
 :root{--bg:#141021;--panel:#1e1830;--panel2:#2a2240;--line:#3d3358;--text:#f3eefb;--sub:#a99cc4;--gold:#d4a843;--purple:#a78bfa;--green:#4ade80;--red:#f87171;--blue:#60a5fa}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -127,7 +128,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
     <button class="btn" onclick="simplify()">🎯 코드 단순화</button>
     <button class="btn" onclick="setKeyLock(4)">4박</button><button class="btn" onclick="setKeyLock(3)">3박</button><span id="beatsLbl" class="note">4박자</span>
   </div>
-  <div class="lbl">📷 악보 사진으로 코드 읽기 <span class="note">(선생님 키가 이 기기에 있을 때)</span></div>
+  <div class="lbl">📷 악보 사진으로 코드 읽기 <span class="note">(선생님 키가 있을 때)</span></div>
   <div id="drop" onclick="document.getElementById('file').click()">사진을 여기에 놓거나 눌러서 선택 (JPG·PNG·PDF)<div id="prev"></div></div>
   <input type="file" id="file" accept="image/*,.pdf" style="display:none">
   <div class="row" style="margin-top:8px"><button class="btn" id="ocrBtn" onclick="readSheet()">🪄 코드 읽어오기</button><span class="st" id="ocrSt"></span></div>
@@ -199,6 +200,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
 
 <script>
 'use strict';
+if(!window.EAIMSound||!window.EAIMChord){document.body.innerHTML='<div style="padding:40px;text-align:center;font-family:sans-serif;color:#fff;background:#141021;min-height:100vh"><h2>⚠️ play-sound.js 가 옛 버전이에요</h2><p style="color:#a99cc4;line-height:1.8">이 방은 최신 <b>play-sound.js</b>(EAIMChord 포함)가 같은 폴더에 있어야 해요.<br>저장소에 최신 play-sound.js를 올리고, 시크릿 창으로 다시 열어주세요.</p></div>';throw new Error('play-sound.js outdated')}
 /* ═════ 기본 ═════ */
 const NOTES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const FLAT={'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#','Cb':'B','Fb':'E'};
@@ -268,9 +270,9 @@ function chooseSong(){const bars=parseProgression($('chords').value);if(!bars.le
 let sheetFile=null;
 $('file').onchange=e=>{sheetFile=e.target.files[0];if(!sheetFile)return;$('prev').innerHTML=sheetFile.type.startsWith('image/')?`<br><img src="${URL.createObjectURL(sheetFile)}">`:`<br>📄 ${sheetFile.name}`};
 $('drop').addEventListener('dragover',e=>e.preventDefault());$('drop').addEventListener('drop',e=>{e.preventDefault();sheetFile=e.dataTransfer.files[0];$('file').files=e.dataTransfer.files;$('file').onchange({target:{files:[sheetFile]}})});
-async function readSheet(){const key=(localStorage.getItem('mm_teacher_api')||'').trim();const st=$('ocrSt');st.classList.remove('err');
+async function readSheet(){const key=await EAIMKey.get();const st=$('ocrSt');st.classList.remove('err');
  if(!sheetFile){st.textContent='먼저 악보 사진을 올려주세요';return}
- if(!key){st.textContent='선생님 API 키가 이 기기에 없어요. 같은 브라우저에서 뮤지컬메이커를 한 번 열면 됩니다.';st.classList.add('err');return}
+ if(!key){st.textContent=EAIMKey.NO_KEY_MSG;st.classList.add('err');return}
  st.textContent='악보를 읽는 중…';$('ocrBtn').disabled=true;
  try{const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result.split(',')[1]);fr.onerror=rej;fr.readAsDataURL(sheetFile)});
   const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:sheetFile.type||'image/jpeg',data:b64}},{text:'이 악보의 코드 진행을 마디 순서대로 읽어 주세요. 코드명이 적혀 있으면 그대로, 없으면 멜로디로 추정(추정임을 estimated:true로). 한 마디에 코드가 둘이면 "C/G". JSON만: {"title":"곡 제목 또는 빈칸","bpm":90,"beats":4,"chords":"C G Am F | ...","estimated":false}'}]}],generationConfig:{temperature:.2,maxOutputTokens:600,responseMimeType:'application/json'}})});

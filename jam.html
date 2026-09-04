@@ -139,6 +139,7 @@ textarea.in{width:100%;background:var(--panel2);border:1px solid var(--line);bor
 
 <script>
 'use strict';
+if(!window.EAIMSound||!window.EAIMChord){document.body.innerHTML='<div style="padding:40px;text-align:center;font-family:sans-serif;color:#fff;background:#141021;min-height:100vh"><h2>⚠️ play-sound.js 가 옛 버전이에요</h2><p style="color:#a99cc4;line-height:1.8">이 방은 최신 <b>play-sound.js</b>(EAIMChord 포함)가 같은 폴더에 있어야 해요.<br>저장소에 최신 play-sound.js를 올리고, 시크릿 창으로 다시 열어주세요.</p></div>';throw new Error('play-sound.js outdated')}
 const $=id=>document.getElementById(id);
 const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2000)};
 const C=window.EAIMChord, PC=C.PC;
