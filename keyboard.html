@@ -74,15 +74,16 @@
         
         .chord-pad { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 5px; }
         .type-pad { display: flex; gap: 5px; margin-bottom: 10px; }
-        .input-btn { padding: 8px 0; background: #7f8c8d; border: none; border-radius: 5px; color: white; cursor: pointer; font-family: inherit; }
+        .input-btn { padding: 8px 0; background: #7f8c8d; border: 2px solid transparent; border-radius: 5px; color: white; cursor: pointer; font-family: inherit; }
+        .input-btn.active { background: #f1c40f; color: #222; border-color: #fff; font-weight: bold; }
         .btn-add { background: #2ecc71; width: 100%; padding: 10px; font-size: 1.1rem; border:none; border-radius:8px; color:white; cursor:pointer;}
 
         .nav-controls { display: flex; gap: 10px; justify-content: center; margin: 10px 0; }
         .nav-btn { background: #95a5a6; border: none; padding: 10px; border-radius: 30px; color: white; flex: 1; font-family: inherit; cursor: pointer;}
 
-        .piano-wrap { position: relative; height: 160px; background: #111; border-radius: 10px; display: flex; justify-content: center; padding: 10px 20px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .piano-wrap { position: relative; height: 160px; background: #111; border-radius: 10px; display: flex; justify-content: center; padding: 10px 0; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
         .key { position: relative; cursor: pointer; border-radius: 0 0 5px 5px; transition: 0.1s; }
-        .white-key { width: 14%; height: 100%; background: white; border: 1px solid #ccc; margin: 0 1px; z-index: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; color: #555; font-weight: bold; font-size: 1.2rem; }
+        .white-key { width: 12.5%; height: 100%; background: white; border: 1px solid #ccc; margin: 0; z-index: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; color: #555; font-weight: bold; font-size: 1.2rem; }
         .black-key { width: 8%; height: 60%; background: black; position: absolute; z-index: 2; top: 10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
         
         .guide-on { background: #f1c40f !important; box-shadow: 0 0 15px #f1c40f inset; }
@@ -113,11 +114,14 @@
                 <button class="opt-btn" onclick="setInst('xylo', this)">🔨 실로폰</button>
             </div>
             <div class="control-row">
-                <span class="control-label">리듬</span>
+                <span class="control-label">반주</span>
                 <button class="opt-btn rhythm active" onclick="setRhythm('none', this)">없음</button>
-                <button class="opt-btn rhythm" onclick="setRhythm('4beat', this)">4비트</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('whole', this)">온음 (한 번)</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('4beat', this)">4비트 ♩♩♩♩</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('8beat', this)">8비트 ♪♪♪♪</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('ballad', this)">발라드 (쿵·짝짝짝)</button>
                 <button class="opt-btn rhythm" onclick="setRhythm('arp', this)">아르페지오</button>
-                <button class="opt-btn rhythm" onclick="setRhythm('waltz', this)">왈츠</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('waltz', this)">왈츠 3박 (쿵·짝·짝)</button>
             </div>
         </div>
 
@@ -165,7 +169,7 @@
         </div>
         
         <div class="piano-wrap" id="piano"></div>
-        <div style="margin-top:5px; color:#aaa; font-size:0.8rem;">리듬을 켜면 건반을 꾹 누르고 있으세요!</div>
+        <div style="margin-top:5px; color:#aaa; font-size:0.8rem;">건반을 누르면 그 음이 나요. 리듬을 켜고 꾹 누르면 코드 반주가 나와요!</div>
 
     </div>
 
@@ -216,11 +220,12 @@
             let done=0; const keys=Object.keys(SAMPLE_MAP);
             keys.forEach(k=>{
                 try{
-                    const sm = EAIMSound.toneSampler(SAMPLE_MAP[k], {release: k==='xylo'?0.3:1});
+                    let sm;
+                    sm = EAIMSound.toneSampler(SAMPLE_MAP[k], { release: k==='xylo'?0.3:1,
+                        onload: ()=>{ samplers[k]=sm; done++; const m=document.getElementById('load-msg'); if(m) m.textContent = done<keys.length ? `진짜 악기 소리 불러오는 중… (${done}/${keys.length})` : '진짜 악기 소리 준비 완료 🎻'; if(currentInst===k) updateInstSound(); },
+                        onerror: ()=>{ const m=document.getElementById('load-msg'); if(m) m.textContent='악기 샘플을 못 받아 합성음으로 연주해요'; } });
                     sm.connect(vol);
-                    sm.onload = ()=>{ samplers[k]=sm; done++; const m=document.getElementById('load-msg'); if(m) m.textContent = done<keys.length ? `진짜 악기 소리 불러오는 중… (${done}/${keys.length})` : '진짜 악기 소리 준비 완료 🎻'; if(currentInst===k) updateInstSound(); };
-                    sm.onerror = ()=>{};
-                }catch(e){}
+                }catch(e){ console.warn('sampler', k, e); }
             });
         }
         function init() {
@@ -244,8 +249,7 @@
                 k.className = d.t === 'w' ? 'white-key key' : 'black-key key';
                 if(d.t==='b') {
                     let whiteCount = pianoData.slice(0, i).filter(x=>x.t==='w').length;
-                    k.style.left = (whiteCount * 14 + 10) + "%"; 
-                    k.style.marginLeft = "-4%";
+                    k.style.left = (whiteCount * 12.5 - 4) + "%";   // 흰건반 8개 × 12.5%, 검은건반 폭 8%의 절반만큼 왼쪽으로
                 }
                 if(d.t==='w') k.innerText = d.l;
 
@@ -298,15 +302,17 @@
         function handleKeyPress(inputNote, isPressed) {
             if(!inputNote && !isPressed) { synth.releaseAll(); isHoldingKey = false; Tone.Transport.stop(); return; }
 
-            let targetNotes = [];
+            // 누른 건반 소리 (악보 Key만큼 옮겨서)
+            const single = [Tone.Frequency(inputNote).transpose(songKey).toNote()];
+            // 현재 코드 소리 (리듬 반주용)
+            let chordNotes = null;
             if(currentIdx !== -1 && chordList[currentIdx]) {
                 let target = chordList[currentIdx];
-                let rootFreq = Tone.Frequency(target.root + "4").toFrequency();
-                let scale = target.type === 'm' ? [0, 3, 7] : [0, 4, 7];
-                targetNotes = scale.map(interval => Tone.Frequency(rootFreq).transpose(interval));
-            } else {
-                targetNotes = [Tone.Frequency(inputNote).transpose(songKey)];
+                let scale = target.type === 'm' ? [0, 3, 7] : target.type === '7' ? [0, 4, 7, 10] : [0, 4, 7];
+                chordNotes = scale.map(interval => Tone.Frequency(target.root + "4").transpose(interval).toNote());
             }
+            // 리듬이 꺼져 있으면 누른 음이 그대로 나고, 리듬을 켜면 코드 반주 패턴이 나옴
+            let targetNotes = (currentRhythm === 'none' || !chordNotes) ? single : chordNotes;
 
             if (isPressed) {
                 isHoldingKey = true;
@@ -328,18 +334,30 @@
         function startRhythmPattern(notes) {
             Tone.Transport.stop(); Tone.Transport.cancel();
             let pattern = rhythmPatterns[currentRhythm];
+            const root = notes[0], upper = notes.slice(1);
+            const bass = Tone.Frequency(root).transpose(-12).toNote(); // 한 옥타브 아래 베이스
 
-            if(currentRhythm === '4beat') {
+            if(currentRhythm === 'whole') {
+                new Tone.Loop(time => { synth.triggerAttackRelease([bass, ...notes], "1m", time); }, "1m").start(0);
+            }
+            else if(currentRhythm === '4beat') {
                 new Tone.Loop(time => { synth.triggerAttackRelease(notes, "8n", time); }, "4n").start(0);
-            } 
+            }
+            else if(currentRhythm === '8beat') {
+                new Tone.Loop(time => { synth.triggerAttackRelease(notes, "16n", time); }, "8n").start(0);
+            }
+            else if(currentRhythm === 'ballad') {
+                // 쿵(베이스) · 짝짝짝(코드) — 4박
+                new Tone.Sequence((time, grp) => { synth.triggerAttackRelease(grp, "8n", time); }, [[bass, root], upper, upper, upper], "4n").start(0);
+            }
             else if(currentRhythm === 'arp') {
+                const seq = notes.length === 4 ? [0,1,2,3,2,1] : [0,1,2,1];
                 new Tone.Sequence((time, noteIdx) => {
                     if(notes[noteIdx]) synth.triggerAttackRelease(notes[noteIdx], "8n", time);
-                }, pattern, "8n").start(0);
+                }, seq, "8n").start(0);
             }
             else if(currentRhythm === 'waltz') {
-                let root = notes[0]; let chordUpper = notes.slice(1);
-                new Tone.Sequence((time, grp) => { synth.triggerAttackRelease(grp, "8n", time); }, [root, chordUpper, chordUpper], "4n").start(0);
+                new Tone.Sequence((time, grp) => { synth.triggerAttackRelease(grp, "8n", time); }, [[bass, root], upper, upper], "4n").start(0);
             }
             Tone.Transport.start();
         }
@@ -363,11 +381,16 @@
             }
         }
 
-        function selRoot(r) { tempR = r; updatePreview(); }
-        function selType(t) { tempT = t; updatePreview(); }
+        function selRoot(r) { tempR = r; updatePreview(); markPad(); }
+        function selType(t) { tempT = t; updatePreview(); markPad(); }
+        function markPad() {
+            document.querySelectorAll('.chord-pad .input-btn').forEach(b => b.classList.toggle('active', b.innerText.trim() === tempR));
+            const typeLabel = { '': 'Maj', 'm': 'min', '7': '7' }[tempT];
+            document.querySelectorAll('.type-pad .input-btn').forEach(b => b.classList.toggle('active', b.innerText.trim() === typeLabel));
+        }
         function updatePreview() { document.getElementById('preview-chord').innerText = tempR + tempT; }
         
-        function addChordManual() { addChordToData(tempR, tempT); }
+        function addChordManual() { try { addChordToData(tempR, tempT); } catch(e) { alert('코드 넣기 오류: ' + e.message); console.error(e); } }
         function runScanSimulation() {
             chordList = [];
             addChordToData('C', ''); addChordToData('G', ''); addChordToData('A', 'm'); addChordToData('F', '');
@@ -413,7 +436,8 @@
             let guideIdx = rootIdx - songKey;
             if(guideIdx < 0) guideIdx += 12;
             let guideRoot = keys[guideIdx];
-            let notes = [keys[guideIdx], keys[(keys.indexOf(guideRoot)+4)%12], keys[(keys.indexOf(guideRoot)+7)%12]];
+            let iv = target.type === 'm' ? [0,3,7] : target.type === '7' ? [0,4,7,10] : [0,4,7];
+            let notes = iv.map(i => keys[(keys.indexOf(guideRoot)+i)%12]);
             notes.forEach(n => {
                 let map = n + "4";
                 if(keyElements[map]) keyElements[map].classList.add('guide-on');
@@ -421,7 +445,7 @@
             });
         }
 
-        init();
+        init(); markPad();
     </script>
 <script src="play-shell.js"></script>
 </body>
