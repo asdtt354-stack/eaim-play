@@ -213,7 +213,7 @@ async function readSheet(){const st=$('ocrSt');st.classList.remove('err');const 
   if(d.notes){$('src').value=d.notes;pos=0;render();st.textContent=`✅ 읽었어요${d.title?' — '+d.title:''}${d.transposed_from?' ('+d.transposed_from+' 악보를 실음으로 바꿈)':''}. 틀린 음은 ①에서 고치세요.`}else throw new Error('계이름을 못 읽었어요')}
  catch(e){st.textContent='❌ '+e.message;st.classList.add('err')}}
 
-renderInsts();ex(0);
+renderInsts();ex(0);EAIMKey.ping('관악실','이조');
 </script>
 <script src="play-shell.js"></script>
 </body>

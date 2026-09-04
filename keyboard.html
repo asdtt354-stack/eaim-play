@@ -275,6 +275,7 @@
             });
         }
         function init() {
+            if(window.EAIMKey){ EAIMKey.ping('건반실','연습'); }
             fallback = new Tone.PolySynth(Tone.Synth).connect(vol);
             synth = fallback;
             loadSamplers();

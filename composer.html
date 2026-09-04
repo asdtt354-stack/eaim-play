@@ -1,771 +1,417 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EAIM 스마트 앙상블</title>
-    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
-    <style>
-        :root { --primary: #6C5CE7; --accent: #00B894; --bg: #dfe6e9; --text: #2d3436; --red: #ff7675; }
-        body { font-family: 'Jua', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; text-align: center; user-select: none; }
-        .hidden { display: none !important; }
-        
-        /* 대문(Intro) */
-        #intro-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #74b9ff, #6C5CE7); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; padding: 20px; box-sizing: border-box; }
-        .intro-box { background: rgba(255, 255, 255, 0.2); padding: 30px; border-radius: 20px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-width: 600px; width: 90%; }
-        .btn-start { background: #ffeaa7; color: #2d3436; border: none; padding: 15px 40px; font-size: 1.5em; border-radius: 50px; cursor: pointer; font-family: 'Jua'; box-shadow: 0 5px 15px rgba(0,0,0,0.2); transition: transform 0.2s; }
-        .btn-start:hover { transform: scale(1.05); background: #fff; }
-
-        /* 메인 작업 공간 */
-        .workspace { background: white; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); max-width: 800px; margin: 20px auto; }
-        .step-title { font-size: 1.4em; color: var(--primary); margin-bottom: 15px; }
-        .btn-main { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 30px; font-size: 1.1em; cursor: pointer; font-family: 'Jua'; margin-top: 15px; transition: 0.2s; }
-        .btn-stop { background: var(--red); color: white; border: none; padding: 10px 20px; border-radius: 30px; font-size: 1.1em; cursor: pointer; font-family: 'Jua'; margin-left: 5px; }
-        .btn-main:active, .btn-stop:active { transform: scale(0.95); }
-
-        .timeline-container { background: white; padding: 20px; border-radius: 20px; margin: 20px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); min-height: 100px; max-width: 700px; }
-        .story-block { background: #f1f2f6; border-left: 8px solid #ccc; padding: 15px; margin: 10px 0; text-align: left; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s; }
-
-        .emotion-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
-        .color-btn { height: 60px; border-radius: 15px; border: 3px solid white; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .color-btn.selected { transform: scale(1.1); border-color: #2d3436; font-weight: bold; box-shadow: 0 0 10px rgba(0,0,0,0.2); }
-        .color-btn span { font-size: 12px; margin-top: 2px; color: rgba(0,0,0,0.6); pointer-events: none; }
-
-        .story-tabs { display: flex; justify-content: space-between; background: #f1f2f6; border-radius: 15px; padding: 5px; margin-bottom: 15px; }
-        .tab-btn { flex: 1; border: none; background: transparent; padding: 10px; font-family: 'Jua'; font-size: 1.1em; color: #b2bec3; cursor: pointer; border-radius: 10px; }
-        .tab-btn.active { background: white; color: var(--primary); font-weight: bold; }
-
-        .input-area { min-height: 80px; display: flex; align-items: center; justify-content: center; }
-        .big-input { width: 80%; padding: 15px; border: 2px solid var(--primary); border-radius: 15px; font-family: 'Jua'; font-size: 1.2em; text-align: center; outline: none; }
-        .preview-input { width: 90%; background: #ffeaa7; padding: 15px; border-radius: 15px; margin-top: 20px; color: #2d3436; font-size: 1.2em; text-align: center; border: none; font-family: 'Jua'; }
-
-        .rhythm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .rhythm-card { border: 2px solid #ddd; border-radius: 15px; padding: 10px; cursor: pointer; background: white; }
-        .rhythm-card.selected { border-color: var(--primary); background: #f0f0ff; transform: scale(1.02); }
-
-        .composer-console { background: #2d3436; padding: 20px; border-radius: 20px; color: white; }
-        .score-vis { height: 70px; display: flex; justify-content: center; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #636e72; padding-bottom: 5px; }
-        .beat-box { width: 60px; height: 100%; background: rgba(255,255,255,0.1); border-radius: 5px; display: flex; align-items: flex-end; justify-content: center; gap: 2px; padding: 2px; position:relative; overflow: hidden; }
-        .beat-box.active { background: rgba(255,255,255,0.2); border: 1px solid var(--accent); }
-        .sub-note { background: var(--accent); opacity: 0.3; border-radius: 3px; height: 0; width: 100%; }
-        .sub-note.filled { opacity: 1; }
-
-        .controls { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 15px; text-align: left; }
-        .control-label { font-size: 0.9em; color: #dfe6e9; margin-bottom: 5px; margin-top: 10px; }
-
-        .inst-opts { display: flex; justify-content: center; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
-        .btn-inst { padding: 8px 10px; border-radius: 15px; border: 2px solid #636e72; background: #636e72; color: #b2bec3; font-family: 'Jua'; cursor: pointer; font-size: 0.9em; transition: 0.2s; }
-        .btn-inst:hover { background: rgba(255,255,255,0.1); }
-        .btn-inst.active { border-color: #fab1a0; background: #fab1a0; color: #2d3436; font-weight: bold; transform: scale(1.05); box-shadow: 0 0 10px #fab1a0; }
-
-        .note-len-opts { display: flex; justify-content: center; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
-        .btn-len { padding: 8px 10px; border-radius: 20px; border: 2px solid #b2bec3; background: transparent; color: #b2bec3; font-family: 'Jua'; cursor: pointer; margin-bottom:5px; }
-        .btn-len.active { border-color: var(--accent); color: white; background: var(--accent); font-weight: bold; }
-
-        .train-container { display: flex; gap: 5px; margin-bottom: 5px; }
-        .var-car { flex: 1; min-width: 60px; border: 2px solid #b2bec3; border-radius: 8px; padding: 8px 4px; background: transparent; color: #b2bec3; font-family: 'Jua'; cursor: pointer; font-size: 0.85em; transition: 0.2s; white-space: nowrap; }
-        .var-car.head { background: #636e72; color: white; border: none; cursor: default; flex: 1.2; text-align: center; }
-        .var-car:hover:not(.head) { background: rgba(255,255,255,0.1); }
-        .var-car[data-rtype="quarter"] { border-color: #fab1a0; color: #fab1a0; }
-        .var-car[data-rtype="eighth"] { border-color: #74b9ff; color: #74b9ff; }
-        .var-car[data-rtype="swing"] { border-color: #a29bfe; color: #a29bfe; }
-        .var-car[data-rtype="ending"] { border-color: #00B894; color: #00B894; font-weight:bold; }
-        .var-car[data-ptype^="end-"] { border-color: #a29bfe; color: white; background: #a29bfe; font-weight: bold; }
-
-        input[type=range] { width: 100%; accent-color: var(--accent); }
-        
-        /* 🎹 피아노 건반 스타일 (업그레이드) */
-        .piano-keys { 
-            display: flex; justify-content: center; margin-top: 15px; position: relative; 
-            background: #2d3436; padding: 10px 0; border-radius: 10px;
-        }
-        .key { 
-            width: 40px; height: 140px; background: white; margin: 0 2px; 
-            border-radius: 0 0 5px 5px; cursor: pointer; border-bottom: 5px solid #b2bec3; 
-            display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px;
-            font-size: 14px; font-weight: bold; color: #2d3436; position: relative; z-index: 1;
-        }
-        /* 검은 건반 (모양만) */
-        .key.black {
-            width: 26px; height: 90px; background: #2d3436; border: 2px solid #000;
-            border-bottom: 4px solid #000; position: absolute; top: 10px; z-index: 2;
-            cursor: default; pointer-events: none; /* 클릭 방지 */
-        }
-        .key:active, .key.pressed { background: #ffeaa7; transform: translateY(2px); border-bottom-width: 2px; }
-        .key-label { pointer-events: none; }
-
-        /* 질문 카드 & 저장 영역 */
-        .question-card { background: #f0f0ff; border: 2px dashed var(--primary); padding: 20px; border-radius: 15px; margin-bottom: 20px; }
-        .q-text { font-size: 1.3em; font-weight: bold; color: #2d3436; margin-bottom: 15px; white-space: pre-wrap; line-height: 1.4; }
-        .input-box { width: 95%; height: 100px; padding: 15px; border-radius: 15px; border: 2px solid #b2bec3; font-family: 'Jua'; font-size: 1.1em; resize: none; margin-top:10px; }
-        .save-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-    </style>
-</head>
-<body>
-
-    <div id="intro-screen">
-        <div class="intro-box">
-            <div style="font-size:2.5em; margin-bottom:10px;">🎼 EAIM 스마트 앙상블</div>
-            <div style="font-size:1.2em; margin-bottom:30px;">나만의 감정을 담아<br>세상에 하나뿐인 음악을 만들어보세요!</div>
-            <div style="text-align:left; background:rgba(0,0,0,0.1); padding:15px; border-radius:10px; margin-bottom:20px;">
-                <div>1️⃣ <b>감정 선택:</b> 오늘 나의 기분은?</div>
-                <div>2️⃣ <b>리듬 결정:</b> 쿵짝쿵짝, 어떤 비트?</div>
-                <div>3️⃣ <b>멜로디 톡톡:</b> 건반을 눌러 작곡!</div>
-                <div>4️⃣ <b>탐구 & 공유:</b> 내 음악의 의미 찾기</div>
-            </div>
-            <button class="btn-start" onclick="startApp()">시작하기 🚀</button>
-        </div>
-    </div>
-
-    <div class="timeline-container hidden" id="main-timeline">
-        <h3 style="margin:0; color:#b2bec3;">우리의 음악 이야기</h3>
-        <div id="timeline-list"></div>
-        <div style="margin-top:10px;">
-            <button id="btn-play-all" class="btn-main hidden" style="background:#e17055" onclick="playWholeStory()">▶️ 전체 감상</button>
-            <button id="btn-stop-all" class="btn-stop hidden" onclick="stopAllSound()">■ 정지</button>
-        </div>
-    </div>
-
-    <div class="workspace hidden" id="main-workspace">
-        
-        <section id="step-1">
-            <div class="step-title">Step 1. 감정과 이야기 조각</div>
-            <div class="emotion-grid">
-                <div class="color-btn" style="background:#ffeaa7" onclick="setEmotion(this, 'happy', '#ffeaa7')">😊<span>기쁨</span></div>
-                <div class="color-btn" style="background:#fdcb6e" onclick="setEmotion(this, 'excited', '#fdcb6e')">🎉<span>신남</span></div>
-                <div class="color-btn" style="background:#e84393" onclick="setEmotion(this, 'surprised', '#e84393')">😲<span>놀람</span></div>
-                <div class="color-btn" style="background:#74b9ff" onclick="setEmotion(this, 'sad', '#74b9ff')">💧<span>슬픔</span></div>
-                <div class="color-btn" style="background:#dfe6e9" onclick="setEmotion(this, 'lonely', '#dfe6e9')">🍂<span>외로움</span></div>
-                <div class="color-btn" style="background:#ff7675" onclick="setEmotion(this, 'angry', '#ff7675')">🔥<span>화남</span></div>
-                <div class="color-btn" style="background:#636e72; color:white;" onclick="setEmotion(this, 'scary', '#636e72')">😱<span>무서움</span></div>
-                <div class="color-btn" style="background:#a29bfe" onclick="setEmotion(this, 'dream', '#a29bfe')">🔮<span>신비</span></div>
-                <div class="color-btn" style="background:#00b894" onclick="setEmotion(this, 'proud', '#00b894')">🏆<span>뿌듯</span></div>
-                <div class="color-btn" style="background:#55efc4" onclick="setEmotion(this, 'calm', '#55efc4')">🌿<span>평온</span></div>
-            </div>
-            <div class="story-tabs">
-                <button class="tab-btn active" onclick="switchTab('when')">🕒 언제</button>
-                <button class="tab-btn" onclick="switchTab('where')">📍 어디서</button>
-                <button class="tab-btn" onclick="switchTab('who')">👤 누가</button>
-                <button class="tab-btn" onclick="switchTab('what')">🎈 무엇을</button>
-            </div>
-            <div class="input-area">
-                <input type="text" id="input-when" class="big-input" placeholder="예: 어느 맑은 아침" oninput="updateText()">
-                <input type="text" id="input-where" class="big-input hidden" placeholder="예: 무지개 동산 (단어만)" oninput="updateText()">
-                <input type="text" id="input-who" class="big-input hidden" placeholder="예: 친구와 (자유롭게)" oninput="updateText()">
-                <input type="text" id="input-what" class="big-input hidden" placeholder="예: 춤을 췄어 (서술어)" oninput="updateText()">
-            </div>
-            <input type="text" id="preview-msg" class="preview-input" value="(감정을 선택하면 이야기가 만들어집니다)" placeholder="내용을 자유롭게 수정해보세요!">
-            <button class="btn-main" onclick="nextStep(2)">이야기 완성! 리듬 정하기 👉</button>
-        </section>
-
-        <section id="step-2" class="hidden">
-            <div class="step-title">Step 2. 리듬을 듣고 골라보세요</div>
-            <div class="rhythm-grid">
-                <div class="rhythm-card" onclick="previewRhythm(this, 'ballad')"><div class="rhythm-label">☁️ 발라드 (4/4)</div><div class="rhythm-desc">부드러운 피아노</div></div>
-                <div class="rhythm-card" onclick="previewRhythm(this, 'hiphop')"><div class="rhythm-label">🏀 힙합 (4/4)</div><div class="rhythm-desc">쿵-짝-짝 비트</div></div>
-                <div class="rhythm-card" onclick="previewRhythm(this, 'march')"><div class="rhythm-label">👟 행진 (4/4)</div><div class="rhythm-desc">씩씩한 드럼</div></div>
-                <div class="rhythm-card" onclick="previewRhythm(this, 'waltz')"><div class="rhythm-label">💃 왈츠 (3/4)</div><div class="rhythm-desc">3박자 쿵짝짝</div></div>
-                <div class="rhythm-card" onclick="previewRhythm(this, 'funk')"><div class="rhythm-label">🎸 펑크 (4/4)</div><div class="rhythm-desc">쪼개지는 16비트</div></div>
-                <div class="rhythm-card" onclick="previewRhythm(this, 'bossa')"><div class="rhythm-label">🏖️ 보사노바 (4/4)</div><div class="rhythm-desc">라틴 싱코페이션</div></div>
-            </div>
-            <button class="btn-main" onclick="nextStep(3)">이 리듬으로 결정! 👉</button>
-        </section>
-
-        <section id="step-3" class="hidden">
-            <div class="step-title">Step 3. 작곡 & 변주 (합주 + 리듬 + 멜로디)</div>
-            <div class="composer-console">
-                <div class="control-label">🎻 악기 합주 선택 (원하는 만큼 누르세요!)</div>
-                <div class="inst-opts">
-                    <button class="btn-inst active" id="inst-piano" onclick="toggleInstrument('piano')">🎹 피아노</button>
-                    <button class="btn-inst" id="inst-violin" onclick="toggleInstrument('violin')">🎻 바이올린</button>
-                    <button class="btn-inst" id="inst-cello" onclick="toggleInstrument('cello')">🎻 첼로</button>
-                    <button class="btn-inst" id="inst-flute" onclick="toggleInstrument('flute')">🌬️ 플루트</button>
-                    <button class="btn-inst" id="inst-bassoon" onclick="toggleInstrument('bassoon')">🪵 바순</button>
-                </div>
-
-                <div class="note-len-opts">
-                    <button class="btn-len" id="len-eighth" onclick="setNoteLen('eighth')">♫ 반박자</button>
-                    <button class="btn-len active" id="len-quarter" onclick="setNoteLen('quarter')">♩ 한박자</button>
-                    <button class="btn-len" id="len-swing" onclick="setNoteLen('swing')">♪♩ 스윙</button>
-                    <button class="btn-len" id="len-half" onclick="setNoteLen('half')">𝅗𝅥 두박자</button>
-                    <button class="btn-len" id="len-dotted" onclick="setNoteLen('dotted')">𝅗𝅥. 세박자</button>
-                </div>
-
-                <div class="score-vis" id="score-container"></div>
-                
-                <div class="controls">
-                    <div class="control-label">🚂 리듬(Rhythm) 변주</div>
-                    <div class="train-container">
-                        <button class="var-car head">1.나의 멜로디</button>
-                        <button class="var-car" id="btn-rvar-2" data-rtype="repeat" onclick="cycleRhythm(2)">2. 🔄 그대로</button>
-                        <button class="var-car" id="btn-rvar-3" data-rtype="repeat" onclick="cycleRhythm(3)">3. 🔄 그대로</button>
-                        <button class="var-car" id="btn-rvar-4" data-rtype="repeat" onclick="cycleRhythm(4)">4. 🔄 그대로</button>
-                    </div>
-
-                    <div class="control-label">🎢 멜로디(Melody) 변주</div>
-                    <div class="train-container">
-                        <button class="var-car head" style="background:#2d3436; border:1px solid #636e72;">음높이</button>
-                        <button class="var-car" id="btn-pvar-2" data-ptype="same" onclick="cyclePitch(2)">2. ━ 그대로</button>
-                        <button class="var-car" id="btn-pvar-3" data-ptype="same" onclick="cyclePitch(3)">3. ━ 그대로</button>
-                        <button class="var-car" id="btn-pvar-4" data-ptype="same" onclick="cyclePitch(4)">4. ━ 그대로</button>
-                    </div>
-                    
-                    <div style="display:flex; justify-content: space-between; margin-top:15px; align-items:center;">
-                        <div style="width:48%">
-                            <label>🐢 빠르기 🐇</label>
-                            <input type="range" id="tempo-slider" min="0.5" max="2.0" step="0.1" value="1.0" oninput="previewIfReady()">
-                        </div>
-                        <div style="width:48%; display:flex; gap:5px;">
-                            <button class="btn-main" style="padding:5px 10px; margin:0; font-size:0.9em; flex:1; background:#00B894;" onclick="previewMelody()">🔊 전체 듣기</button>
-                            <button class="btn-stop" style="padding:5px 10px; margin:0; font-size:0.9em; flex:0.5;" onclick="stopAllSound()">■</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="piano-keys" id="piano-area"></div>
-                <div id="status-msg" style="margin-top:10px;">멜로디를 입력하세요</div>
-            </div>
-            
-            <div id="save-controls" class="hidden" style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                <button class="btn-main" style="background:#0984e3; width:45%;" onclick="saveAndContinue()">➕ 이어서 계속 만들기</button>
-                <button class="btn-main" style="background:#00b894; width:45%;" onclick="saveAndFinish()">🏁 작곡 끝내기 (탐구로)</button>
-            </div>
-
-            <button class="btn-main" style="background:#636e72; font-size:0.9em; margin-top:10px;" onclick="resetMelody()">🔄 다시 쓰기</button>
-        </section>
-
-        <section id="step-4" class="hidden">
-            <div class="step-title">Step 4. 나의 음악 탐구 & 저장</div>
-            
-            <div class="question-card">
-                <div style="color:#636e72; font-size:0.9em;">🤔 정답이 없는 질문</div>
-                <div id="inquiry-q" class="q-text"></div>
-                <button class="btn-main" style="padding:5px 15px; font-size:0.8em; margin-bottom:10px;" onclick="refreshQuestion()">🔄 다른 질문 뽑기</button>
-                <textarea id="inquiry-a" class="input-box" placeholder="나의 생각을 자유롭게 적어보세요..."></textarea>
-            </div>
-
-            <div class="save-grid">
-                <button class="btn-main" style="background:#00b894;" onclick="downloadAudio()">🎧 녹음 및 다운로드 (.webm)</button>
-                <button class="btn-main" style="background:#fab1a0;" onclick="saveText()">📝 탐구 일지 저장 (.txt)</button>
-            </div>
-            <button class="btn-main" style="background:#636e72; width:100%; margin-top:15px;" onclick="location.reload()">🏠 처음으로</button>
-        </section>
-
-    </div>
-
-    <script>
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let activeNodes = [];
-        let activeTimeouts = [];
-        let destNode = audioCtx.createMediaStreamDestination(); 
-
-        let current = { 
-            emo: '', rhythm: '', maxBeats: 4, instruments: ['piano'], melody: [], 
-            tempo: 1.0, artic: 'long', text: '', rhythmVars: ['repeat','repeat','repeat'], 
-            pitchVars: ['same','same','same'], noteLenMode: 'quarter', beatIdx: 0, 
-            when: '', where: '', who: '', what: '', color: '' 
-        };
-
-        const templates = {
-            happy: "{when} {where} {who} 기분 좋게 {act} 😊", excited: "{when} {where} {who} 신나게 {act} 🎉", sad: "{when} {where} {who} 슬프게 {act} 💧",
-            lonely: "{when} {where} {who} 혼자 외롭게 {act} 🍂", angry: "{when} {where} {who} 화가 나서 {act} 🔥", scary: "{when} 깜깜한 {where} {who} 무섭게 {act} 😱",
-            dream: "{when} 꿈속 {where} {who} 신비롭게 {act} 🔮", proud: "{when} {where} {who} 자랑스럽게 {act} 🏆", calm: "{when} {where} {who} 평온하게 {act} 🌿",
-            surprised: "{when} {where} {who} 깜짝 놀라 {act} 😲"
-        };
-
-        // 🔥 복구된 질문 보따리 (중요!)
-        const inquiryPool = {
-            happy: ["우리가 만든 '[story]' 이야기에서 가장 빛나는 순간은 음악의 어느 부분인가요?", "이 음악을 들으며 '[story]' 장면을 상상할 때, 어떤 맛이 날 것 같나요?"],
-            excited: ["'[story]'의 주인공은 이 음악을 듣고 어떤 춤을 출까요?", "이 음악의 속도가 '[story]'의 어떤 움직임을 표현했나요?"],
-            sad: ["'[story]'의 주인공에게 이 음악을 위로의 선물로 준다면, 뭐라고 말하며 줄 건가요?", "이 음악의 멜로디가 눈물방울이라면, 어느 방향으로 흐르고 있나요?"],
-            lonely: ["'[story]'의 주인공이 혼자 있을 때, 이 음악이 친구가 되어줄 수 있을까요?", "이 음악의 여백(빈 공간)은 '[story]'의 어떤 마음을 닮았나요?"],
-            angry: ["음악 속의 강렬한 부분이 '[story]'의 어떤 사건과 닮았나요?", "이 음악이 쾅! 하고 터지는 화산이라면, 그 안에 무엇이 들어있을까요?"],
-            scary: ["'[story]' 상황에서 도망친다면, 이 음악은 얼마나 빠른 속도로 연주해야 할까요?", "이 음악을 들을 때 심장은 어떤 색깔로 뛰고 있을까요?"],
-            dream: ["'[story]'가 꿈이라면, 이 음악은 꿈속의 어떤 풍경을 그리고 있나요?", "이 음악을 들으면 어떤 신비한 동물이 나타날 것 같나요?"],
-            proud: ["'[story]'의 주인공에게 금메달을 걸어준다면, 어떤 음악이 어울릴까요?", "이 음악의 당당한 느낌은 '[story]'의 무엇을 닮았나요?"],
-            calm: ["'[story]'의 평온한 순간을 그림으로 그린다면 어떤 색을 칠하고 싶나요?", "이 음악이 흐르는 강물이라면, 어디로 흘러가고 있나요?"],
-            surprised: ["음악에서 가장 깜짝 놀란 부분은 어디인가요? '[story]'의 반전과 닮았나요?", "이 음악을 처음 들은 사람의 표정을 지어보세요!"]
-        };
-
-        const scale = [
-            {f:261.63, idx:0, name:'도'}, {f:293.66, idx:1, name:'레'}, 
-            {f:329.63, idx:2, name:'미'}, {f:349.23, idx:3, name:'파'},
-            {f:392.00, idx:4, name:'솔'}, {f:440.00, idx:5, name:'라'}, 
-            {f:493.88, idx:6, name:'시'}, {f:523.25, idx:7, name:'도'},
-            {f:587.33, idx:8, name:'레'}, {f:659.25, idx:9, name:'미'}, 
-            {f:698.46, idx:10, name:'파'}, {f:783.99, idx:11, name:'솔'} 
-        ];
-
-        const rhythmData = {
-            ballad: { beats: 4, loop: [{t:0,i:'kick'},{t:0,i:'chord'},{t:1,i:'snare'},{t:1,i:'chord'},{t:2,i:'kick'},{t:2,i:'chord'},{t:3,i:'snare'},{t:3,i:'chord'}] },
-            hiphop: { beats: 4, loop: [{t:0,i:'kick'},{t:0.75,i:'kick'},{t:1,i:'snare'},{t:2,i:'kick'},{t:3,i:'snare'}] },
-            march: { beats: 4, loop: [{t:0,i:'kick'},{t:0.5,i:'snare'},{t:1,i:'kick'},{t:1.5,i:'snare'},{t:2,i:'kick'},{t:2.5,i:'snare'},{t:3,i:'kick'},{t:3.5,i:'snare'}] },
-            waltz: { beats: 3, loop: [{t:0,i:'kick'},{t:1,i:'snare'},{t:1,i:'chord'},{t:2,i:'snare'},{t:2,i:'chord'}] },
-            funk: { beats: 4, loop: [{t:0,i:'kick'}, {t:1,i:'snare'}, {t:1.75,i:'kick'}, {t:2,i:'snare'}, {t:2.5,i:'kick'}, {t:3,i:'snare'}] },
-            bossa: { beats: 4, loop: [{t:0,i:'kick'}, {t:0.75,i:'snare'}, {t:2,i:'kick'}, {t:2.75,i:'snare'}] }
-        };
-
-        let timeline = [];
-
-        function startApp() {
-            document.getElementById('intro-screen').style.display = 'none';
-            document.getElementById('main-timeline').classList.remove('hidden');
-            document.getElementById('main-workspace').classList.remove('hidden');
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-        }
-
-        function setEmotion(btn, emotionName, color) { 
-            current.emo = emotionName; current.color = color; 
-            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected')); 
-            btn.classList.add('selected'); updateText(); 
-        }
-
-        function switchTab(t) { 
-            document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); event.target.classList.add('active'); 
-            document.querySelectorAll('.big-input').forEach(i=>i.classList.add('hidden')); 
-            document.getElementById(`input-${t}`).classList.remove('hidden'); document.getElementById(`input-${t}`).focus(); 
-        }
-        
-        function updateText() {
-            const when = document.getElementById('input-when').value || '언제';
-            const rawWhere = document.getElementById('input-where').value || '어딘가';
-            const rawWho = document.getElementById('input-who').value || '누가';
-            const what = document.getElementById('input-what').value || '무엇을 하고';
-            const where = resolveJosa(rawWhere, 'loc'); const who = resolveJosa(rawWho, 'sub');
-            current.when=when; current.where=where; current.who=who; current.what=what;
-            if(current.emo) { 
-                current.text = templates[current.emo].replace('{when}',when).replace('{where}',where).replace('{who}',who).replace('{act}',what); 
-                document.getElementById('preview-msg').value = current.text; 
-                document.getElementById('preview-msg').style.backgroundColor = current.color; 
-            }
-        }
-
-        function nextStep(n) { 
-            stopDemo(); 
-            document.querySelectorAll('section').forEach(s=>s.classList.add('hidden')); 
-            document.getElementById(`step-${n}`).classList.remove('hidden'); 
-            if(n===3){ renderScoreUI(); renderPiano(); resetMelody(); } 
-        }
-
-        function renderScoreUI() {
-            const container = document.getElementById('score-container'); container.innerHTML = '';
-            for(let i=0; i < current.maxBeats; i++) {
-                const box = document.createElement('div'); box.className = 'beat-box'; box.id = `beat-${i}`;
-                container.appendChild(box);
-            }
-            document.getElementById('status-msg').innerText = `${current.maxBeats}박자 멜로디를 입력하세요`;
-        }
-
-        function previewRhythm(b,r) { 
-            current.rhythm = r; current.maxBeats = rhythmData[r].beats; 
-            document.querySelectorAll('.rhythm-card').forEach(c=>c.classList.remove('selected')); b.classList.add('selected'); 
-            stopDemo(); playRhythmLoop(r); 
-        }
-
-        function stopDemo() { 
-            if(activeTimeouts.length > 0) stopAllSound(); 
-            document.querySelectorAll('.key').forEach(k=>k.classList.remove('pressed'));
-        }
-
-        function playRhythmLoop(r) { 
-            if(audioCtx.state==='suspended')audioCtx.resume();
-            const d=rhythmData[r]; const bd=0.5;
-            const pb=()=>{ const now=audioCtx.currentTime; d.loop.forEach(e=>{ const t=now+e.t*bd; if(e.i==='kick')playKick(t); else if(e.i==='snare')playSnare(t); }); };
-            pb(); activeTimeouts.push(setInterval(pb, d.beats * bd * 1000));
-        }
-
-        function toggleInstrument(inst) {
-            const idx = current.instruments.indexOf(inst);
-            if (idx > -1) { if(current.instruments.length > 1) { current.instruments.splice(idx, 1); document.getElementById(`inst-${inst}`).classList.remove('active'); } }
-            else { current.instruments.push(inst); document.getElementById(`inst-${inst}`).classList.add('active'); }
-        }
-
-        function setNoteLen(mode) {
-            current.noteLenMode = mode;
-            document.querySelectorAll('.btn-len').forEach(b => b.classList.remove('active'));
-            document.getElementById(`len-${mode}`).classList.add('active');
-        }
-
-        function cycleRhythm(barIdx) {
-            const types = ['repeat', 'quarter', 'eighth', 'swing', 'ending'];
-            const labels = {repeat:'🔄 그대로', quarter:'♩ 한박자', eighth:'♫ 반박자', swing:'♪♩ 스윙', ending:'🏁 종지'};
-            const idx = barIdx - 2; let currType = current.rhythmVars[idx];
-            let nextIdx = (types.indexOf(currType) + 1) % types.length;
-            let nextType = types[nextIdx];
-            current.rhythmVars[idx] = nextType;
-            const btn = document.getElementById(`btn-rvar-${barIdx}`);
-            btn.innerText = `${barIdx}. ${labels[nextType]}`;
-            btn.setAttribute('data-rtype', nextType);
-            previewSingleBar(barIdx);
-        }
-
-        function cyclePitch(barIdx) {
-            const types = ['same', 'up1', 'up2', 'down1', 'invert', 'end-0', 'end-2', 'end-4', 'end-5', 'end-7'];
-            const labels = {same:'━ 그대로', up1:'📈 한칸 위', up2:'🚀 두칸 위', down1:'📉 한칸 아래', invert:'🔀 뒤집기', 'end-0':'🏁 종지(도)', 'end-2':'🏁 종지(미)', 'end-4':'🏁 종지(솔)', 'end-5':'🏁 종지(라)', 'end-7':'🏁 종지(높은도)'};
-            const idx = barIdx - 2; let currType = current.pitchVars[idx];
-            let nextIdx = (types.indexOf(currType) + 1) % types.length;
-            let nextType = types[nextIdx];
-            current.pitchVars[idx] = nextType;
-            const btn = document.getElementById(`btn-pvar-${barIdx}`);
-            btn.innerText = `${barIdx}. ${labels[nextType]}`;
-            btn.setAttribute('data-ptype', nextType);
-            previewSingleBar(barIdx);
-        }
-
-        function renderPiano() { 
-            const b=document.getElementById('piano-area'); b.innerHTML=''; 
-            for(let i=0; i<12; i++) {
-                let n = scale[i];
-                let k=document.createElement('div'); 
-                k.className=`key`; 
-                k.innerHTML = `<span class="key-label">${n.name}</span>`;
-                k.onmousedown=()=> { addNote(n.f,i); k.classList.add('pressed'); };
-                k.onmouseup=()=>k.classList.remove('pressed');
-                k.onmouseleave=()=>k.classList.remove('pressed');
-                b.appendChild(k);
-
-                const hasBlack = [0, 1, 3, 4, 5, 7, 8, 10].includes(i);
-                if(hasBlack && i < 11) {
-                    let bk = document.createElement('div');
-                    bk.className = 'key black';
-                    k.appendChild(bk);
-                }
-            }
-        }
-
-        function resolveJosa(word, type) {
-            if (!word) return "";
-            if (type === 'sub') { const exceptions = ["내가", "네가", "누가", "우리가", "저희가"]; if (exceptions.includes(word)) return word; }
-            if (type === 'loc' && word.endsWith('에서')) return word;
-            const last = word.charCodeAt(word.length - 1);
-            if (last < 0xAC00 || last > 0xD7A3) return word; 
-            const hasBatchim = (last - 0xAC00) % 28 > 0;
-            if (type === 'sub') return word + (hasBatchim ? '이' : '가');
-            if (type === 'loc') return word + '에서';
-            return word;
-        }
-
-        function stopAllSound() {
-            activeNodes.forEach(node => { try { node.stop(); } catch(e) {} try { node.disconnect(); } catch(e) {} });
-            activeNodes = [];
-            activeTimeouts.forEach(id => { clearTimeout(id); clearInterval(id); });
-            activeTimeouts = [];
-        }
-
-        function createVibrato(ctx, destination, rate, depth, time) {
-             const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain();
-             lfo.type = 'sine'; lfo.frequency.value = rate; lfoGain.gain.value = depth;
-             lfo.connect(lfoGain); lfoGain.connect(destination.frequency); 
-             lfo.start(time); lfo.stop(time + 2); activeNodes.push(lfo);
-        }
-
-        function playSound_synth(instType, freq, time, dur) {
-            const t = time; const d = dur;
-            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); const filter = audioCtx.createBiquadFilter(); 
-            osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination); gain.connect(destNode); 
-            activeNodes.push(osc); activeNodes.push(gain); 
-            let releaseTime = t + d; if (d < 0.3) { releaseTime = t + d + 0.05; } else { releaseTime = t + d + 0.5; } 
-
-            switch(instType) {
-                case 'piano':
-                    osc.type = 'triangle'; filter.type = 'lowpass'; filter.frequency.setValueAtTime(3000, t);
-                    gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(0.6, t + 0.01); 
-                    gain.gain.exponentialRampToValueAtTime(0.01, releaseTime); 
-                    const pOsc2 = audioCtx.createOscillator(); const pGain2 = audioCtx.createGain();
-                    pOsc2.type = 'sine'; pOsc2.frequency.value = freq * 2; pGain2.gain.value = 0.2;
-                    pOsc2.connect(pGain2); pGain2.connect(audioCtx.destination);
-                    pOsc2.start(t); pOsc2.stop(releaseTime); activeNodes.push(pOsc2); break;
-                case 'violin':
-                    osc.type = 'sawtooth'; filter.type = 'lowpass'; filter.frequency.value = 2000; filter.Q.value = 1;
-                    gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(0.3, t + 0.1); 
-                    gain.gain.linearRampToValueAtTime(0.2, t + d); gain.gain.linearRampToValueAtTime(0.01, releaseTime);
-                    createVibrato(audioCtx, osc, 6, 5, t); break;
-                case 'cello':
-                    osc.type = 'sawtooth'; filter.type = 'lowpass'; filter.frequency.value = 600; 
-                    gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(0.3, t + 0.15); 
-                    gain.gain.linearRampToValueAtTime(0.01, t + d + 0.3);
-                    createVibrato(audioCtx, osc, 4, 3, t); break;
-                case 'flute':
-                    osc.type = 'sine'; filter.type = 'lowpass'; filter.frequency.value = 1500;
-                    gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(0.4, t + 0.05);
-                    gain.gain.linearRampToValueAtTime(0.01, releaseTime);
-                    createVibrato(audioCtx, osc, 5, 2, t); break;
-                case 'bassoon':
-                    osc.type = 'square'; filter.type = 'lowpass'; filter.frequency.value = 900; filter.Q.value = 2; 
-                    gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(0.25, t + 0.05);
-                    gain.gain.linearRampToValueAtTime(0.01, releaseTime); break;
-            }
-            osc.frequency.setValueAtTime(freq, t); osc.start(t); osc.stop(releaseTime + 0.1); 
-        }
-
-        function playMultiSound(instruments, freq, time, beatDurationSec, totalBeats, accumulatedBeat) {
-            const count = instruments.length; const maxBeats = current.maxBeats;
-            if (count === 1) { playSound(instruments[0], freq, time, beatDurationSec * totalBeats * 0.9); return; }
-            if (count === 2) {
-                instruments.forEach(inst => {
-                    if (inst === 'piano') {
-                        let beatCount = Math.floor(totalBeats);
-                        if(beatCount < 1) beatCount = 1;
-                        for(let i=0; i<beatCount; i++) {
-                             let currentBeatInBar = (accumulatedBeat + i) % maxBeats;
-                             if(currentBeatInBar % 2 === 0) { 
-                                 let hitTime = time + (i * beatDurationSec);
-                                 playSound('piano', freq, hitTime, beatDurationSec * 1.0); 
-                                 playSound('piano', freq * 1.5, hitTime, beatDurationSec * 1.0); 
-                             }
-                        }
-                    } else { playSound(inst, freq, time, beatDurationSec * totalBeats * 0.9); }
-                });
-                return;
-            }
-            const hasMelodyInst = instruments.includes('flute') || instruments.includes('violin');
-            instruments.forEach(inst => {
-                if (inst === 'flute' || inst === 'violin') { playSound(inst, freq * 2, time, beatDurationSec * totalBeats * 0.9); } 
-                else if (inst === 'cello' || inst === 'bassoon') {
-                    if (accumulatedBeat % maxBeats < 0.1) {
-                        let bassFreq = freq / 2; if (hasMelodyInst) bassFreq = freq / 4; 
-                        playSound(inst, bassFreq, time, beatDurationSec * maxBeats); 
-                    }
-                } else if (inst === 'piano') {
-                    let beatCount = Math.floor(totalBeats);
-                    for(let i=0; i<beatCount; i++) {
-                         let currentBeatInBar = (accumulatedBeat + i) % maxBeats;
-                         if(currentBeatInBar % 2 === 0) { 
-                             let hitTime = time + (i * beatDurationSec);
-                             playSound('piano', freq, hitTime, beatDurationSec * 1.0); 
-                             playSound('piano', freq * 1.5, hitTime, beatDurationSec * 1.0); 
-                         }
-                    }
-                }
-            });
-        }
-
-        function previewSingleBar(barNum) {
-            stopAllSound();
-            const tempo = parseFloat(document.getElementById('tempo-slider').value);
-            const beatTime = 0.5 / tempo; const now = audioCtx.currentTime;
-            let full = getExpandedMelody(current.melody, current.rhythmVars, current.pitchVars);
-            let accumulated = 0; let targetStart = (barNum - 1) * current.maxBeats; let targetEnd = targetStart + current.maxBeats;
-            let barNotes = [];
-            full.forEach(n => { if(accumulated >= targetStart && accumulated < targetEnd) { barNotes.push(n); } accumulated += n.len; });
-            let cursor = 0; let localAccum = 0; 
-            barNotes.forEach(n => {
-                playMultiSound(current.instruments, n.f, now + cursor, beatTime, n.len, localAccum);
-                cursor += n.len * beatTime; localAccum += n.len;
-            });
-        }
-
-        function playWholeStory() {
-            stopAllSound();
-            if(audioCtx.state==='suspended')audioCtx.resume();
-            let accTime=0; const now=audioCtx.currentTime+0.1;
-            timeline.forEach((blk, idx) => {
-                const tempo = 1.0; const beatTime = 0.5 / blk.tempo;
-                const fullMelody = getExpandedMelody(blk.melody, blk.rhythmVars, blk.pitchVars);
-                let totalBeats = 0; fullMelody.forEach(n => totalBeats += n.len);
-                let totalDur = totalBeats * beatTime;
-                const start = now + accTime;
-                let to1 = setTimeout(() => { document.querySelectorAll('.story-block').forEach((b,i)=>b.style.background=i===idx?'#ffeaa7':'#f1f2f6'); }, accTime*1000);
-                activeTimeouts.push(to1);
-                const rData = rhythmData[blk.rhythm]; const loopCount = 4; 
-                for(let b=0; b<loopCount; b++) {
-                    rData.loop.forEach(evt => {
-                        const t = start + (b * current.maxBeats * beatTime) + (evt.t * beatTime); 
-                        if(t < start + totalDur) { if(evt.i==='kick') playKick(t); else if(evt.i==='snare') playSnare(t); }
-                    });
-                }
-                let cursor = 0; let accumulatedBeat = 0;
-                fullMelody.forEach(n => {
-                    let insts = Array.isArray(blk.instruments) ? blk.instruments : [blk.instrument || 'piano'];
-                    playMultiSound(insts, n.f, start + cursor, beatTime, n.len, accumulatedBeat);
-                    cursor += n.len * beatTime; accumulatedBeat += n.len;
-                });
-                accTime += totalDur;
-            });
-            let to2 = setTimeout(() => document.querySelectorAll('.story-block').forEach(b=>b.style.background='#f1f2f6'), accTime*1000);
-            activeTimeouts.push(to2);
-        }
-        
-        function previewMelody() {
-            stopAllSound();
-            const tempo = parseFloat(document.getElementById('tempo-slider').value);
-            const beatTime = 0.5 / tempo; const now = audioCtx.currentTime;
-            const fullMelody = getExpandedMelody(current.melody, current.rhythmVars, current.pitchVars);
-            let cursorTime = 0; let accumulatedBeat = 0;
-            fullMelody.forEach((n, i) => {
-                playMultiSound(current.instruments, n.f, now + cursorTime, beatTime, n.len, accumulatedBeat);
-                cursorTime += n.len * beatTime; accumulatedBeat += n.len;
-            });
-        }
-        
-        function addNote(f,i) { 
-            stopDemo(); 
-            if(audioCtx.state==='suspended')audioCtx.resume();
-            let duration = 1.0; 
-            if(current.noteLenMode === 'quarter') { duration = 1.0; } 
-            else if(current.noteLenMode === 'eighth') { duration = 0.5; } 
-            else if(current.noteLenMode === 'swing') {
-                let isStart = Math.abs(current.beatIdx % 1) < 0.1;
-                if(isStart) { duration = 0.66; } else { duration = 0.34; }
-            } else if(current.noteLenMode === 'half') { duration = 2.0; }
-            else if(current.noteLenMode === 'dotted') { duration = 3.0; }
-
-            if(current.beatIdx + duration > current.maxBeats + 0.1) { alert("박자가 넘칩니다!"); return; }
-
-            const tempo = parseFloat(document.getElementById('tempo-slider').value);
-            const beatTime = 0.5 / tempo;
-            playMultiSound(current.instruments, f, audioCtx.currentTime, beatTime, duration, current.beatIdx);
-            current.melody.push({f:f, idx:i, len:duration});
-            
-            let startBeat = Math.floor(current.beatIdx);
-            let endBeat = Math.floor(current.beatIdx + duration - 0.01); 
-            const startBox = document.getElementById(`beat-${startBeat}`);
-            if(startBox) {
-                const subNote = document.createElement('div');
-                subNote.className = 'sub-note filled'; subNote.style.height = `${(i+1)*10}%`; subNote.style.width = '100%';
-                startBox.appendChild(subNote); startBox.classList.add('active');
-            }
-            for(let b = startBeat + 1; b <= endBeat; b++) {
-                const nextBox = document.getElementById(`beat-${b}`);
-                if(nextBox) {
-                    const subNote = document.createElement('div');
-                    subNote.className = 'sub-note filled'; subNote.style.height = `${(i+1)*10}%`; 
-                    subNote.style.width = '100%'; subNote.style.opacity = '0.5'; 
-                    nextBox.appendChild(subNote); nextBox.classList.add('active');
-                }
-            }
-            current.beatIdx += duration;
-            if(current.beatIdx >= current.maxBeats - 0.1) { 
-                document.getElementById('status-msg').innerText="완성! 변주를 선택해보세요"; 
-                document.getElementById('save-controls').classList.remove('hidden'); 
-                previewMelody();
-            }
-        }
-
-        function resetMelody(){ 
-            current.melody=[]; current.beatIdx=0;
-            const container = document.getElementById('score-container');
-            if(container) { renderScoreUI(); }
-            document.getElementById('save-controls').classList.add('hidden'); 
-            document.getElementById('status-msg').innerText = `${current.maxBeats}박자 멜로디를 입력하세요`;
-        }
-        function previewIfReady(){ if(current.beatIdx>=3.9) previewMelody(); }
-
-        function getExpandedMelody(baseMelody, rVars, pVars) {
-            let expanded = [];
-            const getBaseNote = (nIdx) => baseMelody[nIdx % baseMelody.length];
-            const applyPitch = (noteObj, pType) => {
-                let newIdx = noteObj.idx;
-                if(pType === 'up1') newIdx += 1; else if(pType === 'up2') newIdx += 2;
-                else if(pType === 'down1') newIdx -= 1; else if(pType === 'invert') newIdx = 7 - noteObj.idx;
-                if(pType.startsWith('end-')) { newIdx = parseInt(pType.split('-')[1]); }
-                if(newIdx < 0) newIdx = 0; if(newIdx > 11) newIdx = 11;
-                return { f: scale[newIdx].f, len: noteObj.len, idx: newIdx };
-            };
-            baseMelody.forEach(n => expanded.push({f: n.f, len:n.len, idx:n.idx})); 
-
-            for(let i=0; i<3; i++) {
-                let rType = rVars[i]; let pType = pVars[i];
-                if(rType === 'ending') {
-                    let rootFreq = scale[0].f;
-                    let endNote = { f: scale[0].f, idx: 0, len: current.maxBeats * 1.0 };
-                    let finalNote = applyPitch(endNote, pType);
-                    expanded.push(finalNote); continue; 
-                }
-                let barNotes = [];
-                baseMelody.forEach(n => barNotes.push({...n}));
-                let shiftedNotes = barNotes.map(n => applyPitch(n, pType));
-                shiftedNotes.forEach(n => expanded.push(n));
-            }
-            return expanded;
-        }
-
-        function recordCurrentSegment() {
-            current.text = document.getElementById('preview-msg').value; 
-            timeline.push(JSON.parse(JSON.stringify(current)));
-            let instDisplay = current.instruments.map(i => i === 'piano' ? '🎹' : i === 'violin' ? '🎻' : i === 'cello' ? '🎻(C)' : i === 'flute' ? '🌬️' : '🪵').join('');
-            const d=document.createElement('div'); d.className='story-block'; d.style.borderLeftColor=current.color;
-            d.innerHTML=`<div><b>${current.text}</b></div><div><span style="font-size:0.8em; background:#ccc; color:white; padding:3px 8px; border-radius:10px;">${instDisplay} | ${current.rhythm}</span></div>`;
-            document.getElementById('timeline-list').appendChild(d); document.getElementById('btn-play-all').classList.remove('hidden');
-            document.getElementById('btn-stop-all').classList.remove('hidden');
-        }
-
-        function saveAndContinue() {
-            recordCurrentSegment(); resetMelody(); stopDemo();
-            document.querySelectorAll('section').forEach(s=>s.classList.add('hidden')); 
-            document.getElementById('step-1').classList.remove('hidden');
-            document.getElementById('input-when').value=''; document.getElementById('input-where').value=''; 
-            document.getElementById('input-who').value=''; document.getElementById('input-what').value='';
-            document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.querySelector('.tab-btn').classList.add('active');
-            document.querySelectorAll('.big-input').forEach(i=>i.classList.add('hidden')); document.getElementById('input-when').classList.remove('hidden');
-        }
-
-        function saveAndFinish() {
-            recordCurrentSegment(); stopDemo(); refreshQuestion();
-            document.querySelectorAll('section').forEach(s=>s.classList.add('hidden')); 
-            document.getElementById('step-4').classList.remove('hidden');
-        }
-
-        function playKick(t){ const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(0.01,t+0.5); g.gain.setValueAtTime(1.2, t); g.gain.exponentialRampToValueAtTime(0.01,t+0.5); o.connect(g); g.connect(audioCtx.destination); g.connect(destNode); o.start(t); o.stop(t+0.5); activeNodes.push(o); }
-        function playSnare(t){ const b=audioCtx.createBuffer(1,audioCtx.sampleRate*0.1,audioCtx.sampleRate); const d=b.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; const s=audioCtx.createBufferSource(); s.buffer=b; const g=audioCtx.createGain(); const f=audioCtx.createBiquadFilter(); f.type='highpass'; f.freq=1000; g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.01,t+0.1); s.connect(f); f.connect(g); g.connect(audioCtx.destination); g.connect(destNode); s.start(t); activeNodes.push(s); }
-        function playChord(fs,t,d){ /* Muted */ } 
-
-        // --- STEP 4 FEATURES ---
-        function refreshQuestion() {
-            // Context-Aware Selection logic
-            let pool = inquiryPool[current.emo];
-            if(!pool) pool = ["이 음악을 들으면 어떤 장면이 떠오르나요?", "이 음악에 제목을 붙여주세요."];
-            
-            const randQ = pool[Math.floor(Math.random() * pool.length)];
-            const safeText = current.text ? current.text.replace(/"/g, "'") : "나의 이야기";
-            document.getElementById('inquiry-q').innerText = randQ.replace('[story]', safeText);
-        }
-        function saveText() {
-            const txt = `[EAIM 음악 탐구 일지]\n질문: ${document.getElementById('inquiry-q').innerText}\n답변: ${document.getElementById('inquiry-a').value}`;
-            const blob = new Blob([txt], {type: "text/plain;charset=utf-8"});
-            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "music_journal.txt"; a.click();
-        }
-        function downloadAudio() {
-            alert("녹음을 시작합니다... 음악이 끝날 때까지 기다려주세요! 🎵");
-            const chunks = [];
-            const recorder = new MediaRecorder(destNode.stream);
-            recorder.ondataavailable = e => chunks.push(e.data);
-            recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'my_music.webm'; a.click();
-                alert("녹음 완료! 다운로드됩니다.");
-            };
-            recorder.start();
-            playWholeStory();
-            let totalBeats = 0;
-            timeline.forEach(b => { totalBeats += (b.maxBeats * 4); });
-            setTimeout(() => { recorder.stop(); }, (totalBeats * 500) + 2000); 
-        }
-        // ══ 진짜 악기 소리 (play-sound.js) ══
-        const kits = {};
-        const mainOut = audioCtx.createGain(); mainOut.connect(audioCtx.destination); mainOut.connect(destNode);
-        function loadKits(){
-            if(!window.EAIMSound) return;
-            const spec={piano:'piano', violin:'violin', cello:'cello', flute:'flute', bassoon:'bassoon'};
-            Object.entries(spec).forEach(([k,inst])=>{
-                const range = k==='cello'||k==='bassoon' ? {low:36,high:72,step:3} : {low:48,high:96,step:3};
-                kits[k]=new EAIMSound.SampleKit(audioCtx, inst, range);
-                kits[k].load().then(ok=>{ const el=document.getElementById('status-msg'); if(ok && el && /입력하세요$/.test(el.innerText)) el.innerText = el.innerText + ' 🎻'; });
-            });
-        }
-        function playSound(instType, freq, time, dur){
-            const kit=kits[instType];
-            if(!(kit && kit.ready)) return playSound_synth(instType, freq, time, dur);
-            const rel = instType==='piano' ? 0.5 : 0.35;
-            const r=kit.play(freq, time, Math.max(0.12, dur), mainOut, instType==='piano'?0.75:0.6, {attack: instType==='piano'?0.005:0.04, release:rel});
-            if(r){ activeNodes.push(r.src); activeNodes.push(r.gain); }
-        }
-        window.addEventListener('load', loadKits);
-
-    </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🎼 이야기 작곡실 | EAIM 연주실</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
 <script src="play-sound.js"></script>
 <script src="play-key.js"></script>
-<script src="composer-ai.js"></script>
+<style>
+:root{--bg:#141021;--panel:#1e1830;--panel2:#2a2240;--line:#3d3358;--text:#f3eefb;--sub:#a99cc4;--gold:#d4a843;--purple:#a78bfa;--green:#4ade80;--red:#f87171;--blue:#60a5fa;--yellow:#fde047}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+button,input,textarea,select{font-family:inherit;font-size:inherit}
+textarea,input{user-select:text;-webkit-user-select:text}
+header{padding:22px 16px 8px;text-align:center}
+.logo{font-family:'Space Mono',monospace;font-size:1.9rem;font-weight:700;color:var(--gold)}
+.tag{font-size:.78rem;color:var(--sub);letter-spacing:.15em}
+.steps{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;padding:8px 12px 14px}
+.step{padding:7px 12px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--sub);font-size:.82rem;cursor:pointer}
+.step.on{background:var(--gold);color:#1a1200;border-color:var(--gold);font-weight:700}
+main{max-width:900px;margin:0 auto;padding:0 14px 90px}
+.page{display:none}.page.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+.card h2{font-size:1.15rem;font-weight:900;margin-bottom:4px}
+.card .desc{font-size:.86rem;color:var(--sub);margin-bottom:12px;line-height:1.6}
+.lbl{font-size:.78rem;color:var(--sub);margin:10px 0 5px}
+.in{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--text);outline:none;font-size:1rem}
+.in:focus{border-color:var(--purple)}
+textarea.in{min-height:90px;resize:vertical;line-height:1.7}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:8px 13px;border-radius:20px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-size:.9rem}
+.chip.on{background:rgba(167,139,250,.2);border-color:var(--purple);color:#fff;font-weight:700}
+.chip.hint{border-style:dashed;font-size:.82rem;color:var(--sub)}
+.btn{padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;font-weight:700;font-size:.92rem}
+.btn.p{background:var(--gold);color:#1a1200;border-color:var(--gold)}
+.btn.g{background:var(--green);color:#052e16;border-color:var(--green)}
+.btn.r{background:var(--red);color:#fff;border-color:var(--red)}
+.btn.ai{background:linear-gradient(135deg,#7c3aed,#c778dd);color:#fff;border:0}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row label{font-size:.85rem;color:var(--sub);display:flex;align-items:center;gap:6px}
+input[type=range]{accent-color:var(--gold);width:120px}
+.nav{display:flex;justify-content:space-between;margin-top:10px}
+.note{font-size:.78rem;color:var(--sub);line-height:1.6}
+.st{font-size:.82rem;color:var(--sub);margin-top:6px;min-height:18px}.st.err{color:var(--red)}
+.aibox{background:rgba(167,139,250,.1);border:1px dashed var(--purple);border-radius:10px;padding:10px 12px;font-size:.9rem;line-height:1.7;white-space:pre-wrap;margin-top:8px}
+/* 동기 표시 */
+.motif{display:flex;gap:4px;align-items:flex-end;height:90px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px}
+.motif .n{background:var(--gold);color:#1a1200;border-radius:6px;display:flex;align-items:flex-end;justify-content:center;font-size:.72rem;font-weight:700;padding-bottom:3px;min-width:14px}
+.motif .n.rest{background:var(--line);color:var(--sub)}
+.beat{display:flex;gap:8px;justify-content:center;margin:8px 0}
+.beat i{width:16px;height:16px;border-radius:50%;background:var(--line);display:block}
+.beat i.on{background:var(--gold);box-shadow:0 0 12px var(--gold)}
+.beat i.one.on{background:var(--red);box-shadow:0 0 12px var(--red)}
+.msg{text-align:center;font-weight:700;min-height:26px;margin:6px 0}.msg.rec{color:var(--red)}
+/* 건반 */
+.piano{display:flex;position:relative;background:#0b0816;padding:12px 8px 10px;border-radius:14px;justify-content:center;width:100%}
+.piano .keys{position:relative;width:100%;max-width:980px;height:clamp(140px,24vw,220px)}
+.key{position:absolute;top:0;height:100%;width:10%;background:#f6f3ff;border:1px solid #b9b0d6;border-radius:0 0 6px 6px;z-index:1;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;font-size:clamp(.6rem,1.6vw,.85rem);color:#6b5f88;font-weight:700}
+.key.black{width:6%;height:62%;background:#1a1426;border:1px solid #000;z-index:2;color:transparent;border-radius:0 0 5px 5px}
+.key.active{background:#cfc6ea}.key.black.active{background:#3a2f55}
+.key.stable{background:var(--red);color:#fff}.key.black.stable{background:#c94444}
+.key.pass{background:#a5b4fc;color:#1e1b4b}.key.black.pass{background:#6b6fbf}
+.rotate{display:none;background:rgba(212,168,67,.12);border:1px dashed rgba(212,168,67,.5);border-radius:10px;padding:8px 12px;font-size:.82rem;color:var(--gold);text-align:center;margin-bottom:8px}
+@media (max-width:820px) and (orientation:portrait){.rotate{display:block}}
+/* 형식 */
+.form{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.slot{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:8px;text-align:center;min-height:86px;cursor:pointer;position:relative}
+.slot.now{border-color:var(--gold);background:rgba(212,168,67,.12)}
+.slot .lab{font-family:'Space Mono',monospace;font-size:1.3rem;font-weight:700}
+.slot .sub{font-size:.7rem;color:var(--sub)}
+.slot .ch{font-size:.72rem;color:var(--purple);margin-top:2px}
+.pal{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.pal .p{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-size:.85rem}
+.pal .p b{font-family:'Space Mono',monospace;margin-right:4px}
+.pal .p.on{border-color:var(--gold);background:rgba(212,168,67,.15)}
+.stage{background:#000;border-radius:14px;padding:14px;text-align:center;margin-bottom:10px}
+.stage .now{font-family:'Space Mono',monospace;font-size:2.4rem;color:var(--gold);line-height:1}
+.gate{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px}
+.gate h1{font-family:'Space Mono',monospace;color:var(--gold);font-size:2rem}
+.gate p{color:var(--sub);max-width:440px;line-height:1.6}
+.gate button{padding:16px 40px;border-radius:40px;border:0;background:var(--gold);color:#1a1200;font-size:1.2rem;font-weight:900;cursor:pointer}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(74,222,128,.95);color:#052e16;padding:9px 16px;border-radius:10px;font-size:.85rem;font-weight:700;display:none;z-index:100}
+.gitem{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px}
+.gitem .nm{flex:1;min-width:0;font-size:.9rem}.gitem .nm small{display:block;color:var(--sub);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="gate" id="gate"><h1>🎼 이야기 작곡실</h1><p>이야기를 통한 작곡 — 이야기에서 감정을 꺼내 4박 동기를 만들고, 반복과 변주로 한 곡으로 키워요. 소리를 켜려면 시작을 눌러주세요.</p><button onclick="startApp()">시작하기</button></div>
+<header><div class="logo">STORY ROOM</div><div class="tag">EAIM 연주실 · 이야기 작곡실 — 이야기를 통한 작곡</div></header>
+<div class="steps" id="steps"></div>
+
+<main>
+<!-- 1 이야기 -->
+<section class="page on" id="p1"><div class="card">
+  <h2>① 이야기</h2><div class="desc">오늘 음악으로 만들 이야기를 자유롭게 써요. 한 줄이어도 좋아요. 막히면 아래 힌트를 눌러 보세요.</div>
+  <div class="lbl">이야기 전체 (한 줄이어도 좋아요)</div><textarea class="in" id="story" placeholder="예: 비 오는 날 집에 가는 길, 우산이 없어서 뛰었는데 이상하게 신났다. 집에 오니 엄마가 수건을 들고 서 있었다"></textarea>
+  <div class="chips" style="margin-top:6px">
+    <div class="chip hint" onclick="hint('언제였나요? ')">언제</div><div class="chip hint" onclick="hint('어디서? ')">어디서</div><div class="chip hint" onclick="hint('누가? ')">누가</div><div class="chip hint" onclick="hint('무슨 일이? ')">무슨 일</div><div class="chip hint" onclick="hint('그때 마음은? ')">그때 마음</div><div class="chip hint" onclick="hint('그래서 어떻게 됐나요? ')">그래서</div>
+  </div>
+  <div class="row" style="margin-top:10px"><button class="btn ai" onclick="aiScenes()">✨ AI로 장면 3개 나누기</button><button class="btn" onclick="splitManual()">✂️ 내가 직접 나누기</button><span class="st" id="sceneSt"></span></div>
+  <div class="desc" style="margin-top:14px">이야기를 <b>처음 · 가운데 · 끝</b> 세 장면으로 나눠요. 장면마다 감정이 다르면 음악도 달라져요 — 이게 곡의 형식이 됩니다.</div>
+  <div id="scenes"></div>
+</div><div class="nav"><span></span><button class="btn p" onclick="go(2)">동기 만들기 →</button></div></section>
+
+<!-- 2 동기 -->
+<section class="page" id="p2"><div class="card">
+  <h2>② 4박 동기 만들기</h2><div class="desc">곡의 씨앗이 될 4박짜리 짧은 멜로디예요. 건반을 눌러 넣거나, 박자에 맞춰 녹음하거나, AI에게 제안받아요. <b style="color:var(--red)">빨강</b>은 안정된 음(도·미·솔), <b style="color:#a5b4fc">파랑</b>은 이 조의 다른 음.</div>
+  <div class="chips" id="motifWho"><div class="chip on" data-w="A" onclick="setMotifTarget('A')">A 동기 — 처음 장면</div><div class="chip" data-w="B" onclick="setMotifTarget('B')">B 동기 — 가운데 장면 (선택)</div></div>
+  <div class="aibox" id="sceneHint" style="margin-top:8px;font-size:.85rem"></div>
+  <div class="motif" id="motifView" style="margin-top:8px"></div>
+  <div class="row" style="justify-content:center;margin-top:8px">
+    <span class="note">누를 음 길이</span>
+    <div class="chips" id="lens"><div class="chip" data-l="0.5" onclick="setLen(.5)">♪ 반박</div><div class="chip on" data-l="1" onclick="setLen(1)">♩ 한박</div><div class="chip" data-l="2" onclick="setLen(2)">𝅗𝅥 두박</div><div class="chip" data-l="rest" onclick="addRest()">쉼 ♩</div></div>
+    <button class="btn" onclick="undoNote()">↶ 하나 지우기</button><button class="btn" onclick="clearMotif()">🧹 비우기</button>
+  </div>
+  <div class="beat" id="beat2"></div><div class="msg" id="msg2"></div>
+  <div class="rotate">📱 기기를 가로로 돌리면 건반이 커져요</div>
+  <div class="piano" id="piano2"></div>
+  <div class="row" style="justify-content:center;margin-top:10px">
+    <button class="btn r" id="recBtn" onclick="recordMotif()">🔴 박자에 맞춰 녹음</button>
+    <button class="btn g" onclick="playMotif()">▶ 들어보기</button>
+    <button class="btn ai" onclick="aiMotif()">✨ AI 동기 제안</button>
+    <label>빠르기 <input type="range" id="bpm" min="60" max="140" value="92" oninput="setBpm(this.value)"> <b id="bpmLbl">92</b></label>
+  </div>
+  <div class="st" id="motifSt"></div>
+</div><div class="nav"><button class="btn" onclick="go(1)">← 이야기</button><button class="btn p" onclick="go(3)">곡으로 키우기 →</button></div></section>
+
+<!-- 3 형식 -->
+<section class="page" id="p3"><div class="card">
+  <h2>③ 곡으로 키우기</h2><div class="desc">장면마다 4마디. 동기를 <b>반복·변주</b>해서 채워요. 조각을 고른 뒤 칸을 누르면 들어가고, 칸 아래에 <b>이 마디가 이야기의 어떤 순간인지</b> 한 줄 적어요.</div>
+  <div class="lbl">조각 (누르면 소리로 확인)</div>
+  <div class="pal" id="pal"></div>
+  <div id="formSections"></div>
+  <div class="row" style="justify-content:center;margin-top:10px"><button class="btn g" id="play3" onclick="togglePlay()">▶ 곡 듣기</button><label><input type="checkbox" id="band3" checked> 반주 함께</label><button class="btn" onclick="autoForm()">🪄 장면 감정대로 자동 채우기</button></div>
+  <div class="note" style="margin-top:8px">A′ 리듬 잘게 · A↑ 위로 · A↔ 거꾸로 · A⤵ 뒤집기 · B 가운데 동기(없으면 A를 위로 옮겨 씀). 장면의 조(장/단조)에 따라 반주 코드가 바뀌어요.</div>
+</div><div class="nav"><button class="btn" onclick="go(2)">← 동기</button><button class="btn p" onclick="go(4)">입히기 →</button></div></section>
+
+<!-- 4 입히기 -->
+<section class="page" id="p4"><div class="card">
+  <h2>④ 입히기</h2><div class="desc">반주 스타일과 멜로디 악기를 골라요. 코드 진행은 장면의 조(장조·단조)에 맞춰 자동으로 바뀌고, 각각 세 가지 중 고를 수 있어요.</div>
+  <div class="lbl">반주 스타일</div><div class="chips" id="styles"></div>
+  <div class="lbl">장조 장면의 코드</div><div class="chips" id="progsMajor"></div>
+  <div class="lbl">단조 장면의 코드</div><div class="chips" id="progsMinor"></div>
+  <div class="lbl">멜로디 악기</div><div class="chips" id="leads"></div>
+  <div class="stage" style="margin-top:12px"><div class="note" id="stageScene"></div><div class="now" id="stageNow">—</div><div class="beat" id="beat4"></div><div class="note" id="stageInfo"></div></div>
+  <div class="row" style="justify-content:center"><button class="btn g" id="play4" onclick="togglePlay()">▶ 전체 듣기</button><label><input type="checkbox" id="loop" checked> 반복</label><label>빠르기 <input type="range" id="bpm2" min="60" max="140" value="92" oninput="setBpm(this.value)"> <b id="bpmLbl2">92</b></label></div>
+</div><div class="nav"><button class="btn" onclick="go(3)">← 형식</button><button class="btn p" onclick="go(5)">남기기 →</button></div></section>
+
+<!-- 5 남기기 -->
+<section class="page" id="p5">
+<div class="card">
+  <h2>⑤ 남기기</h2>
+  <div class="lbl">제목</div><input class="in" id="title" placeholder="내 곡의 제목">
+  <div class="lbl" style="margin-top:12px">악보</div>
+  <div id="score" style="background:#fff;border-radius:12px;padding:8px;overflow-x:auto"></div>
+  <div class="row" style="justify-content:center;margin-top:10px">
+    <button class="btn p" onclick="exportWav()">🎧 소리 저장</button><button class="btn" onclick="exportMidi()">🎹 MIDI 저장</button><button class="btn" onclick="exportScorePng()">🖼 악보 이미지</button>
+  </div>
+</div>
+<div class="card">
+  <h2>🤔 탐구</h2>
+  <div class="aibox" id="q1box">질문을 만드는 중…</div>
+  <textarea class="in" id="a1" placeholder="내 생각을 두세 문장으로" style="margin-top:8px"></textarea>
+  <div class="row" style="margin-top:8px"><button class="btn" onclick="aiQuestion()">🔄 다른 질문</button><button class="btn ai" onclick="aiFeedback()">💬 내 생각에 대해 한마디 듣기</button></div>
+  <div class="aibox" id="fbBox" style="display:none"></div>
+</div>
+<div class="card">
+  <h2>🎵 내 이야기로 노래 만들기</h2><div class="desc">이야기를 가사로, 내 동기의 방향과 조를 힌트로 줘서 AI(Lyria)가 30초 노래를 불러요. 내 곡과 비교해 들어보세요.</div>
+  <div class="row"><button class="btn ai" id="songBtn" onclick="makeSong()">🎵 노래 만들기 (30초)</button><span class="st" id="songSt"></span></div>
+  <div id="songBox" style="display:none;margin-top:8px"><audio id="songAudio" controls style="width:100%"></audio><a id="songDl" class="btn" style="display:inline-block;margin-top:8px;text-decoration:none">⬇ 노래 저장</a></div>
+</div>
+<div class="card">
+  <h2>📤 제출 · 🎧 우리 반 듣기</h2>
+  <div class="desc" id="submitDesc">선생님 초대 링크로 들어왔으면 제출할 수 있어요.</div>
+  <div class="row"><input class="in" id="stuName" placeholder="이름" style="flex:1;min-width:120px"><input class="in" id="stuGroup" placeholder="반/모둠" style="flex:1;min-width:120px"><button class="btn p" id="submitBtn" onclick="submitStory()">📤 제출</button></div>
+  <div class="st" id="submitSt"></div>
+  <div class="row" style="margin-top:10px"><button class="btn" onclick="loadGallery()">🎧 우리 반 곡 불러오기</button><span class="note" id="gallerySt"></span></div>
+  <div id="gallery" style="margin-top:8px"></div>
+</div>
+<div class="nav"><button class="btn" onclick="go(4)">← 입히기</button><span></span></div></section>
+</main>
+<div id="toast"></div>
+
+<script>
+'use strict';
+if(!window.EAIMSound||!window.EAIMChord||!window.EAIMKey){document.body.innerHTML='<div style="padding:40px;text-align:center;color:#fff;background:#141021;min-height:100vh"><h2>⚠️ play-sound.js / play-key.js 가 옛 버전이에요</h2></div>';throw new Error('deps')}
+const $=id=>document.getElementById(id);
+const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2000)};
+const C=window.EAIMChord,PC=C.PC;
+const EMO={happy:'😊 기쁨',excited:'🤩 신남',calm:'🍃 평온',proud:'😎 뿌듯',dream:'🔮 신비',surprised:'😮 놀람',sad:'😢 슬픔',lonely:'🌧 외로움',angry:'😠 화남',scary:'👻 무서움'};
+const MINOR_EMOS=['sad','lonely','angry','scary','dream'];
+const STYLES={kpop:'K-pop 발라드',pop16:'16비트 팝',ballad:'발라드 기본',beat8:'8비트',waltz:'왈츠 3박',dance:'댄스',synth:'신스팝',rnb:'R&B'};
+const PROGS={major:[{l:'☀️ 기본',p:'C G Am F'},{l:'🌸 요즘',p:'Cadd9 G/B Am7 Fmaj7'},{l:'🎈 가벼운',p:'C F G C'}],minor:[{l:'🌧 기본',p:'Am F C G'},{l:'🕯 깊은',p:'Am Em F E7'},{l:'🍂 그리운',p:'Am7 Fmaj7 Cmaj7 G'}]};
+const LEADS={piano:'🎹 피아노',flute:'🪈 플루트',violin:'🎻 바이올린',vibraphone:'🔔 비브라폰',clarinet:'🎷 클라리넷',epiano:'🎹 일렉피아노'};
+const FORMS=[{n:'A A′ A A′ (물결)',f:['A','A1','A','A1','A','A2','A','A1']},{n:'A A′ B A (돌아오기)',f:['A','A1','B','A','A','A1','B','A']},{n:'A A B B′ (두 얼굴)',f:['A','A','B','B1','A','A','B','B1']},{n:'A A↑ A↔ A (놀이)',f:['A','A2','A3','A','A','A2','A3','A1']}];
+const PIECES={A:'A 원형',A1:'A′ 리듬 잘게',A2:'A↑ 위로',A3:'A↔ 거꾸로',A4:'A⤵ 뒤집기',B:'B 대비',B1:'B′ 위로',R:'쉼'};
+const SCENE_NAMES=['처음','가운데','끝'];
+const DEFAULT_FORMS=[['A','A1','A','A1'],['B','B1','B','A3'],['A','A1','A2','A']];
+const S={emo:'happy',mode:'major',story:'',scene:null,scenes:[{emo:'happy',text:'',mode:'major',form:['A','A1','A','A1'],why:['','','','']},{emo:'excited',text:'',mode:'major',form:['B','B1','B','A3'],why:['','','','']},{emo:'calm',text:'',mode:'major',form:['A','A1','A2','A'],why:['','','','']}],motif:{A:[],B:[]},style:'pop16',progMajor:0,progMinor:0,lead:'piano',bpm:92,target:'A',len:1};
+try{const saved=JSON.parse(localStorage.getItem('eaim_story_state')||'{}');if(saved.scenes)Object.assign(S,saved);else{['motif','style','lead','bpm','story'].forEach(k=>{if(saved[k]!==undefined)S[k]=saved[k]})}}catch{}
+const persist=()=>localStorage.setItem('eaim_story_state',JSON.stringify(S));
+
+/* ═════ 단계 ═════ */
+const STEP=['이야기','동기','형식','입히기','남기기'];let cur=1;
+function renderSteps(){$('steps').innerHTML=STEP.map((s,i)=>`<div class="step ${i+1===cur?'on':''}" onclick="go(${i+1})">${i+1} ${s}</div>`).join('')}
+function go(n){S.story=$('story').value;if(n===2&&!S.story.trim()&&!S.scenes.some(sc=>sc.text.trim())){toast('이야기를 한 줄이라도 적어주세요');return}if(n===2&&!S.scenes.some(sc=>sc.text.trim())&&S.story.trim())splitManual();stopAll();cur=n;EAIMKey.ping('이야기 작곡실',n);document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));$('p'+n).classList.add('on');renderSteps();window.scrollTo(0,0);persist();
+ if(n===2){setMotifTarget(S.target||'A')}if(n===3)renderForm();if(n===4)renderDress();if(n===5){renderScore();if(!$('q1box').dataset.done)aiQuestion()}}
+
+/* ═════ ① 이야기 → 장면 3개 ═════ */
+function renderScenes(){$('scenes').innerHTML=S.scenes.map((sc,i)=>`<div class="card" style="padding:12px 14px;margin:8px 0;border-color:${sc.mode==='minor'?'rgba(96,165,250,.4)':'rgba(212,168,67,.4)'}">
+  <div class="row" style="justify-content:space-between"><b>${['1️⃣','2️⃣','3️⃣'][i]} ${SCENE_NAMES[i]} 장면 <span class="note">→ ${['A 동기 · 1~4마디','B 동기 · 5~8마디','A 돌아옴 · 9~12마디'][i]}</span></b>
+   <div class="chips"><div class="chip ${sc.mode==='major'?'on':''}" onclick="setSceneMode(${i},'major')">🌞 장조</div><div class="chip ${sc.mode==='minor'?'on':''}" onclick="setSceneMode(${i},'minor')">🌙 단조</div></div></div>
+  <div class="chips" style="margin:8px 0">${Object.entries(EMO).map(([k,v])=>`<div class="chip ${sc.emo===k?'on':''}" style="padding:5px 10px;font-size:.82rem" onclick="setSceneEmo(${i},'${k}')">${v}</div>`).join('')}</div>
+  <textarea class="in" style="min-height:56px" placeholder="${['이야기가 시작되는 장면','마음이 바뀌거나 사건이 생기는 장면','이야기가 마무리되는 장면'][i]}" oninput="S.scenes[${i}].text=this.value;persist()">${esc(sc.text)}</textarea>
+  ${sc.motion?`<div class="note" style="margin-top:4px">💡 ${esc(sc.tip||'')} ${ {rising:'⬆ 올라가는 멜로디',falling:'⬇ 내려가는 멜로디',wave:'〰 물결치는 멜로디',still:'— 잔잔한 멜로디'}[sc.motion]||''}</div>`:''}
+ </div>`).join('')}
+function setSceneEmo(i,k){S.scenes[i].emo=k;S.scenes[i].mode=MINOR_EMOS.includes(k)?'minor':'major';if(i===0){S.emo=k;S.mode=S.scenes[0].mode;paintGuide()}renderScenes();persist()}
+function setSceneMode(i,m){S.scenes[i].mode=m;if(i===0){S.mode=m;paintGuide()}renderScenes();persist()}
+function hint(t){const ta=$('story');ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+t;ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length)}
+function splitManual(){const t=$('story').value.trim();if(!t){toast('이야기를 먼저 적어주세요');return}const parts=t.split(/(?<=[.!?。])\s+|\n+/).filter(Boolean);const n=parts.length;const cut=[Math.ceil(n/3),Math.ceil(2*n/3)];S.scenes[0].text=parts.slice(0,cut[0]).join(' ');S.scenes[1].text=parts.slice(cut[0],cut[1]).join(' ');S.scenes[2].text=parts.slice(cut[1]).join(' ');renderScenes();persist();toast('세 장면으로 나눴어요 — 고쳐 써도 돼요')}
+async function aiScenes(){const st=$('sceneSt');S.story=$('story').value;if(S.story.trim().length<5){st.textContent='이야기를 먼저 적어주세요';return}st.textContent='읽는 중…';
+ try{const d=await EAIMKey.gemini(`중학생이 작곡 수업에서 쓴 이야기를 음악 형식(A–B–A′)에 맞춰 처음·가운데·끝 세 장면으로 나눠 주세요. 가운데는 마음이 바뀌거나 사건이 생기는 부분. 장면마다 감정 하나(${Object.keys(EMO).join('|')}), 멜로디 방향(rising|falling|wave|still), 학생에게 말하듯 한 문장 팁. JSON만:
+{"scenes":[{"text":"...","emo":"happy","motion":"rising","tip":"..."},{...},{...}],"tempo":"slow|medium|fast"}
+이야기: ${S.story}`,{json:true,temperature:.7,maxTokens:600});
+  (d.scenes||[]).slice(0,3).forEach((sc,i)=>{const t=S.scenes[i];t.text=sc.text||t.text;if(EMO[sc.emo]){t.emo=sc.emo;t.mode=MINOR_EMOS.includes(sc.emo)?'minor':'major'}t.motion=sc.motion;t.tip=sc.tip});S.emo=S.scenes[0].emo;S.mode=S.scenes[0].mode;paintGuide();if(d.tempo)setBpm({slow:72,medium:92,fast:116}[d.tempo]||92);renderScenes();persist();st.textContent='✅ 나눴어요 — 장면마다 감정과 장/단조를 확인하세요'}
+ catch(e){st.textContent='❌ '+e.message;st.classList.add('err')}}
+function setMode(m){S.mode=m;S.scenes[0].mode=m;paintGuide();persist()}
+
+/* ═════ 음악 이론 (다장조 / 가단조 · 흰건반) ═════ */
+const KEYS=['C4','C#4','D4','D#4','E4','F4','F#4','G4','G#4','A4','A#4','B4','C5','C#5','D5','D#5','E5'];
+const WHITE=['C4','D4','E4','F4','G4','A4','B4','C5','D5','E5'];
+const LBL={C:'도',D:'레',E:'미',F:'파',G:'솔',A:'라',B:'시'};
+const stable=()=>S.mode==='major'?['C','E','G']:['A','C','E'];
+const degIdx=n=>WHITE.indexOf(n);
+function paintGuide(){const st=stable();document.querySelectorAll('.key').forEach(k=>{k.classList.remove('stable','pass');const pc=k.dataset.n.replace(/\d/,'');if(k.classList.contains('black'))return;k.classList.add(st.includes(pc)?'stable':'pass')})}
+function buildPiano(el){el.innerHTML='<div class="keys"></div>';const box=el.firstChild;let wi=0;KEYS.forEach(n=>{const black=n.includes('#');const k=document.createElement('div');k.className='key'+(black?' black':'');k.dataset.n=n;if(black){k.style.left=(wi*10-3)+'%'}else{k.style.left=(wi*10)+'%';k.textContent=LBL[n[0]]+(n.endsWith('5')?'↑':'');wi++}
+ const down=e=>{e.preventDefault();k.classList.add('active');keyDown(n)};const up=e=>{if(e)e.preventDefault();k.classList.remove('active');keyUp(n)};
+ k.addEventListener('mousedown',down);k.addEventListener('touchstart',down,{passive:false});['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>k.addEventListener(ev,up));box.appendChild(k)});paintGuide()}
+
+/* ═════ ② 동기 ═════ */
+function setMotifTarget(w){S.target=w;document.querySelectorAll('#motifWho .chip').forEach(c=>c.classList.toggle('on',c.dataset.w===w));const sc=S.scenes[w==='A'?0:1];S.mode=sc.mode;paintGuide();$('sceneHint').innerHTML=`${['1️⃣ 처음','2️⃣ 가운데'][w==='A'?0:1]} 장면 — ${EMO[sc.emo]} · ${sc.mode==='major'?'장조':'단조'}<br><span style="color:var(--sub)">"${esc(sc.text||'(장면 글 없음)')}"</span>${sc.motion?`<br>💡 ${ {rising:'올라가는',falling:'내려가는',wave:'물결치는',still:'잔잔한'}[sc.motion]} 멜로디가 어울려요`:''}`;renderMotif()}
+function setLen(l){S.len=l;document.querySelectorAll('#lens .chip').forEach(c=>c.classList.toggle('on',Number(c.dataset.l)===l))}
+const motif=()=>S.motif[S.target];
+const used=m=>m.reduce((a,n)=>a+n.len,0);
+function renderMotif(){const m=motif();$('motifView').innerHTML=m.length?m.map(n=>{const h=n.rest?12:20+degIdx(n.note)*7;return`<div class="n ${n.rest?'rest':''}" style="height:${h}px;flex:${n.len}">${n.rest?'쉼':LBL[n.note[0]]+(n.note.endsWith('5')?'↑':'')}</div>`}).join('')+(used(m)<4?`<div class="n rest" style="flex:${4-used(m)};opacity:.4">…</div>`:''):'<div class="note" style="align-self:center;width:100%;text-align:center">건반을 눌러 4박을 채워요 (한박 4개, 반박 8개, 섞어도 됨)</div>';
+ renderBeat($('beat2'));$('msg2').textContent=m.length?`${used(m)} / 4박${used(m)>=4?' — 완성! ▶ 들어보기':''}`:'';document.querySelectorAll('#lens .chip').forEach(c=>c.classList.toggle('on',Number(c.dataset.l)===S.len))}
+function renderBeat(el){el.innerHTML=Array.from({length:4},(_,i)=>`<i class="${i===0?'one':''}"></i>`).join('')}
+function addNoteClick(note){const m=motif();const room=4-used(m);if(room<=0){toast('4박이 다 찼어요. 지우고 다시 넣거나 B 동기로');return}const len=Math.min(S.len,room);m.push({note,len,at:used(m)});renderMotif();persist()}
+function addRest(){const m=motif();const room=4-used(m);if(room<=0)return;m.push({rest:true,len:Math.min(1,room),at:used(m)});renderMotif();persist()}
+function undoNote(){motif().pop();renderMotif();persist()}
+function clearMotif(){S.motif[S.target]=[];renderMotif();persist()}
+const held={};
+function keyDown(n){if(!ctx)return;const r=leadKit&&leadKit.ready?leadKit.play(n,ctx.currentTime,2,master,.8,{release:.4}):tempTone(n);held[n]={r,t:ctx.currentTime};
+ if(rec.active){const at=(ctx.currentTime-rec.t0)/beatSec();if(at>=-0.6&&at<3.9)rec.buf.push({at:Math.max(0,at),note:n})}else if(cur===2)addNoteClick(n)}
+function keyUp(n){const h=held[n];if(!h)return;if(h.r&&h.r.stop)h.r.stop();if(rec.active){const dur=(ctx.currentTime-h.t)/beatSec();const last=[...rec.buf].reverse().find(x=>x.note===n&&x.len===undefined);if(last)last.len=Math.max(.5,Math.min(dur,4-last.at))}delete held[n]}
+function tempTone(n){const midi=EAIMSound.midi(n);const o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=440*Math.pow(2,(midi-69)/12);const t=ctx.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.3,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+1.2);o.connect(g);g.connect(master);o.start(t);o.stop(t+1.3);return{stop:()=>{}}}
+/* 녹음 */
+const rec={active:false,t0:0,buf:[]};
+function recordMotif(){if(!ctx)return;if(rec.active){stopAll();return}stopAll();$('recBtn').textContent='■ 취소';const beat=beatSec();const t0=ctx.currentTime+.1;
+ for(let b=0;b<4;b++){click(t0+b*beat,b===0);timers.push(setTimeout(()=>{$('msg2').textContent=['하나','둘','셋','넷'][b]+' …';beatDot($('beat2'),b)},(b*beat+.1)*1000))}
+ const tRec=t0+4*beat;bandBar(chordAt(0),tRec,.6);for(let b=0;b<4;b++){click(tRec+b*beat,b===0);timers.push(setTimeout(()=>beatDot($('beat2'),b),((4+b)*beat+.1)*1000))}
+ rec.t0=tRec;rec.buf=[];timers.push(setTimeout(()=>{rec.active=true;$('msg2').textContent='🔴 녹음 중 — 4박';$('msg2').classList.add('rec')},(3.5*beat+.1)*1000));
+ timers.push(setTimeout(()=>{rec.active=false;$('msg2').classList.remove('rec');$('recBtn').textContent='🔴 박자에 맞춰 녹음';const notes=rec.buf.map(n=>({note:n.note,at:Math.round(n.at*2)/2,len:Math.max(.5,Math.round((n.len||.5)*2)/2)})).filter(n=>n.at<4).sort((a,b)=>a.at-b.at);
+  // 겹침 정리 후 쉼 채워서 4박
+  const out=[];let cursor=0;const seen=new Set();notes.forEach(n=>{if(seen.has(n.at))return;seen.add(n.at);if(n.at>cursor)out.push({rest:true,len:n.at-cursor,at:cursor});const len=Math.min(n.len,4-n.at);out.push({note:n.note,len,at:n.at});cursor=n.at+len});if(cursor<4)out.push({rest:true,len:4-cursor,at:cursor});
+  S.motif[S.target]=out.filter(n=>n.len>0);renderMotif();persist();$('motifSt').textContent=notes.length?'✅ 녹음됨 — ▶ 들어보고 마음에 안 들면 다시':'아무 음도 안 쳤어요'},(8*beat+.2)*1000))}
+function playMotif(){const m=motif();if(!m.length){toast('동기가 비어 있어요');return}stopAll();const t=ctx.currentTime+.1;bandBar(chordAt(0),t,.5);playNotes(m,t)}
+async function aiMotif(){const st=$('motifSt');st.textContent='이야기를 읽고 동기를 떠올리는 중…';
+ try{const d=await EAIMKey.gemini(`중학생의 이야기와 감정으로 4박 멜로디 동기(씨앗)를 제안하세요. 음은 ${S.mode==='major'?'다장조':'가단조'} 흰건반만: 도4 레4 미4 파4 솔4 라4 시4 도5 레5 미5 → 인덱스 0~9. 길이 len은 0.5/1/2 중, 합이 정확히 4. 2~6음. 감정의 방향(${S.scene?.motion||'자유'})을 살리고 첫 음은 되도록 안정음(${S.mode==='major'?'도·미·솔':'라·도·미'}).
+JSON만: {"notes":[{"idx":0,"len":1}],"why":"학생에게 한 문장"}
+감정: ${EMO[S.emo]} / 이야기: ${S.story||$('story').value} / 장면: ${(S.scene?.keywords||[]).join(',')}`,{json:true,temperature:.9,maxTokens:300});
+  let sum=0;const out=[];(d.notes||[]).forEach(n=>{const idx=Math.max(0,Math.min(9,Number(n.idx)||0));let len=[.5,1,2].includes(Number(n.len))?Number(n.len):1;if(sum+len>4)len=4-sum;if(len<=0)return;out.push({note:WHITE[idx],len,at:sum});sum+=len});if(sum<4)out.push({rest:true,len:4-sum,at:sum});
+  S.motif[S.target]=out;renderMotif();persist();st.textContent='💡 '+(d.why||'')+' — 마음에 안 들면 고치거나 다시';playMotif()}
+ catch(e){st.textContent='❌ '+e.message}}
+
+/* ═════ 변주 ═════ */
+const shiftDeg=(note,d)=>{const i=degIdx(note);if(i<0)return note;return WHITE[Math.max(0,Math.min(9,i+d))]};
+function variant(kind){const A=S.motif.A,B=S.motif.B.length?S.motif.B:null;const src=(kind.startsWith('B')?(B||A.map(n=>n.rest?n:{...n,note:shiftDeg(n.note,2)})):A).map(n=>({...n}));
+ switch(kind){
+  case 'A':case 'B':return src;
+  case 'A1':{const out=[];src.forEach(n=>{if(n.rest||n.len<1){out.push(n);return}const h=n.len/2;out.push({...n,len:h});out.push({...n,at:n.at+h,len:h})});return out}
+  case 'A2':case 'B1':return src.map(n=>n.rest?n:{...n,note:shiftDeg(n.note,2)});
+  case 'A3':{const total=4;let at=0;return [...src].reverse().map(n=>{const o={...n,at};at+=n.len;return o})}
+  case 'A4':{const first=src.find(n=>!n.rest);if(!first)return src;const f=degIdx(first.note);return src.map(n=>n.rest?n:{...n,note:WHITE[Math.max(0,Math.min(9,2*f-degIdx(n.note)))]})}
+  case 'R':return [{rest:true,len:4,at:0}];
+ }return src}
+
+/* ═════ ③ 형식: 3장면 × 4마디 ═════ */
+let pick='A';
+const LABEL=k=>({A:'A',A1:'A′',A2:'A↑',A3:'A↔',A4:'A⤵',B:'B',B1:'B′',R:'—'})[k]||k;
+function allForm(){return S.scenes.flatMap(sc=>sc.form)}
+function sceneOfBar(i){return S.scenes[Math.floor(i/4)]}
+function renderForm(){$('pal').innerHTML=Object.entries(PIECES).map(([k,v])=>`<div class="p ${pick===k?'on':''}" onclick="pick='${k}';renderForm();auditionPiece('${k}')"><b>${LABEL(k)}</b>${v.replace(/^\S+\s/,'')}</div>`).join('');
+ $('formSections').innerHTML=S.scenes.map((sc,si)=>`<div class="lbl">${['1️⃣','2️⃣','3️⃣'][si]} ${SCENE_NAMES[si]} · ${EMO[sc.emo]} · ${sc.mode==='major'?'🌞 장조':'🌙 단조'} <span class="note">"${esc((sc.text||'').slice(0,40))}"</span></div>
+  <div class="form">${sc.form.map((k,j)=>{const i=si*4+j;return`<div class="slot" onclick="S.scenes[${si}].form[${j}]=pick;renderForm();persist()"><div class="lab">${LABEL(k)}</div><div class="sub">${i+1}마디</div><div class="ch">${chordAt(i).name}</div><input class="in" style="font-size:.72rem;padding:4px 6px;margin-top:4px" placeholder="이 마디는…" value="${esc(sc.why[j]||'')}" onclick="event.stopPropagation()" oninput="S.scenes[${si}].why[${j}]=this.value;persist()"></div>`}).join('')}</div>`).join('')}
+function autoForm(){S.scenes.forEach((sc,i)=>{const base=DEFAULT_FORMS[i].slice();if(i===1&&!S.motif.B.length)base.splice(0,4,'A2','A1','A2','A3');if(sc.motion==='rising')base[2]='A2';if(sc.motion==='falling')base[2]='A4';if(sc.motion==='still')base[1]='A';sc.form=base});renderForm();persist();toast('장면 감정대로 채웠어요 — 조각을 바꿔가며 들어보세요')}
+function auditionPiece(k){if(!ctx||!S.motif.A.length)return;stopAll();const t=ctx.currentTime+.1;bandBar(chordAt(0),t,.4);playNotes(variant(k),t)}
+function arrangement(){return allForm().map(k=>variant(k))}
+
+/* ═════ ④ 입히기 ═════ */
+function chordAt(i){const sc=sceneOfBar(i)||S.scenes[0];const list=PROGS[sc.mode];const p=list[(sc.mode==='major'?S.progMajor:S.progMinor)%list.length].p.split(' ').map(C.parse);return p[i%4]}
+function renderDress(){$('styles').innerHTML=Object.entries(STYLES).map(([k,v])=>`<div class="chip ${S.style===k?'on':''}" onclick="S.style='${k}';renderDress();persist()">${v}</div>`).join('');
+ $('progsMajor').innerHTML=PROGS.major.map((p,i)=>`<div class="chip ${S.progMajor===i?'on':''}" onclick="S.progMajor=${i};renderDress();persist()">${p.l} <small style="font-family:'Space Mono';opacity:.8">${p.p}</small></div>`).join('');
+ $('progsMinor').innerHTML=PROGS.minor.map((p,i)=>`<div class="chip ${S.progMinor===i?'on':''}" onclick="S.progMinor=${i};renderDress();persist()">${p.l} <small style="font-family:'Space Mono';opacity:.8">${p.p}</small></div>`).join('');
+ $('leads').innerHTML=Object.entries(LEADS).map(([k,v])=>`<div class="chip ${S.lead===k?'on':''}" onclick="S.lead='${k}';loadLead('${k}');renderDress();persist()">${v}</div>`).join('');
+ renderBeat($('beat4'));$('stageInfo').textContent=`${S.scenes.map(sc=>EMO[sc.emo].replace(/^\S+\s/,'')+(sc.mode==='minor'?'(단)':'')).join(' → ')} · ${STYLES[S.style]} · ${S.bpm} BPM · 12마디`}
+function setBpm(v){S.bpm=Number(v);['bpm','bpm2'].forEach(id=>{const e=$(id);if(e)e.value=v});['bpmLbl','bpmLbl2'].forEach(id=>{const e=$(id);if(e)e.textContent=v});persist()}
+
+/* ═════ 오디오 ═════ */
+let ctx,master,comp,bus,dest,kits={},leadKit=null,timers=[],playing=false,loopTimer=null;
+const beatSec=()=>60/S.bpm;
+function newBus(){bus=ctx.createGain();bus.connect(comp);return bus}
+function killBus(){if(!bus)return;const old=bus,now=ctx.currentTime;old.gain.cancelScheduledValues(now);old.gain.setValueAtTime(old.gain.value,now);old.gain.linearRampToValueAtTime(0,now+.06);setTimeout(()=>{try{old.disconnect()}catch{}},200);newBus()}
+function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.9;comp=ctx.createDynamicsCompressor();master.connect(comp);comp.connect(ctx.destination);dest=ctx.createMediaStreamDestination();comp.connect(dest);newBus();
+ const spec={piano:['piano',{low:40,high:96}],guitar:['guitar',{low:40,high:76}],bass:['bass',{low:28,high:55}]};for(const[k,[i,r]]of Object.entries(spec)){kits[k]=new EAIMSound.SampleKit(ctx,i,{...r,step:3});kits[k].load()}
+ loadLead(S.lead);$('gate').style.display='none';toast('🎻 악기 소리 불러오는 중…')}
+function loadLead(inst){const k=new EAIMSound.SampleKit(ctx,inst,{low:55,high:88,step:3});k.load().then(ok=>{leadKit=k;if(ok)toast(LEADS[inst]+' 준비됨')});if(!leadKit)leadKit=kits.piano}
+function click(t,acc){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=acc?1500:1000;g.gain.setValueAtTime(acc?.5:.3,t);g.gain.exponentialRampToValueAtTime(.001,t+.04);o.connect(g);g.connect(bus);o.start(t);o.stop(t+.05)}
+function drum(kind,t,v=1){const g=ctx.createGain();g.connect(bus);if(kind==='kick'){const o=ctx.createOscillator();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(40,t+.25);g.gain.setValueAtTime(1.1*v,t);g.gain.exponentialRampToValueAtTime(.01,t+.3);o.connect(g);o.start(t);o.stop(t+.3)}else{const len=kind==='snare'?.14:.05;const b=ctx.createBuffer(1,ctx.sampleRate*len,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=ctx.createBufferSource();s.buffer=b;const f=ctx.createBiquadFilter();f.type=kind==='snare'?'bandpass':'highpass';f.frequency.value=kind==='snare'?1800:8000;g.gain.setValueAtTime((kind==='snare'?.7:.3)*v,t);g.gain.exponentialRampToValueAtTime(.01,t+len);s.connect(f);f.connect(g);s.start(t)}}
+function bandBar(c,t,vol=1){const beat=beatSec();const nb=S.style==='waltz'?3:4;const p=kits.piano,g=kits.guitar,b=kits.bass;
+ if(p&&p.ready)C.renderPattern(S.style,c,(ns,at,len,vel)=>{if(at<nb)ns.forEach(n=>p.play(n,t+at*beat,Math.min(len,nb-at)*beat*.95,bus,vel*.6*vol,{release:.4}))},nb);
+ if(b&&b.ready){const lines={kpop:[[0,4]],pop16:[[0,1.5],[1.5,.5],[2,1.5],[3.5,.5]],rnb:[[0,1],[1.5,.5],[2.5,1],[3.75,.25]],dance:[[0,.5],[1,.5],[2,.5],[3,.5]],synth:[[0,.75],[.75,.75],[1.5,1],[2.5,.75],[3.25,.75]],ballad:[[0,2],[2,2]],waltz:[[0,1],[1,1],[2,1]],beat8:[[0,1],[1,1],[2,1],[3,1]]}[S.style]||[[0,4]];lines.forEach(([at,len])=>{if(at<nb)b.play(C.bassNote(c,2),t+at*beat,len*beat*.9,bus,.8*vol,{release:.15})})}
+ const D={kpop:{h:[0,.5,1,1.5,2,2.5,3,3.5],k:[0,1.75,2.5],s:[1,3]},pop16:{h:[0,.25,.5,.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75],k:[0,1.5,2,3.5],s:[1,3]},rnb:{h:[0,.5,1,1.5,2,2.5,3,3.5],k:[0,.75,2.5],s:[1,3]},dance:{h:[.5,1.5,2.5,3.5],k:[0,1,2,3],s:[1,3]},synth:{h:[0,.5,1,1.5,2,2.5,3,3.5],k:[0,1.5,2,3.5],s:[1,3]},ballad:{h:[0,.5,1,1.5,2,2.5,3,3.5],k:[0,2.5],s:[1,3]},beat8:{h:[0,.5,1,1.5,2,2.5,3,3.5],k:[0,2,2.5],s:[1,3]},waltz:{h:[0,1,2],k:[0],s:[1,2]}}[S.style]||{h:[0,.5,1,1.5,2,2.5,3,3.5],k:[0,2],s:[1,3]};
+ D.h.forEach(x=>{if(x<nb)drum('hat',t+x*beat,(x%1?.35:.6)*vol)});D.k.forEach(x=>{if(x<nb)drum('kick',t+x*beat,.9*vol)});D.s.forEach(x=>{if(x<nb)drum('snare',t+x*beat,.9*vol)})}
+function playNotes(notes,t,vol=1){const beat=beatSec();const k=leadKit&&leadKit.ready?leadKit:kits.piano;if(!k||!k.ready)return;notes.forEach(n=>{if(n.rest)return;k.play(n.note,Math.max(ctx.currentTime+.01,t+n.at*beat),n.len*beat*.92,bus,.85*vol,{release:.3})})}
+function beatDot(el,b){el.querySelectorAll('i').forEach((d,k)=>d.classList.toggle('on',k===b))}
+function togglePlay(){if(playing){stopAll();return}if(!S.motif.A.length){toast('② 에서 A 동기를 먼저 만들어주세요');return}playSong()}
+function playSong(){playing=true;['play3','play4'].forEach(id=>{$(id).textContent='■ 정지';$(id).classList.replace('g','r')});const beat=beatSec(),bars=arrangement();const band=cur===3?$('band3').checked:true;const t0=ctx.currentTime+.1;
+ bars.forEach((notes,i)=>{const t=t0+i*4*beat;if(band)bandBar(chordAt(i),t,.8);playNotes(notes,t);timers.push(setTimeout(()=>{$('stageNow').textContent=chordAt(i).name;$('stageScene').textContent=`${SCENE_NAMES[Math.floor(i/4)]} 장면 · ${i+1}마디 · ${sceneOfBar(i).why[i%4]||''}`;document.querySelectorAll('#formSections .slot').forEach((s,k)=>s.classList.toggle('now',k===i));for(let b=0;b<4;b++)timers.push(setTimeout(()=>beatDot($('beat4'),b),b*beat*1000))},(i*4*beat+.1)*1000))});
+ loopTimer=setTimeout(()=>{if(cur===4&&$('loop').checked&&playing)playSong();else stopAll()},(bars.length*4*beat+.12)*1000)}
+function stopAll(){timers.forEach(clearTimeout);timers=[];clearTimeout(loopTimer);playing=false;rec.active=false;if(ctx)killBus();['play3','play4'].forEach(id=>{const e=$(id);if(e){e.textContent=id==='play3'?'▶ 곡 듣기':'▶ 전체 듣기';e.classList.replace('r','g')}});const rb=$('recBtn');if(rb)rb.textContent='🔴 박자에 맞춰 녹음';$('msg2').classList.remove('rec');document.querySelectorAll('#formSections .slot').forEach(s=>s.classList.remove('now'));if(galleryPlaying>=0&&savedState){galleryPlaying=-1;Object.assign(S,savedState);savedState=null;renderGallery()}}
+
+/* ═════ ⑤ 악보 · 저장 ═════ */
+const DIA={C:0,D:1,E:2,F:3,G:4,A:5,B:6};
+function stepOf(note){const m=note.match(/^([A-G])(#?)(\d)$/);return{st:DIA[m[1]]+7*(Number(m[3])-4)-2,sharp:!!m[2]}}
+function renderScore(){const el=$('score');const bars=arrangement();if(!S.motif.A.length){el.innerHTML='<div class="note" style="color:#666;text-align:center;padding:14px">② 에서 동기를 만들면 악보가 그려져요</div>';return}
+ const perLine=4,barW=230,left=44,lineH=135,top=52,sp=8;const lines=Math.ceil(bars.length/perLine);const W=left+perLine*barW+20,H=top+lines*lineH+10;
+ let svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="Noto Sans KR,sans-serif">`;
+ const title=$('title').value.trim()||`${EMO[S.emo]} 이야기`;svg+=`<text x="${W/2}" y="22" font-size="15" font-weight="700" text-anchor="middle" fill="#222">${esc(title)}</text><text x="${W-20}" y="22" font-size="10" text-anchor="end" fill="#666">♩=${S.bpm}</text>`;
+ for(let L=0;L<lines;L++){const y0=top+L*lineH+30;for(let i=0;i<5;i++)svg+=`<line x1="${left}" y1="${y0+i*sp}" x2="${left+perLine*barW}" y2="${y0+i*sp}" stroke="#333"/>`;
+  svg+=`<text x="${left-30}" y="${y0+sp*3.9}" font-size="42" fill="#222" font-family="Noto Music,Bravura,Segoe UI Symbol,Apple Symbols,serif">𝄞</text><text x="${left+4}" y="${y0+sp*1.6}" font-size="13" font-weight="700" fill="#222">4</text><text x="${left+4}" y="${y0+sp*3.6}" font-size="13" font-weight="700" fill="#222">4</text>`;
+  for(let b=0;b<=perLine;b++){const x=left+b*barW;svg+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0+4*sp}" stroke="#333" stroke-width="${b===perLine&&L===lines-1?3:1}"/>`}
+  for(let b=0;b<perLine;b++){const bi=L*perLine+b;if(bi>=bars.length)break;const x0=left+b*barW+18;const slotW=(barW-24)/8;
+   const sc=sceneOfBar(bi);const st=sc.mode==='major'?['C','E','G']:['A','C','E'];
+   if(bi%4===0)svg+=`<text x="${x0-14}" y="${y0-26}" font-size="11" font-weight="700" fill="#7a5312">${SCENE_NAMES[Math.floor(bi/4)]} 장면 · ${EMO[sc.emo].replace(/^\S+\s/,'')} · ${sc.mode==='major'?'장조':'단조'}</text>`;
+   svg+=`<text x="${x0}" y="${y0-12}" font-size="12" font-weight="700" fill="#7c3aed">${chordAt(bi).name}</text><text x="${x0+barW-40}" y="${y0-12}" font-size="10" fill="#999">${LABEL(allForm()[bi])}</text>`;
+   if(sc.why[bi%4])svg+=`<text x="${x0}" y="${y0+4*sp+30}" font-size="9" fill="#555">${esc(sc.why[bi%4]).slice(0,22)}</text>`;
+   bars[bi].forEach(n=>{const x=x0+n.at*2*slotW+6;if(n.rest){let at=n.at,len=n.len;while(len>0){const d=len>=1?1:.5;const xr=x0+at*2*slotW;const y=y0+2*sp;svg+=d===1?`<path d="M${xr-3},${y-8} l6,7 -5,5 5,7 c-3,-3 -6,-2 -5,2" fill="none" stroke="#666" stroke-width="1.6"/>`:`<path d="M${xr-3},${y-4} c2,2 5,2 6,-2 l-3,10" fill="none" stroke="#666" stroke-width="1.6"/>`;at+=d;len-=d}return}
+    const {st:sdeg,sharp}=stepOf(n.note);const y=y0+4*sp-sdeg*sp/2;const col=st.includes(n.note[0])?'#e0453f':'#222';
+    if(sdeg<=-2)for(let l=-2;l>=sdeg;l-=2)svg+=`<line x1="${x-8}" y1="${y0+4*sp-l*sp/2}" x2="${x+8}" y2="${y0+4*sp-l*sp/2}" stroke="#333"/>`;
+    if(sharp)svg+=`<text x="${x-14}" y="${y+4}" font-size="12" fill="${col}">♯</text>`;
+    const hollow=n.len>=2;svg+=`<ellipse cx="${x}" cy="${y}" rx="5.2" ry="3.8" transform="rotate(-20 ${x} ${y})" fill="${hollow?'#fff':col}" stroke="${col}" stroke-width="1.6"/>`;
+    if(n.len<4){const up=sdeg<4;const sx=up?x+4.6:x-4.6,sy2=up?y-26:y+26;svg+=`<line x1="${sx}" y1="${y}" x2="${sx}" y2="${sy2}" stroke="${col}" stroke-width="1.4"/>`;if(n.len<1)svg+=`<path d="M${sx},${sy2} c${up?'8,6 8,14 3,20':'8,-6 8,-14 3,-20'}" fill="none" stroke="${col}" stroke-width="1.6"/>`}
+    if(n.len===1.5||n.len===3)svg+=`<circle cx="${x+9}" cy="${y-2}" r="1.6" fill="${col}"/>`})}}
+ svg+='</svg>';el.innerHTML=svg}
+function esc(x){return String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function exportScorePng(){renderScore();const svg=$('score').querySelector('svg');if(!svg){toast('악보가 없어요');return}const xml=new XMLSerializer().serializeToString(svg);const img=new Image();const W=svg.viewBox.baseVal.width,H=svg.viewBox.baseVal.height;img.onload=()=>{const c=document.createElement('canvas');c.width=W*2;c.height=H*2;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.scale(2,2);g.drawImage(img,0,0);const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download=($('title').value.trim()||'my_story')+'_악보.png';a.click()};img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml)}
+function exportMidi(){if(!S.motif.A.length){toast('동기가 없어요');return}const TPQ=480,ev=[];const push=(t,b)=>ev.push({t,bytes:b});const vlq=n=>{const b=[n&0x7f];while((n>>=7)>0)b.unshift((n&0x7f)|0x80);return b};
+ const mpq=Math.round(60000000/S.bpm);push(0,[0xff,0x51,3,(mpq>>16)&255,(mpq>>8)&255,mpq&255]);push(0,[0xff,0x58,4,4,2,24,8]);push(0,[0xc0,0]);push(0,[0xc1,0]);
+ arrangement().forEach((notes,i)=>{const c=chordAt(i),t0=i*4*TPQ;const v=C.voicing(c,4).map(EAIMSound.midi),bass=EAIMSound.midi(C.bassNote(c,2));[bass,...v].forEach(m=>{push(t0,[0x91,m,55]);push(t0+4*TPQ-10,[0x81,m,0])});notes.forEach(n=>{if(n.rest)return;const m=EAIMSound.midi(n.note),st=t0+Math.round(n.at*TPQ),len=Math.max(60,Math.round(n.len*TPQ)-10);push(st,[0x90,m,100]);push(st+len,[0x80,m,0])})});
+ ev.sort((a,b)=>a.t-b.t||(a.bytes[0]>>4===8?-1:1));let last=0;const trk=[];ev.forEach(e=>{trk.push(...vlq(e.t-last),...e.bytes);last=e.t});trk.push(0,0xff,0x2f,0);const be32=n=>[(n>>24)&255,(n>>16)&255,(n>>8)&255,n&255];
+ const bytes=new Uint8Array([0x4d,0x54,0x68,0x64,0,0,0,6,0,0,0,1,(TPQ>>8)&255,TPQ&255,0x4d,0x54,0x72,0x6b,...be32(trk.length),...trk]);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes],{type:'audio/midi'}));a.download=($('title').value.trim()||'my_story')+'.mid';a.click();toast('🎹 MIDI 저장됨')}
+function exportWav(){if(!S.motif.A.length){toast('동기가 없어요');return}const chunks=[];const r=new MediaRecorder(dest.stream);r.ondataavailable=e=>chunks.push(e.data);r.onstop=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(chunks,{type:'audio/webm'}));a.download=($('title').value.trim()||'my_story')+'.webm';a.click();toast('🎧 저장됨')};$('loop').checked=false;r.start();cur=4;playSong();setTimeout(()=>r.stop(),(12*4*beatSec()+1.5)*1000)}
+
+/* ═════ AI: 탐구 · 피드백 · 노래 ═════ */
+function describe(){const A=S.motif.A.filter(n=>!n.rest).map(n=>LBL[n.note[0]]+(n.note.endsWith('5')?'↑':'')).join(' ');return`장면: ${S.scenes.map((sc,i)=>SCENE_NAMES[i]+'('+EMO[sc.emo]+','+(sc.mode==='major'?'장조':'단조')+') "'+(sc.text||'')+'"').join(' / ')} / 동기 ${A} / 형식 ${allForm().join(' ')} / 마디 메모 ${S.scenes.flatMap(sc=>sc.why).filter(Boolean).join(',')} / 스타일 ${STYLES[S.style]} / ${S.bpm}BPM`}
+async function aiQuestion(){const box=$('q1box');box.dataset.done='1';const fallback=['내 동기에서 가장 마음에 드는 순간은 어디이고, 이야기의 어떤 장면과 이어지나요?','반복(A)과 변주(A′)가 번갈아 나올 때 어떤 느낌이 생겼나요? 이야기에서 그런 반복이 있었나요?','장조/단조를 바꾸면 이 이야기는 어떻게 달라질까요?'];
+ if(!(await EAIMKey.get())){box.textContent=fallback[Math.floor(Math.random()*3)];return}box.textContent='이야기를 읽고 질문을 만드는 중…';
+ try{box.textContent=(await EAIMKey.gemini(`중학생이 방금 만든 곡에 대해 정답 없는 탐구 질문 하나를 한국어로. 학생 이야기의 구체적 장면·감정과, 음악의 선택(동기의 오르내림, 반복·변주 형식, 장/단조, 스타일)을 연결해 자기 선택을 돌아보게. 한 문장 45자 내외, 질문만.
+이야기: ${S.story} / ${describe()}`,{temperature:.9,maxTokens:120})).replace(/^["“]|["”]$/g,'')}
+ catch{box.textContent=fallback[0]}}
+async function aiFeedback(){const box=$('fbBox');const a=$('a1').value.trim();box.style.display='block';if(a.length<10){box.textContent='먼저 생각을 두세 문장 적어주세요.';return}box.textContent='읽는 중…';
+ try{box.textContent=await EAIMKey.gemini(`음악 선생님으로서 중학생의 탐구 답변에 3문장 이내로. 평가하지 말고 학생이 쓴 표현 하나를 그대로 인용해 되짚어 주고, 음악 요소(음높이·리듬·반복·조성) 중 하나와 연결한 다음 질문 하나로 끝내세요. 존댓말, 따뜻하게.
+질문: ${$('q1box').textContent}
+답변: ${a}
+이야기: ${S.story} / ${describe()}`,{temperature:.7,maxTokens:300})}
+ catch(e){box.textContent='❌ '+e.message}}
+async function makeSong(){const btn=$('songBtn'),st=$('songSt');btn.disabled=true;st.textContent='노래를 만들고 있어요 (30초~1분)…';
+ try{const A=S.motif.A.filter(n=>!n.rest);const dir=A.length>1?(degIdx(A[A.length-1].note)>degIdx(A[0].note)?'rising':'falling'):'gentle';const style={kpop:'K-pop ballad',pop16:'modern pop',ballad:'piano ballad',beat8:'pop rock',waltz:'3/4 waltz',dance:'dance pop',synth:'synth pop',rnb:'R&B'}[S.style];
+  const r=await EAIMKey.lyria(`A 30-second song for a Korean middle-school music class. Style: ${style}, ${S.mode==='major'?'C major, bright':'A minor, wistful'}, mood: ${EMO[S.emo].replace(/^\S+\s/,'')}, ${S.bpm} BPM. The main melody motif moves ${dir} (solfege: ${A.map(n=>LBL[n.note[0]]).join(' ')}) and repeats with small variations, like a simple song form A–B–A' matching three scenes (start, change, ending). One clear vocal, singable, no rap. Sing the lyrics in Korean exactly as written.
+
+Lyrics:
+[Verse]
+${S.scenes[0].text||S.story}
+[Bridge]
+${S.scenes[1].text||''}
+[Verse]
+${S.scenes[2].text||''}`);
+  const url=`data:${r.mime};base64,${r.b64}`;$('songAudio').src=url;$('songDl').href=url;$('songDl').download=($('title').value.trim()||'my_story')+'_AI노래.mp3';$('songBox').style.display='block';st.textContent='✅ 완성 — 내 곡과 비교해 들어보세요. 어디가 닮았나요?'}
+ catch(e){st.textContent='❌ '+e.message}finally{btn.disabled=false}}
+
+/* ═════ 제출 · 우리 반 ═════ */
+const FS_BASE='https://firestore.googleapis.com/v1/projects/eaim-classroom/databases/(default)/documents',FS_KEY='AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY';
+function fsVal(v){if(v===null||v===undefined)return{nullValue:null};if(typeof v==='boolean')return{booleanValue:v};if(typeof v==='number')return Number.isInteger(v)?{integerValue:String(v)}:{doubleValue:v};if(typeof v==='string')return{stringValue:v};if(Array.isArray(v))return{arrayValue:{values:v.map(fsVal)}};return{mapValue:{fields:Object.fromEntries(Object.entries(v).map(([k,x])=>[k,fsVal(x)]))}}}
+function fsRead(f){if(!f)return null;if('stringValue'in f)return f.stringValue;if('integerValue'in f)return Number(f.integerValue);if('doubleValue'in f)return f.doubleValue;if('booleanValue'in f)return f.booleanValue;if('arrayValue'in f)return(f.arrayValue.values||[]).map(fsRead);if('mapValue'in f)return Object.fromEntries(Object.entries(f.mapValue.fields||{}).map(([k,x])=>[k,fsRead(x)]));return null}
+async function submitStory(){const st=$('submitSt');st.classList.remove('err');const uid=EAIMKey.teacher;if(!uid){st.textContent='초대 링크(?teacher=…)로 들어온 경우에만 제출할 수 있어요. 파일로 저장해 내주세요.';st.classList.add('err');return}if(!$('stuName').value.trim()){st.textContent='이름을 적어주세요';st.classList.add('err');return}if(!S.motif.A.length){st.textContent='동기가 없어요';st.classList.add('err');return}
+ $('submitBtn').disabled=true;st.textContent='제출 중…';
+ const payload={student:$('stuName').value.trim(),group:$('stuGroup').value.trim(),title:$('title').value.trim()||`${EMO[S.emo]} 이야기`,emo:S.emo,mode:S.mode,story:S.story,scenes:S.scenes,motifA:S.motif.A,motifB:S.motif.B,form:allForm(),style:S.style,progMajor:S.progMajor,progMinor:S.progMinor,lead:S.lead,bpm:S.bpm,answer:$('a1').value,question:$('q1box').textContent,ts:Date.now()};
+ try{const r=await fetch(`${FS_BASE}/teachers/${uid}/stories?key=${FS_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:Object.fromEntries(Object.entries(payload).map(([k,v])=>[k,fsVal(v)]))})});if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error?.message||('오류 '+r.status))}st.textContent='✅ 제출됐어요'}
+ catch(e){st.textContent='❌ '+e.message;st.classList.add('err');$('submitBtn').disabled=false}}
+let gallery=[],galleryPlaying=-1,savedState=null;
+async function loadGallery(){const st=$('gallerySt');const uid=EAIMKey.teacher;if(!uid){st.textContent='초대 링크로 들어오면 친구들 곡을 들을 수 있어요';return}st.textContent='불러오는 중…';
+ try{const r=await fetch(`${FS_BASE}/teachers/${uid}/stories?pageSize=200&key=${FS_KEY}`);if(!r.ok)throw new Error('오류 '+r.status);const d=await r.json();gallery=(d.documents||[]).map(doc=>Object.fromEntries(Object.entries(doc.fields||{}).map(([k,v])=>[k,fsRead(v)]))).sort((a,b)=>(b.ts||0)-(a.ts||0));st.textContent=gallery.length?`${gallery.length}곡`:'아직 제출된 곡이 없어요';renderGallery()}catch(e){st.textContent='❌ '+e.message}}
+function renderGallery(){$('gallery').innerHTML=gallery.map((g,i)=>`<div class="gitem"><div class="nm">🎼 ${esc(g.title)} — ${esc(g.student)}${g.group?' ('+esc(g.group)+')':''}<small>${EMO[g.emo]||''} · ${g.mode==='major'?'장조':'단조'} · ${(g.form||[]).join(' ')} · ${STYLES[g.style]||''}</small><small style="white-space:normal">"${esc((g.story||'').slice(0,60))}"</small></div><button class="btn ${galleryPlaying===i?'r':'g'}" onclick="playGallery(${i})">${galleryPlaying===i?'■':'▶'}</button></div>`).join('')}
+function playGallery(i){if(galleryPlaying===i){stopAll();return}stopAll();const g=gallery[i];if(!savedState)savedState={motif:S.motif,scenes:S.scenes,style:S.style,progMajor:S.progMajor,progMinor:S.progMinor,mode:S.mode,bpm:S.bpm};
+ S.motif={A:g.motifA||[],B:g.motifB||[]};if(g.scenes)S.scenes=g.scenes;S.style=g.style||S.style;S.progMajor=g.progMajor||0;S.progMinor=g.progMinor||0;S.mode=g.mode||'major';S.bpm=g.bpm||92;galleryPlaying=i;renderGallery();const keep=cur;cur=4;$('loop').checked=false;playSong();cur=keep}
+
+/* ═════ 시작 ═════ */
+renderScenes();paintGuide();buildPiano($('piano2'));renderSteps();renderMotif();setBpm(S.bpm);$('story').value=S.story||'';
+(function(){const n=localStorage.getItem('eaim_jam_name');if(n)$('stuName').value=n;if(EAIMKey.group&&!$('stuGroup').value)$('stuGroup').value=EAIMKey.group;$('stuName').addEventListener('input',e=>localStorage.setItem('eaim_jam_name',e.target.value));if(!EAIMKey.teacher)$('submitDesc').innerHTML='제출·우리 반 듣기는 <b>선생님 초대 링크</b>(?teacher=…)로 들어왔을 때 열려요.'})();
+$('story').addEventListener('input',()=>{S.story=$('story').value;persist()});$('title').addEventListener('input',renderScore);
+</script>
 <script src="play-shell.js"></script>
 </body>
 </html>

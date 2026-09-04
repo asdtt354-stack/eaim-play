@@ -42,12 +42,17 @@ main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
   <div>
     <div class="eyebrow">EAIM · MUSIC CLASS · PLAY</div>
     <h1>연주실</h1>
-    <p class="lead">건반을 누르고, 멜로디를 즉흥으로 녹음하고, 모둠이 밴드로 합주하고, 이야기로 곡을 짓고, 내 악기의 계이름을 확인하는 곳. 태블릿이나 노트북 하나면 됩니다.</p>
+    <p class="lead">건반을 누르고, 감정 코드 위에서 즉흥으로 작곡하고, 모둠이 밴드로 합주하고, 이야기로 곡을 짓고, 내 악기의 계이름을 확인하는 곳. 태블릿이나 노트북 하나면 됩니다.</p>
   </div>
   <a class="back" href="https://eaim-music.vercel.app/">← 음악과 플랫폼</a>
 </div></header>
 
 <main>
+  <div class="box" id="studentBox" style="display:none;margin-bottom:16px;border-color:rgba(46,125,79,.45)">
+    <h3>학생 입장</h3>
+    <p>선생님 초대 링크로 들어왔어요<span id="groupLbl"></span>. 이름을 적으면 제출과 수업 상황이 선생님께 전달돼요.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center"><input id="nameIn" placeholder="이름" style="flex:1;min-width:160px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#faf8ff;outline:none;font-family:inherit"><button onclick="saveName()" style="padding:9px 14px;border-radius:9px;border:0;background:var(--green);color:#fff;font-weight:700;cursor:pointer;font-family:inherit">확인</button><span id="nameSt" style="font-size:.82rem;color:var(--sub)"></span></div>
+  </div>
   <section class="rooms">
     <a class="room" href="keyboard.html">
       <div class="ico">🎹</div>
@@ -58,9 +63,9 @@ main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
     </a>
     <a class="room" href="jam.html">
       <div class="ico">🎸</div>
-      <div><h2>즉흥실 <span class="en">Jam</span></h2>
-        <p>기분을 고르면 요즘 노래 느낌의 코드 4마디가 정해져요. 건반 색으로 코드 음·분위기 음을 익히고, 카운트인을 듣고 박자에 맞춰 마디마다 내 멜로디를 녹음하면 밴드 반주와 합쳐 한 곡이 돼요.</p>
-        <div class="chips"><span>5단계</span><span>기분별 요즘 코드</span><span>카운트인 녹음</span><span>8분음표 맞춤</span><span>프로듀서 도깨비</span><span>WAV·일지</span></div>
+      <div><h2>즉흥 작곡실 <span class="en">Jam</span></h2>
+        <p><b>즉흥연주를 통한 작곡</b> — 감정에 맞는 코드 위에서 내 멜로디를. 기분을 고르면 요즘 노래 느낌의 코드가 정해지고, 건반 색으로 코드 음·분위기 음을 익힌 뒤 카운트인에 맞춰 마디나 구절 단위로 녹음해요. 악보와 MIDI로 남기고 반 친구와 나눠요.</p>
+        <div class="chips"><span>기분별 코드 3종</span><span>마디·구절 녹음</span><span>앞당김·16분 격자</span><span>악보·MIDI</span><span>반 제출·친구 곡 듣기</span></div>
         <div class="for">즉흥 연주 · 화성 안에서 멜로디 만들기</div></div>
     </a>
     <a class="room" href="band-room.html">
@@ -72,10 +77,17 @@ main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
     </a>
     <a class="room" href="composer.html">
       <div class="ico">🎼</div>
-      <div><h2>작곡실 <span class="en">Composer</span></h2>
-        <p>감정과 육하원칙으로 이야기 한 줄을 만들고, 리듬을 고른 뒤 4박 멜로디를 눌러 넣어요. 변주를 붙여 한 곡으로 만들고 탐구 질문에 답해요.</p>
-        <div class="chips"><span>이야기 → 멜로디</span><span>리듬·음높이 변주</span><span>악기 합주</span><span>탐구 일지</span></div>
+      <div><h2>이야기 작곡실 <span class="en">Composer</span></h2>
+        <p><b>이야기를 통한 작곡</b> — 이야기를 처음·가운데·끝 세 장면으로 나누고, 장면의 감정이 곡의 조와 형식이 돼요. 4박 동기를 만들어(건반·녹음·AI) 반복과 변주로 12마디 곡으로 키우고, 마디마다 이야기의 순간을 적어요. 스타일·악기를 입히고 악보·MIDI로 남기고 반에 제출.</p>
+        <div class="chips"><span>이야기 → 3장면</span><span>장면별 감정·조</span><span>동기 → 12마디</span><span>4가지 변주</span><span>악보·MIDI</span><span>AI 질문·노래</span></div>
         <div class="for">작곡 첫걸음 · 변주 개념 · 표현과 성찰</div></div>
+    </a>
+    <a class="room" href="rhythm.html">
+      <div class="ico">🥁</div>
+      <div><h2>리듬실 <span class="en">Rhythm</span></h2>
+        <p>블록을 찍어 리듬과 코드를 만들면 <b>신코페이션</b>이 보라색으로 보여요. 만든 리듬을 내 파트로 박자에 맞춰 쳐보는 게임, 그리고 계이름·장단조·코드 종류·리듬을 귀로 맞히는 듣기 퀴즈.</p>
+        <div class="chips"><span>리듬 블록</span><span>신코페이션 표시</span><span>박자 맞혀 치기</span><span>듣기 퀴즈 4종</span><span>진짜 드럼 소리</span></div>
+        <div class="for">리듬 감각 · 귀 훈련 · 게임</div></div>
     </a>
     <a class="room" href="wind.html">
       <div class="ico">🎺</div>
@@ -87,7 +99,9 @@ main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
   </section>
 
   <div class="box" style="margin-bottom:14px">
-    <h3>선생님 설정 — AI 기능 열기</h3>
+    <h3>선생님 — <a href="guide.html" style="color:var(--gold);text-decoration:underline">📘 연주실 교수법 보기</a> · <a href="teacher.html" style="color:var(--purple);text-decoration:underline">교사 페이지 →</a></h3>
+    <p style="margin-bottom:10px">구글 로그인 후 반·모둠 초대 QR을 만들고, 지금 누가 어느 방에 있는지 보고, 즉흥·이야기 작곡실 제출물을 모아 봅니다.</p>
+    <h3>AI 기능 열기 (초대 링크 없이 쓸 때)</h3>
     <p>건반실의 AI 코드 진행, 밴드실의 악보 사진 읽기, 작곡실의 동기 제안·노래 만들기는 Gemini 키가 있어야 해요. 이 기기에 한 번 넣어두면 모든 방에서 쓰입니다. 학생이 초대 링크(<b>?teacher=선생님UID</b>)로 들어오면 뮤지컬메이커에 저장된 키를 자동으로 가져와요.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">
       <input id="keyIn" type="password" placeholder="Gemini API 키" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#faf8ff;outline:none;font-family:inherit">
@@ -101,6 +115,7 @@ main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
     <p>모든 방은 <b>로그인 없이</b> 바로 열립니다. 첫 화면의 시작 버튼을 눌러야 소리가 나요(브라우저 규칙). 합주실·작곡실의 결과물은 <b>WAV·TXT로 내려받아</b> 프로덕션 음향팀에 가져갈 수 있습니다.</p>
   </div>
 </main>
+<footer style="text-align:center;padding:22px 20px 30px;font-size:.78rem;color:rgba(45,36,56,.5);line-height:1.8">© 2017–2026 <b style="color:#7a5312">박성애</b> · EAIM 교실 (Emotion · Artscape · Interactive · Musicalization)<br>설계·교수법·콘텐츠: 박성애 &nbsp;|&nbsp; 이 플랫폼의 구조와 교수법은 저작권의 보호를 받습니다</footer>
 <script src="play-key.js"></script>
 <script>
 (function(){
@@ -110,6 +125,8 @@ main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
   window.clearKey=()=>{ EAIMKey.set(''); show(); };
   document.querySelectorAll('a.room').forEach(a=>{ a.href=EAIMKey.link(a.getAttribute('href')); });
   show();
+  if(EAIMKey.teacher){ const b=document.getElementById('studentBox'); b.style.display='block'; if(EAIMKey.group) document.getElementById('groupLbl').textContent=' ('+EAIMKey.group+')'; const n=localStorage.getItem('eaim_jam_name')||''; document.getElementById('nameIn').value=n; if(n) document.getElementById('nameSt').textContent='✅ '+n; }
+  window.saveName=()=>{ const v=document.getElementById('nameIn').value.trim(); if(!v){ return; } localStorage.setItem('eaim_jam_name',v); document.getElementById('nameSt').textContent='✅ '+v+' — 방으로 들어가세요'; EAIMKey.ping('연주실 대문','입장',{force:true}); };
 })();
 </script>
 </body>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎓 연주실 교사 페이지 | EAIM</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--paper:#fdfbf6;--ink:#170f22;--sub:#5a4f70;--line:rgba(124,58,237,.22);--gold:#7a5312;--gold2:#d4a843;--purple:#7c3aed;--green:#2e7d4f;--slate:#1f1730;--red:#c0392b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Serif KR',serif;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.7}
+button,input,select{font-family:inherit;font-size:inherit}
+header{background:var(--slate);color:#fff;padding:26px 20px}
+.hin{max-width:1000px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+h1{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;line-height:1}
+h1 small{display:block;font-family:'Noto Serif KR',serif;font-size:.78rem;font-weight:400;color:var(--gold2);letter-spacing:.2em;margin-bottom:6px}
+.hin a,.hin button{color:rgba(255,255,255,.7);font-size:.82rem;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:5px 10px;background:transparent;cursor:pointer;text-decoration:none}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 90px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:16px}
+.card h2{font-family:'Cormorant Garamond',serif;font-size:1.35rem;color:var(--gold);margin-bottom:6px}
+.desc{font-size:.88rem;color:var(--sub);margin-bottom:10px}
+.lbl{font-size:.78rem;color:var(--sub);margin:12px 0 5px}
+.in{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#faf8ff;outline:none;min-width:200px}
+.btn{padding:9px 14px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:.9rem}
+.btn.p{background:linear-gradient(135deg,var(--gold2),#e8a020);border:0;font-weight:700}
+.btn.g{background:#fff;border:1px solid rgba(66,133,244,.5);color:#1a73e8;font-weight:700}
+.btn.d{color:var(--red);border-color:rgba(192,57,43,.3)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.gate{text-align:center;padding:40px 20px}
+.gate p{color:var(--sub);max-width:480px;margin:10px auto 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.qr{background:#faf8ff;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.qr h4{font-size:.9rem;margin-bottom:6px}
+.qr .box{display:inline-block;background:#fff;padding:6px;border-radius:8px}
+.qr small{display:block;color:var(--sub);font-size:.7rem;word-break:break-all;margin-top:6px}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#faf8ff;white-space:nowrap}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2e7d4f;margin-right:6px;box-shadow:0 0 6px #2e7d4f}
+.stale{background:#bbb;box-shadow:none}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tab{padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;font-weight:700;color:var(--sub)}
+.tab.on{background:var(--slate);color:#fff;border-color:var(--slate)}
+.pane{display:none}.pane.on{display:block}
+.note{font-size:.78rem;color:var(--sub)}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(46,125,79,.95);color:#fff;padding:10px 18px;border-radius:10px;font-size:.85rem;display:none;z-index:99}
+@media print{header,.tabs,.btn,.row{display:none!important}}
+</style>
+</head>
+<body>
+<header><div class="hin">
+  <div><h1><small>EAIM · PLAYROOM · TEACHER</small>연주실 교사 페이지</h1></div>
+  <div class="row"><span id="who" style="font-size:.82rem;color:rgba(255,255,255,.7)"></span><button id="logoutBtn" onclick="logout()" style="display:none">로그아웃</button><a href="guide.html">📘 교수법</a><a href="index.html">🎹 연주실</a></div>
+</div></header>
+
+<main>
+<div class="card gate" id="gate">
+  <h2 style="font-size:1.6rem">구글 계정으로 로그인</h2>
+  <p>뮤지컬메이커에 쓰는 것과 같은 구글 계정으로 들어오면, 반·모둠 초대 QR, 수업 상황, 제출물이 이 계정 아래에 모입니다. Gemini 키와 AI 켜기/끄기는 뮤지컬메이커 교사 대시보드 설정을 그대로 씁니다.</p>
+  <button class="btn g" onclick="login()">G  Google 로그인</button>
+  <p class="note" style="margin-top:14px">로그인 창이 안 뜨면 Firebase → Authentication → Settings → Authorized domains에 <b>eaim-play.vercel.app</b>을 추가해야 해요.</p>
+</div>
+
+<div id="app" style="display:none">
+  <div class="tabs"><div class="tab on" onclick="tab('invite',this)">📱 초대 QR</div><div class="tab" onclick="tab('live',this)">👀 지금 수업 상황</div><div class="tab" onclick="tab('jams',this)">🎸 즉흥 작곡실 제출</div><div class="tab" onclick="tab('stories',this)">🎼 이야기 작곡실 제출</div></div>
+
+  <div class="pane on" id="pane-invite"><div class="card">
+    <h2>초대 링크와 QR</h2>
+    <div class="desc">반·모둠 이름을 적고 방을 고르면 QR이 생겨요. 학생이 이 QR로 들어오면 이름만 적고 바로 시작하고, 제출과 수업 상황이 이 계정으로 모입니다.</div>
+    <div class="row"><input class="in" id="groupIn" placeholder="반·모둠 (예: 2-3 1모둠)"><button class="btn p" onclick="addGroup()">추가</button><span class="note">뮤지컬메이커에서 만든 모둠이 있으면 자동으로 아래에 나와요</span></div>
+    <div class="lbl">방</div>
+    <div class="row" id="roomChips"></div>
+    <div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">🖨 QR 인쇄</button></div>
+    <div class="grid" id="qrs" style="margin-top:14px"></div>
+  </div></div>
+
+  <div class="pane" id="pane-live"><div class="card">
+    <h2>지금 수업 상황</h2>
+    <div class="desc">초대 링크로 들어온 학생이 방과 단계를 바꿀 때마다 신호를 보내요. 초록은 3분 안에 신호가 온 학생.</div>
+    <div class="row"><button class="btn" onclick="loadPresence()">🔄 새로고침</button><label class="note"><input type="checkbox" id="autoLive" checked> 30초마다 자동</label><button class="btn d" onclick="clearPresence()">기록 비우기</button></div>
+    <div id="live" style="margin-top:10px"></div>
+  </div></div>
+
+  <div class="pane" id="pane-jams"><div class="card">
+    <h2>즉흥 작곡실 제출</h2>
+    <div class="desc">듣기는 즉흥 작곡실을 이 계정 링크로 열어 "우리 반 즉흥곡 불러오기"를 누르면 됩니다.</div>
+    <div class="row"><button class="btn" onclick="loadSubs('jams')">🔄 새로고침</button><button class="btn" onclick="exportCsv('jams')">CSV</button><a class="btn" id="jamOpen" target="_blank">🎸 즉흥 작곡실에서 듣기</a></div>
+    <div id="jams" style="margin-top:10px"></div>
+  </div></div>
+
+  <div class="pane" id="pane-stories"><div class="card">
+    <h2>이야기 작곡실 제출</h2>
+    <div class="row"><button class="btn" onclick="loadSubs('stories')">🔄 새로고침</button><button class="btn" onclick="exportCsv('stories')">CSV</button><a class="btn" id="storyOpen" target="_blank">🎼 이야기 작곡실에서 듣기</a></div>
+    <div id="stories" style="margin-top:10px"></div>
+  </div></div>
+</div>
+</main>
+<footer style="text-align:center;padding:22px 20px 30px;font-size:.78rem;color:rgba(45,36,56,.5);line-height:1.8">© 2017–2026 <b style="color:#7a5312">박성애</b> · EAIM 교실 (Emotion · Artscape · Interactive · Musicalization)<br>설계·교수법·콘텐츠: 박성애 &nbsp;|&nbsp; 이 플랫폼의 구조와 교수법은 저작권의 보호를 받습니다</footer>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const CFG={apiKey:"AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",authDomain:"eaim-classroom.firebaseapp.com",projectId:"eaim-classroom",storageBucket:"eaim-classroom.firebasestorage.app",messagingSenderId:"294479576192",appId:"1:294479576192:web:c60e994e319dbd2f11ba65"};
+firebase.initializeApp(CFG);const auth=firebase.auth(),db=firebase.firestore();
+const $=id=>document.getElementById(id);const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2200)};
+const esc=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const ROOMS={'index.html':'🎹 연주실 대문','jam.html':'🎸 즉흥 작곡실','composer.html':'🎼 이야기 작곡실','band-room.html':'🥁 밴드실','rhythm.html':'🥁 리듬실','keyboard.html':'🎹 건반실','wind.html':'🎺 관악실'};
+let uid=null,groups=[],room='index.html',liveTimer=null;
+const BASE=location.origin+location.pathname.replace(/[^/]*$/,'');
+
+function login(){auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>alert('로그인 실패: '+e.message))}
+function logout(){auth.signOut()}
+auth.onAuthStateChanged(async u=>{if(!u){$('gate').style.display='block';$('app').style.display='none';$('logoutBtn').style.display='none';$('who').textContent='';uid=null;return}
+ uid=u.uid;$('gate').style.display='none';$('app').style.display='block';$('logoutBtn').style.display='inline-block';$('who').textContent=u.displayName||u.email;
+ $('jamOpen').href=`${BASE}jam.html?teacher=${uid}`;$('storyOpen').href=`${BASE}composer.html?teacher=${uid}`;
+ groups=JSON.parse(localStorage.getItem('eaim_play_groups_'+uid)||'[]');
+ try{const snap=await db.collection('teachers').doc(uid).collection('groups').get();snap.forEach(d=>{const g=d.data();const name=g.name||g.groupName||d.id;if(name&&!groups.includes(name))groups.push(name)})}catch{}
+ renderRooms();renderQRs();loadPresence();loadSubs('jams');loadSubs('stories');if(liveTimer)clearInterval(liveTimer);liveTimer=setInterval(()=>{if($('autoLive').checked&&$('pane-live').classList.contains('on'))loadPresence()},30000)});
+function tab(id,el){document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-'+id));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t===el))}
+
+/* ── 초대 QR ── */
+function addGroup(){const v=$('groupIn').value.trim();if(!v)return;if(!groups.includes(v))groups.push(v);localStorage.setItem('eaim_play_groups_'+uid,JSON.stringify(groups));$('groupIn').value='';renderQRs()}
+function removeGroup(g){groups=groups.filter(x=>x!==g);localStorage.setItem('eaim_play_groups_'+uid,JSON.stringify(groups));renderQRs()}
+function renderRooms(){$('roomChips').innerHTML=Object.entries(ROOMS).map(([f,n])=>`<button class="btn ${room===f?'p':''}" onclick="room='${f}';renderRooms();renderQRs()">${n}</button>`).join('')}
+function linkFor(g){return `${BASE}${room}?teacher=${uid}${g?'&group='+encodeURIComponent(g):''}`}
+function renderQRs(){const list=groups.length?groups:[''];$('qrs').innerHTML=list.map((g,i)=>`<div class="qr"><h4>${g?esc(g):'반 전체'} · ${ROOMS[room]}</h4><div class="box" id="qr${i}"></div><small>${esc(linkFor(g))}</small><div class="row" style="justify-content:center;margin-top:6px"><button class="btn" onclick="navigator.clipboard.writeText('${linkFor(g)}').then(()=>toast('링크 복사됨'))">복사</button>${g?`<button class="btn d" onclick="removeGroup('${esc(g)}')">삭제</button>`:''}</div></div>`).join('');
+ list.forEach((g,i)=>new QRCode($('qr'+i),{text:linkFor(g),width:150,height:150}))}
+
+/* ── 수업 상황 ── */
+async function loadPresence(){const el=$('live');try{const snap=await db.collection('teachers').doc(uid).collection('presence').get();const rows=[];snap.forEach(d=>rows.push(d.data()));rows.sort((a,b)=>(b.ts||0)-(a.ts||0));
+ if(!rows.length){el.innerHTML='<p class="note">아직 신호가 없어요. 학생이 초대 링크로 들어와 이름을 적으면 나타납니다.</p>';return}
+ const now=Date.now();const byGroup={};rows.forEach(r=>{(byGroup[r.group||'(모둠 없음)']=byGroup[r.group||'(모둠 없음)']||[]).push(r)});
+ el.innerHTML=Object.entries(byGroup).map(([g,rs])=>`<h4 style="margin:10px 0 4px">${esc(g)} <span class="note">${rs.filter(r=>now-r.ts<180000).length}/${rs.length}명 활동 중</span></h4><table><tr><th>학생</th><th>방</th><th>단계</th><th>마지막 신호</th></tr>${rs.map(r=>`<tr><td><i class="live ${now-r.ts<180000?'':'stale'}"></i>${esc(r.name)}</td><td>${esc(r.room)}</td><td>${esc(r.step)}</td><td class="note">${Math.round((now-r.ts)/60000)}분 전</td></tr>`).join('')}</table>`).join('')}
+ catch(e){el.innerHTML='<p class="note">읽기 실패: '+esc(e.message)+' — Firestore 규칙에 presence 읽기(교사)·쓰기(학생)를 허용했는지 확인하세요.</p>'}}
+async function clearPresence(){if(!confirm('수업 상황 기록을 모두 지울까요?'))return;const snap=await db.collection('teachers').doc(uid).collection('presence').get();const b=db.batch();snap.forEach(d=>b.delete(d.ref));await b.commit();loadPresence()}
+
+/* ── 제출물 ── */
+const subs={jams:[],stories:[]};
+async function loadSubs(kind){const el=$(kind);try{const snap=await db.collection('teachers').doc(uid).collection(kind).get();const rows=[];snap.forEach(d=>rows.push({id:d.id,...d.data()}));rows.sort((a,b)=>(b.ts||0)-(a.ts||0));subs[kind]=rows;
+ if(!rows.length){el.innerHTML='<p class="note">아직 제출이 없어요.</p>';return}
+ el.innerHTML=`<table><tr><th>학생</th><th>모둠</th><th>제목</th><th>${kind==='jams'?'기분 · 코드':'감정 · 조 · 형식'}</th><th>${kind==='jams'?'음 수':'이야기'}</th><th>일지/답변</th><th>제출</th><th></th></tr>${rows.map(r=>`<tr><td>${esc(r.student)}</td><td>${esc(r.group)}</td><td>${esc(r.title)}</td><td class="note">${kind==='jams'?esc((r.optLabel||'')+' · '+(r.chords||'')):esc((r.emo||'')+' · '+(r.mode==='major'?'장조':'단조')+' · '+((r.form||[]).join(' ')))}</td><td class="note">${kind==='jams'?(r.notes||[]).length:esc((r.story||'').slice(0,50))}</td><td class="note">${esc(kind==='jams'?((r.journal?.q1||'')+' / '+(r.journal?.q2||'')).slice(0,80):(r.answer||'').slice(0,80))}</td><td class="note">${new Date(r.ts||0).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td><button class="btn d" onclick="delSub('${kind}','${r.id}')">삭제</button></td></tr>`).join('')}</table>`}
+ catch(e){el.innerHTML='<p class="note">읽기 실패: '+esc(e.message)+'</p>'}}
+async function delSub(kind,id){if(!confirm('이 제출을 삭제할까요?'))return;await db.collection('teachers').doc(uid).collection(kind).doc(id).delete();loadSubs(kind)}
+function exportCsv(kind){const rows=subs[kind];if(!rows.length){toast('내보낼 제출이 없어요');return}const head=kind==='jams'?['학생','모둠','제목','기분','코드','스타일','BPM','음수','일지1','일지2','제출']:['학생','모둠','제목','감정','조','형식','스타일','BPM','이야기','질문','답변','제출'];
+ const body=rows.map(r=>kind==='jams'?[r.student,r.group,r.title,r.optLabel,r.chords,r.style,r.bpm,(r.notes||[]).length,r.journal?.q1,r.journal?.q2,new Date(r.ts||0).toLocaleString('ko-KR')]:[r.student,r.group,r.title,r.emo,r.mode,(r.form||[]).join(' '),r.style,r.bpm,r.story,r.question,r.answer,new Date(r.ts||0).toLocaleString('ko-KR')]);
+ const csv='\uFEFF'+[head,...body].map(r=>r.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=`연주실_${kind==='jams'?'즉흥작곡실':'이야기작곡실'}_제출.csv`;a.click()}
+</script>
+</body>
+</html>
