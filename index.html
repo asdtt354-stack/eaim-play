@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎹 EAIM 연주실</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#fdfbf6;--ink:#170f22;--sub:#5a4f70;--line:rgba(124,58,237,.22);--gold:#7a5312;--gold2:#d4a843;--purple:#7c3aed;--pink:#c778dd;--blue:#5DADE2;--green:#2e7d4f;--slate:#1f1730}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Serif KR',serif;background:var(--paper);color:var(--ink);font-size:17px;line-height:1.7;
+  background-image:radial-gradient(ellipse at 15% 0%,rgba(124,58,237,.07),transparent 45%),radial-gradient(ellipse at 90% 100%,rgba(93,173,226,.07),transparent 45%)}
+a{color:inherit;text-decoration:none}
+.marquee{background:var(--slate);color:#fff;padding:50px 20px 44px;position:relative;overflow:hidden}
+.marquee::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 46px,rgba(255,255,255,.035) 46px 48px);pointer-events:none}
+.min{max-width:940px;margin:0 auto;position:relative;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.eyebrow{font-family:'Cormorant Garamond',serif;font-size:1rem;letter-spacing:.35em;color:var(--gold2);font-weight:700}
+h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.6rem,7vw,4.2rem);font-weight:700;line-height:1;margin:6px 0 10px}
+.lead{color:rgba(255,255,255,.62);font-size:.95rem;max-width:520px}
+.back{color:rgba(255,255,255,.55);font-size:.82rem;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:5px 10px}
+main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
+.rooms{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:26px}
+@media(max-width:680px){.rooms{grid-template-columns:1fr}}
+.room{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px 24px 22px;display:grid;grid-template-columns:56px 1fr;gap:16px;align-items:start;transition:border-color .2s,transform .2s}
+.room:hover{border-color:var(--purple);transform:translateY(-2px)}
+.ico{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;background:#f3ecff;border:1px solid var(--line)}
+.room h2{font-size:1.2rem;font-weight:900;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.room h2 .en{font-family:'Cormorant Garamond',serif;font-weight:500;font-style:italic;color:var(--gold);font-size:1rem}
+.room p{color:var(--sub);font-size:.92rem;margin:4px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:9px;border:1px solid rgba(122,83,18,.3);background:rgba(122,83,18,.07);color:var(--gold)}
+.room .for{font-size:.76rem;color:var(--sub);margin-top:8px}
+.box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.box h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;color:var(--gold);margin-bottom:6px}
+.box p{font-size:.88rem;color:var(--sub)}
+.box b{color:var(--ink)}
+@media(prefers-reduced-motion:reduce){.room{transition:none}}
+</style>
+</head>
+<body>
+<header class="marquee"><div class="min">
+  <div>
+    <div class="eyebrow">EAIM · MUSIC CLASS · PLAY</div>
+    <h1>연주실</h1>
+    <p class="lead">건반을 누르고, 멜로디를 녹음하고, 이야기로 곡을 짓고, 내 악기의 계이름을 확인하는 곳. 태블릿이나 노트북 하나면 됩니다.</p>
+  </div>
+  <a class="back" href="../index.html">← 음악과 플랫폼</a>
+</div></header>
+
+<main>
+  <section class="rooms">
+    <a class="room" href="keyboard.html">
+      <div class="ico">🎹</div>
+      <div><h2>건반실 <span class="en">Keyboard</span></h2>
+        <p>코드 이름을 넣으면 눌러야 할 건반이 켜져요. 원하는 키로 옮기고, 4비트·아르페지오·왈츠 반주를 켜고 꾹 누르면 반주가 나와요.</p>
+        <div class="chips"><span>코드 → 건반 점등</span><span>키 변경</span><span>리듬 반주</span><span>피아노·신디·스트링·브라스</span></div>
+        <div class="for">코드 반주를 처음 배울 때 · 프로덕션 넘버의 코드 연습</div></div>
+    </a>
+    <a class="room" href="band.html">
+      <div class="ico">🎸</div>
+      <div><h2>합주실 <span class="en">Band</span></h2>
+        <p>기분을 고르면 코드 진행이 정해지고, 마디마다 건반으로 멜로디를 녹음해요. "프로듀서 도깨비"가 틀린 음을 다듬어 주고, 밴드 반주와 합쳐서 한 곡이 돼요.</p>
+        <div class="chips"><span>감정별 코드 진행</span><span>마디 녹음</span><span>자동 보정</span><span>리듬 정리</span><span>WAV 저장</span></div>
+        <div class="for">즉흥 연주 · 화성 안에서 멜로디 만들기</div></div>
+    </a>
+    <a class="room" href="composer.html">
+      <div class="ico">🎼</div>
+      <div><h2>작곡실 <span class="en">Composer</span></h2>
+        <p>감정과 육하원칙으로 이야기 한 줄을 만들고, 리듬을 고른 뒤 4박 멜로디를 눌러 넣어요. 변주를 붙여 한 곡으로 만들고 탐구 질문에 답해요.</p>
+        <div class="chips"><span>이야기 → 멜로디</span><span>리듬·음높이 변주</span><span>악기 합주</span><span>탐구 일지</span></div>
+        <div class="for">작곡 첫걸음 · 변주 개념 · 표현과 성찰</div></div>
+    </a>
+    <a class="room" href="wind.html">
+      <div class="ico">🎺</div>
+      <div><h2>관악실 <span class="en">Wind</span></h2>
+        <p>C 악보의 도레미가 내 악기(Bb 트럼펫·클라리넷, Eb 색소폰, F 호른)에서는 어떤 계이름이 되는지 실시간으로 보여줘요.</p>
+        <div class="chips"><span>이조 계이름</span><span>운지 표시</span><span>한글 가이드북 인쇄</span></div>
+        <div class="for">관악부 · 이조 악기 이해</div></div>
+    </a>
+  </section>
+
+  <div class="box">
+    <h3>쓰는 법</h3>
+    <p>모든 방은 <b>로그인 없이</b> 바로 열립니다. 첫 화면의 시작 버튼을 눌러야 소리가 나요(브라우저 규칙). 합주실·작곡실의 결과물은 <b>WAV·TXT로 내려받아</b> 프로덕션 음향팀에 가져갈 수 있습니다.</p>
+  </div>
+</main>
+</body>
+</html>

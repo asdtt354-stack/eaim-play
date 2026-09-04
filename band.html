@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>EAIM 마스터 합주실 (Final)</title>
+    <style>
+        body {
+            background-color: #121212; color: #fff;
+            font-family: 'Pretendard', sans-serif;
+            display: flex; flex-direction: column; align-items: center; padding: 20px;
+            user-select: none; -webkit-user-select: none; touch-action: manipulation;
+        }
+
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 10000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        #startBtn {
+            padding: 30px 80px; font-size: 28px; background: #6200ea; color: white; border: none;
+            border-radius: 60px; cursor: pointer; box-shadow: 0 0 60px #6200ea; font-weight: bold;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.05);} 100% {transform: scale(1);} }
+
+        h1 { color: #00e676; margin-bottom: 5px; text-shadow: 0 0 10px #00e676; text-align: center; }
+        .subtitle { color: #aaa; margin-bottom: 20px; font-size: 16px; text-align: center; }
+
+        .emotion-panel { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+        .emo-btn {
+            padding: 10px 20px; border: 2px solid #00e676; background: transparent; color: #00e676;
+            border-radius: 30px; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 15px;
+        }
+        .emo-btn:hover, .emo-btn.selected { background: #00e676; color: #003300; box-shadow: 0 0 25px #00e676; }
+
+        .tempo-control {
+            background: #222; padding: 10px 25px; border-radius: 30px; border: 1px solid #444;
+            display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
+        }
+        .tempo-label { font-size: 16px; font-weight: bold; color: #ffeb3b; min-width: 110px; text-align: center; }
+        input[type=range] { width: 150px; accent-color: #ffeb3b; cursor: pointer; }
+
+        #sectionInfo { color: #aaa; font-size: 16px; margin-bottom: 5px; text-align: center; }
+        #statusMsg { color: #00e676; font-size: 18px; margin-bottom: 15px; height: 24px; text-align: center; font-weight: bold; }
+
+        .chord-display { display: flex; gap: 15px; margin-bottom: 25px; justify-content: center; }
+        .chord-wrapper { position: relative; width: 80px; height: 90px; display: flex; flex-direction: column; align-items: center; }
+        .chord-box {
+            width: 80px; height: 80px; display: flex; align-items: center; justify-content: center;
+            border: 3px solid #444; border-radius: 15px; font-size: 24px; font-weight: bold;
+            background: #1e1e1e; color: #777; transition: 0.2s; cursor: pointer; z-index: 2;
+        }
+        .chord-box.active { border-color: #6200ea; background-color: #2a2a2a; color: white; transform: scale(1.1); box-shadow: 0 0 30px #6200ea; }
+        .chord-box.recorded { border-color: #00e676; color: #00e676; box-shadow: inset 0 0 10px #003300; }
+        .progress-bg { position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: #333; border-radius: 0 0 10px 10px; overflow: hidden; }
+        .progress-fill { width: 0%; height: 100%; background: #ffff00; transition: width 0.05s linear; }
+
+        .piano { 
+            display: flex; position: relative; background: #222; padding: 20px; 
+            border-radius: 15px; margin-bottom: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
+            overflow-x: auto;
+        }
+        .key { width: 45px; height: 200px; background: white; border-radius: 0 0 5px 5px; margin: 0 2px; position: relative; z-index: 1; cursor: pointer; transition: 0.05s; flex-shrink: 0; }
+        .key.active { background: #bbb; transform: translateY(4px); }
+        
+        /* ★ 건반 모양 및 위치 수정됨 ★ */
+        .key.black { 
+            width: 32px; 
+            height: 125px; 
+            background: linear-gradient(180deg, #111 0%, #333 100%); 
+            position: absolute; 
+            z-index: 2; 
+            top: 0; 
+            border: 1px solid #000; 
+            border-radius: 0 0 5px 5px; 
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5); 
+        }
+        .key.black.active { background: #000; transform: translateY(4px); box-shadow: none; }
+
+        .key[data-note="C#"] { left: 54px; } 
+        .key[data-note="D#"] { left: 103px; } 
+        .key[data-note="F#"] { left: 201px; } 
+        .key[data-note="G#"] { left: 250px; } 
+        .key[data-note="A#"] { left: 299px; } 
+        .key[data-note="C#2"] { left: 397px; margin-left: 0; }
+        
+        /* ★ 감정 가이드 라이트 CSS ★ */
+        .key.guide-red { background-color: #ff5252 !important; box-shadow: 0 0 15px #ff5252; } 
+        .key.guide-yellow { background-color: #ffea00 !important; box-shadow: 0 0 15px #ffea00; } 
+        .key.guide-blue { background-color: #448aff !important; box-shadow: 0 0 15px #448aff; } 
+        .key.guide-purple { background-color: #e040fb !important; box-shadow: 0 0 15px #e040fb; } 
+        
+        .key.magic-hit { background-color: #d500f9 !important; box-shadow: 0 0 30px #d500f9; transform: translateY(4px); }
+
+        .control-panel { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; max-width: 800px; }
+        button { border: none; font-family: 'Pretendard'; font-weight: bold; padding: 12px 20px; border-radius: 40px; font-size: 15px; cursor: pointer; transition: 0.2s; }
+        button:active { transform: scale(0.95); }
+        
+        .rec-btn { background: #d81b60; color: white; min-width: 220px; }
+        .rec-btn.recording { background: #ff0000; animation: blink 1s infinite; box-shadow: 0 0 30px red; }
+        .rec-btn.standby { background: #ff9100; color: white; animation: pulse 1s infinite; }
+        .rec-btn.finish { background: #4caf50; color: white; }
+        @keyframes blink { 50% { opacity: 0.6; } }
+        
+        .autotune-btn { background: #333; color: #aaa; border: 2px solid #555; }
+        .autotune-btn.on { background: linear-gradient(135deg, #00e676, #00c853); color: #003300; border: none; box-shadow: 0 0 30px #00e676; transform: scale(1.05); }
+        .add-btn { background: #6200ea; color: white; box-shadow: 0 0 20px #6200ea; }
+        .magic-btn { background: linear-gradient(135deg, #2979ff, #2962ff); color: white; box-shadow: 0 0 20px #2962ff; }
+        .play-btn { background: #00c853; color: white; box-shadow: 0 0 20px #00c853; }
+        .reset-btn { background: #424242; color: #ccc; }
+        .save-btn { background: #455a64; color: white; }
+
+        .inquiry-section { width: 90%; max-width: 600px; background: #1e1e1e; padding: 20px; border-radius: 20px; color: #ccc; margin-bottom: 30px; }
+        textarea { width: 95%; height: 60px; background: #121212; border: 1px solid #444; color: white; padding: 10px; border-radius: 10px; margin-top: 10px; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <div id="overlay">
+        <h1>🎸 EAIM 마스터 합주실</h1>
+        <p style="color:#bbb; margin-bottom:40px;">피아노·기타·베이스 진짜 악기 소리로 합주해요.</p>
+        <button id="startBtn" onclick="appStart()">🎹 입장하기</button>
+    </div>
+
+    <h1>🎸 EAIM 마스터 합주실</h1>
+    <div class="subtitle">건반의 색깔을 보며 나만의 멜로디를 만들어보세요.</div>
+
+    <div class="emotion-panel">
+        <button class="emo-btn" onclick="setMood('happy')">😄 행복</button>
+        <button class="emo-btn" onclick="setMood('sad')">😢 슬픔</button>
+        <button class="emo-btn" onclick="setMood('dreamy')">☁️ 몽환</button>
+        <button class="emo-btn" onclick="setMood('excited')">😆 신남</button>
+        <button class="emo-btn" onclick="setMood('love')">🥰 사랑</button>
+    </div>
+
+    <div class="tempo-control">
+        <div class="tempo-label" id="bpmLabel">속도: 80 BPM</div>
+        <input type="range" min="60" max="140" value="80" step="5" oninput="changeTempo(this.value)">
+    </div>
+
+    <div id="sectionInfo">현재 구간: 1절 (Part A)</div>
+    <div id="statusMsg">준비됨 (1번 마디 녹음을 시작하세요)</div>
+
+    <div class="chord-display" id="chordContainer"></div>
+
+    <div class="piano">
+        <div class="key" data-note="C"></div> <div class="key black" data-note="C#"></div>
+        <div class="key" data-note="D"></div> <div class="key black" data-note="D#"></div>
+        <div class="key" data-note="E"></div> <div class="key" data-note="F"></div>
+        <div class="key black" data-note="F#"></div> <div class="key" data-note="G"></div>
+        <div class="key black" data-note="G#"></div> <div class="key" data-note="A"></div>
+        <div class="key black" data-note="A#"></div> <div class="key" data-note="B"></div>
+        <div class="key" data-note="C2"></div> <div class="key black" data-note="C#2"></div>
+        <div class="key" data-note="D2"></div>
+    </div>
+
+    <div class="control-panel">
+        <button id="recBtn" class="rec-btn" onclick="prepareRecordingStep()">🔴 1번 마디 녹음 준비</button>
+        <button id="addSectionBtn" class="add-btn" onclick="addNewSection()" style="display:none;">➕ 4마디 더 추가하기</button>
+        
+        <button id="autoTuneBtn" class="autotune-btn" onclick="toggleAutoTune()">🪄 프로듀서 도깨비</button>
+        <button class="magic-btn" onclick="applySmartRhythm()">⚡ 리듬 정리</button>
+        <button class="play-btn" onclick="playEnsemble()">▶ 전체 곡 듣기</button>
+        <button class="reset-btn" onclick="resetAll()">🔄 리셋</button>
+        <button class="save-btn" onclick="exportAudio()">💾 저장</button>
+    </div>
+
+    <div class="inquiry-section">
+        <h3>📝 나의 음악 일지</h3>
+        <label>1. 빨간색(안정)과 파란색(세련) 중 어떤 음을 더 많이 썼나요?</label>
+        <textarea id="q1"></textarea>
+        <div style="text-align: right; margin-top:10px;">
+            <button class="save-btn" onclick="saveLog()" style="padding:8px 20px; font-size:14px;">📄 일지 저장</button>
+        </div>
+    </div>
+
+    <script>
+        let audioCtx, masterGain, destNode, compressor, reverbNode;
+        let bandGain, melodyGain;
+        let currentChords = [], melodyData = []; 
+        let isAutoTune = false, isRecording = false, isStandby = false;
+        let recStartTime = 0;
+        let isPlaying = false, recordTimerInterval = null, playTimerInterval = null;
+        let currentStep = 0; 
+        let sectionCount = 0; 
+        let scheduledEvents = [];
+        let currentMood = 'happy';
+
+        let BPM = 80;
+        let BEAT_TIME = 60 / BPM; 
+        let BAR_TIME = BEAT_TIME * 4;
+        let QUANTIZE_GRID = BEAT_TIME / 4;
+
+        const chordsData = {
+            'happy': ['C', 'G', 'Am', 'F'], 
+            'sad': ['Am', 'F', 'C', 'G'],
+            'dreamy': ['F', 'G', 'Em', 'Am'], 
+            'excited': ['C', 'F', 'G', 'C'],
+            'love': ['F', 'G', 'C', 'Am']
+        };
+        const notesScale = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+        function appStart() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            compressor = audioCtx.createDynamicsCompressor();
+            masterGain = audioCtx.createGain(); masterGain.gain.value = 0.9;
+            reverbNode = audioCtx.createConvolver();
+            createReverbImpulse(1.5); 
+            bandGain = audioCtx.createGain(); bandGain.gain.value = 1.0;
+            melodyGain = audioCtx.createGain(); melodyGain.gain.value = 1.0;
+            bandGain.connect(masterGain); melodyGain.connect(masterGain);
+            destNode = audioCtx.createMediaStreamDestination();
+            masterGain.connect(compressor); compressor.connect(audioCtx.destination); compressor.connect(destNode);
+            document.getElementById('overlay').style.display = 'none';
+            loadKits();
+            setMood('happy');
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function createReverbImpulse(duration) {
+            let rate = audioCtx.sampleRate; let length = rate * duration;
+            let impulse = audioCtx.createBuffer(2, length, rate);
+            let left = impulse.getChannelData(0); let right = impulse.getChannelData(1);
+            for (let i = 0; i < length; i++) {
+                let decay = Math.pow(1 - i / length, 2);
+                let leftVal = (Math.random() * 2 - 1) * decay;
+                let rightVal = (Math.random() * 2 - 1) * decay;
+                left[i] = leftVal; right[i] = rightVal;
+            }
+            reverbNode.buffer = impulse;
+        }
+
+        function changeTempo(val) {
+            let newBPM = parseInt(val);
+            document.getElementById('bpmLabel').innerText = `속도: ${newBPM} BPM`;
+            let ratio = BPM / newBPM;
+            BPM = newBPM; BEAT_TIME = 60 / BPM; BAR_TIME = BEAT_TIME * 4; QUANTIZE_GRID = BEAT_TIME / 4;
+            melodyData.forEach(m => { m.relStart *= ratio; m.duration *= ratio; });
+            stopEverything();
+            updateMsg(`속도 ${newBPM} BPM으로 변경됨.`);
+        }
+
+        function setMood(mood) {
+            if(!audioCtx) return;
+            currentMood = mood;
+            document.querySelectorAll('.emo-btn').forEach(b => b.classList.remove('selected'));
+            let btns = document.querySelectorAll('.emo-btn');
+            for(let b of btns) { if(b.innerText.includes(mood=='love'?'사랑':(mood=='happy'?'행복':(mood=='sad'?'슬픔':(mood=='dreamy'?'몽환':'신남'))))) b.classList.add('selected'); }
+
+            currentChords = chordsData[mood];
+            resetAll();
+            renderChords();
+            showGuide(currentChords[0], 0);
+            updateMsg(`'${mood}' 모드 선택됨. (건반 색깔을 확인하세요!)`);
+        }
+
+        function renderChords() {
+            const container = document.getElementById('chordContainer');
+            container.innerHTML = '';
+            currentChords.forEach((chord, idx) => {
+                const wrapper = document.createElement('div'); wrapper.className = 'chord-wrapper';
+                const box = document.createElement('div'); box.className = 'chord-box';
+                box.innerText = chord; box.id = `chord-${idx}`;
+                box.onclick = () => { if(audioCtx) playGuitarStrum(chord, audioCtx.currentTime); showGuide(chord, idx); };
+                const bg = document.createElement('div'); bg.className = 'progress-bg';
+                const fill = document.createElement('div'); fill.className = 'progress-fill'; fill.id = `prog-${idx}`;
+                bg.appendChild(fill); wrapper.appendChild(box); wrapper.appendChild(bg);
+                container.appendChild(wrapper);
+            });
+        }
+
+        function resetAll() {
+            stopEverything();
+            melodyData = [];
+            currentStep = 0;
+            sectionCount = 0;
+            document.getElementById('sectionInfo').innerText = "현재 구간: 1절 (Part A)";
+            document.getElementById('addSectionBtn').style.display = 'none';
+            document.querySelectorAll('.progress-fill').forEach(el => el.style.width = '0%');
+            document.querySelectorAll('.chord-box').forEach(el => el.classList.remove('recorded', 'active'));
+            updateRecButtonState();
+            updateMsg("초기화 완료.");
+            showGuide(currentChords[0], 0);
+        }
+
+        function stopEverything() {
+            if(recordTimerInterval) clearInterval(recordTimerInterval);
+            scheduledEvents.forEach(node => { try{node.stop()}catch(e){} });
+            scheduledEvents = [];
+            isRecording = false; isStandby = false; isPlaying = false;
+            updateRecButtonState();
+        }
+
+        function updateRecButtonState() {
+            const btn = document.getElementById('recBtn');
+            btn.className = 'rec-btn';
+            btn.style.display = 'inline-block';
+            if (currentStep < 4) {
+                btn.innerText = `🔴 ${currentStep + 1}번 마디 녹음 준비`;
+                document.getElementById('addSectionBtn').style.display = 'none';
+            } else {
+                btn.classList.add('finish');
+                btn.innerText = "✅ 현재 구간 완료";
+                btn.style.display = 'none';
+                document.getElementById('addSectionBtn').style.display = 'inline-block';
+            }
+        }
+
+        function addNewSection() {
+            sectionCount++;
+            currentStep = 0;
+            document.getElementById('sectionInfo').innerText = `현재 구간: ${sectionCount + 1}절 (Part ${String.fromCharCode(65+sectionCount)})`;
+            document.querySelectorAll('.chord-box').forEach(el => el.classList.remove('recorded', 'active'));
+            document.querySelectorAll('.progress-fill').forEach(el => el.style.width = '0%');
+            updateRecButtonState();
+            updateMsg(`🎉 ${sectionCount+1}절 시작!`);
+            showGuide(currentChords[0], 0);
+        }
+
+        // === 스마트 리듬 ===
+        function applySmartRhythm() {
+            if(melodyData.length===0) return updateMsg("⚠️ 녹음된 데이터가 없습니다.");
+            melodyData.sort((a, b) => a.relStart - b.relStart);
+            let uniqueData = []; let lastTime = -1;
+
+            melodyData.forEach(m => {
+                let timeInPattern = m.relStart % (BAR_TIME * 4);
+                let measureIndex = Math.floor(timeInPattern / BAR_TIME); 
+                let beatInMeasure = (timeInPattern % BAR_TIME) / BEAT_TIME;
+                
+                // 1,3마디의 1~2박(앞부분)은 Straight(정박)
+                let isStraightZone = (measureIndex === 0 || measureIndex === 2) && beatInMeasure < 2.0;
+                let adjustedTime = m.relStart;
+                if (!isStraightZone) {
+                    adjustedTime = applySoftSyncopation(m.relStart);
+                }
+
+                let snappedTime = Math.round(adjustedTime / QUANTIZE_GRID) * QUANTIZE_GRID;
+                if(snappedTime < 0) snappedTime = 0;
+
+                if (Math.abs(snappedTime - lastTime) > 0.05) { 
+                    m.relStart = snappedTime;
+                    if(isAutoTune) m.note = getSmartSafeNote(m.note, snappedTime);
+                    uniqueData.push(m);
+                    lastTime = snappedTime;
+                }
+            });
+            melodyData = uniqueData;
+            playSynthLead("C5", audioCtx.currentTime, 0.1); 
+            updateMsg("⚡ 리듬 정리 완료! (안정감 + 그루브)");
+        }
+
+        function applySoftSyncopation(originalTime) {
+            let offset = originalTime % BEAT_TIME;
+            if (offset > (BEAT_TIME * 0.6)) return originalTime - (BEAT_TIME * 0.15); 
+            return originalTime;
+        }
+
+        function showGuide(chord, idx) {
+            document.querySelectorAll('.chord-box').forEach(b => b.classList.remove('active'));
+            if(document.getElementById(`chord-${idx}`)) document.getElementById(`chord-${idx}`).classList.add('active');
+            
+            document.querySelectorAll('.key').forEach(k => k.classList.remove('guide-red', 'guide-yellow', 'guide-blue', 'guide-purple', 'guide-good'));
+            
+            let root = chord.replace('m','');
+            let isMinor = chord.includes('m');
+            let rootIdx = notesScale.indexOf(root);
+
+            if (currentMood === 'happy' || currentMood === 'excited' || currentMood === 'love') {
+                let redSteps = isMinor ? [0, 7] : [0, 7];
+                redSteps.forEach(s => light(notesScale[(rootIdx+s)%12], 'guide-red'));
+                let yellowSteps = isMinor ? [3] : [4];
+                yellowSteps.forEach(s => light(notesScale[(rootIdx+s)%12], 'guide-yellow'));
+            } 
+            else if (currentMood === 'dreamy' || currentMood === 'sad') {
+                let blueSteps = isMinor ? [2, 10] : [2, 9]; 
+                blueSteps.forEach(s => light(notesScale[(rootIdx+s)%12], 'guide-blue'));
+                let purpleSteps = isMinor ? [7] : [11];
+                if(!isMinor) purpleSteps = [11]; 
+                purpleSteps.forEach(s => light(notesScale[(rootIdx+s)%12], 'guide-purple'));
+                light(notesScale[(rootIdx)%12], 'guide-red'); 
+            }
+        }
+        function light(n, cls) { 
+            document.querySelectorAll(`.key[data-note^="${n}"]`).forEach(k => { 
+                if(k.getAttribute('data-note').replace('2','')===n) k.classList.add(cls); 
+            }); 
+        }
+
+        function getSmartSafeNote(playedNote, timeInSong) {
+            if (!isAutoTune) return playedNote;
+            let barIndex = Math.floor((timeInSong % (BAR_TIME*4)) / BAR_TIME);
+            let chord = currentChords[barIndex];
+            if(!chord) return playedNote;
+            let root = chord.replace('m', '');
+            let isMinor = chord.includes('m');
+            let rootIdx = notesScale.indexOf(root);
+            
+            let steps = isMinor ? [0, 2, 3, 7, 10] : [0, 2, 4, 7, 9];
+            let safeNotes = steps.map(s => notesScale[(rootIdx+s)%12]);
+            let char = playedNote.replace(/[0-9]/g, '');
+            let oct = playedNote.replace(/[^0-9]/g, '');
+            if(safeNotes.includes(char)) return playedNote; 
+            let chordTonesSteps = isMinor ? [0, 3, 7] : [0, 4, 7];
+            let chordTones = chordTonesSteps.map(s => notesScale[(rootIdx+s)%12]);
+            let pick = chordTones[Math.floor(Math.random() * chordTones.length)];
+            return pick + oct;
+        }
+
+        function playSynthLead_synth(note, time, duration) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+            osc.type = 'sawtooth'; osc.frequency.value = getFreq(note);
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(800, time);
+            filter.frequency.linearRampToValueAtTime(3000, time + 0.1); 
+            const reverbSend = audioCtx.createGain(); reverbSend.gain.value = 0.3;
+            osc.connect(filter); filter.connect(gain);
+            gain.connect(melodyGain); gain.connect(reverbSend); 
+            reverbSend.connect(reverbNode); reverbNode.connect(masterGain);
+            gain.gain.setValueAtTime(0, time);
+            gain.gain.linearRampToValueAtTime(0.7, time + 0.05); 
+            osc.start(time);
+            let playDur = Math.max(duration, 0.25); 
+            gain.gain.setTargetAtTime(0, time + playDur - 0.1, 0.2); 
+            osc.stop(time + playDur + 0.5);
+            scheduledEvents.push(osc);
+            return { osc, gain };
+        }
+
+        function prepareRecordingStep() {
+            if(!audioCtx) appStart();
+            stopEverything(); 
+            if(currentStep >= 4) return updateMsg("4마디 완료! '전체 곡 듣기'를 누르세요.");
+            isStandby = true;
+            const btn = document.getElementById('recBtn');
+            btn.classList.add('standby'); 
+            btn.innerText = `✋ 건반 누르면 ${currentStep+1}마디 시작`;
+            updateMsg(`✋ [${sectionCount+1}절] ${currentStep+1}번 마디 대기 중...`);
+            showGuide(currentChords[currentStep], currentStep);
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function startRecordingStep() {
+            recStartTime = audioCtx.currentTime; 
+            const btn = document.getElementById('recBtn');
+            btn.classList.remove('standby'); btn.classList.add('recording');
+            btn.innerText = `⏹ ${currentStep+1}번 마디 녹음...`;
+            playDrum('hat', recStartTime); 
+            document.querySelectorAll('.chord-box').forEach(b => b.classList.remove('active'));
+            document.getElementById(`chord-${currentStep}`).classList.add('active');
+            recordTimerInterval = setInterval(() => {
+                let now = audioCtx.currentTime;
+                let elapsed = now - recStartTime;
+                let progress = (elapsed / BAR_TIME) * 100;
+                let fill = document.getElementById(`prog-${currentStep}`);
+                if(fill) fill.style.width = `${Math.min(progress, 100)}%`;
+                if (elapsed >= BAR_TIME) finishRecordingStep();
+            }, 50);
+        }
+
+        function finishRecordingStep() {
+            clearInterval(recordTimerInterval);
+            isRecording = false; isStandby = false;
+            document.getElementById(`chord-${currentStep}`).classList.remove('active');
+            document.getElementById(`chord-${currentStep}`).classList.add('recorded');
+            currentStep++;
+            updateRecButtonState();
+            if(currentStep < 4) {
+                updateMsg(`✅ ${currentStep}번 마디 완료!`);
+                showGuide(currentChords[currentStep], currentStep);
+            } else {
+                updateMsg(`🎉 ${sectionCount+1}절 완성! '➕ 4마디 추가' 가능.`);
+            }
+        }
+
+        // ★★★ 수정된 합주 재생 함수 (감정별 주법 변화 적용) ★★★
+        async function playEnsemble() {
+            stopEverything();
+            if(melodyData.length===0) return updateMsg("⚠️ 데이터 없음");
+            if(audioCtx.state === 'suspended') await audioCtx.resume();
+
+            isPlaying = true;
+            let maxTime = 0; melodyData.forEach(m => { if(m.relStart > maxTime) maxTime = m.relStart; });
+            let totalDuration = Math.ceil(Math.max(maxTime, 0.1) / (BAR_TIME*4)) * (BAR_TIME*4);
+            if (totalDuration < BAR_TIME*4) totalDuration = BAR_TIME*4;
+
+            // 감정에 따라 안내 메시지와 연주 모드 설정
+            let isSoftMode = (currentMood === 'sad' || currentMood === 'dreamy');
+            updateMsg(`🎶 ${isSoftMode ? '감성적인 아르페지오' : '경쾌한 리듬'}로 합주 중...`);
+            
+            let masterStartTime = audioCtx.currentTime + 0.1;
+
+            for (let t = 0; t < totalDuration; t += (BAR_TIME * 4)) {
+                currentChords.forEach((chord, i) => {
+                    let start = masterStartTime + t + (i * BAR_TIME);
+                    let root = chord.replace('m','');
+                    
+                    // 시각 효과
+                    setTimeout(() => {
+                        if(!isPlaying) return;
+                        let currentSecIdx = Math.floor((audioCtx.currentTime - masterStartTime) / (BAR_TIME*4));
+                        document.getElementById('sectionInfo').innerText = `재생 중: ${currentSecIdx + 1}절`;
+                        showGuide(chord, i);
+                        let fill = document.getElementById(`prog-${i}`);
+                        if(fill) { fill.style.width='0%'; fill.style.transition=`width ${BAR_TIME}s linear`; fill.style.width='100%'; }
+                    }, (start - audioCtx.currentTime) * 1000);
+
+                    // ★★★ 감정에 따른 연주 주법 분기 ★★★
+                    if (isSoftMode) {
+                        // [슬픔/몽환]: 아르페지오 주법 + 베이스 롱톤
+                        playGuitarArpeggio(chord, start);
+                        playBass(root, start, BAR_TIME, true);
+                        
+                        // 드럼: 아주 약하게 틱.. 틱..
+                        playDrum('hat', start, 0.3);
+                        playDrum('hat', start + BEAT_TIME*2, 0.3);
+                    } else {
+                        // [행복/신남/사랑]: 기존의 리듬 스트럼 + 쿵짝 드럼
+                        // Groove Drum
+                        playDrum('kick', start); playDrum('kick', start+BEAT_TIME*1.5); playDrum('kick', start+BEAT_TIME*2.5);
+                        playDrum('snare', start+BEAT_TIME); playDrum('snare', start+BEAT_TIME*3);
+                        setTimeout(()=> playDrum('snare', start + BEAT_TIME * 3.75, 0.3), (start + BEAT_TIME * 3.75 - audioCtx.currentTime)*1000);
+                        for(let h=0; h<4; h+=0.25) playDrum('hat', start+BEAT_TIME*h, (h%1===0)?0.6:0.2);
+                        
+                        // Guitar Strum
+                        playGuitarStrum(chord, start+BEAT_TIME*0.5); playGuitarStrum(chord, start+BEAT_TIME*1.5);
+                        playGuitarStrum(chord, start+BEAT_TIME*2.5); playGuitarStrum(chord, start+BEAT_TIME*3.5);
+                        
+                        // Bass Rythmn
+                        playBass(root, start, BEAT_TIME*0.75); 
+                        let fifth = notesScale[(notesScale.indexOf(root)+7)%12];
+                        playBass(fifth, start+BEAT_TIME*1.5, BEAT_TIME*0.5);
+                        playBass(root, start+BEAT_TIME*3.5, BEAT_TIME*0.5, true);
+                    }
+                });
+            }
+
+            melodyData.forEach(m => {
+                playSynthLead(m.note, masterStartTime + m.relStart, m.duration);
+            });
+
+            setTimeout(() => { 
+                stopEverything();
+                updateMsg("전체 재생 완료."); 
+                document.querySelectorAll('.progress-fill').forEach(el => {el.style.transition='none'; el.style.width='0%'});
+                showGuide(currentChords[0], 0);
+            }, totalDuration * 1000 + 2000);
+        }
+
+        document.querySelectorAll('.key').forEach(k => {
+            let note = k.getAttribute('data-note');
+            let fn = (e) => {
+                e.preventDefault(); 
+                if(!audioCtx) appStart();
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+
+                if(isStandby) { isStandby = false; isRecording = true; startRecordingStep(); }
+
+                k.classList.add('active');
+                
+                let playNote = note;
+                if(isAutoTune && (isRecording || isStandby)) {
+                    let timeInSong = (sectionCount * 4 * BAR_TIME) + (currentStep * BAR_TIME);
+                    playNote = getSmartSafeNote(note, timeInSong); 
+                    visualizeMagic(playNote); 
+                }
+                
+                playSynthLead(playNote, audioCtx.currentTime, 0); 
+                
+                if(isRecording) {
+                    let sectionOffset = sectionCount * (BAR_TIME * 4);
+                    let barOffset = currentStep * BAR_TIME;
+                    let relTimeInBar = audioCtx.currentTime - recStartTime;
+                    relTimeInBar -= 0.1; if(relTimeInBar < 0) relTimeInBar = 0;
+                    if (relTimeInBar < BAR_TIME) {
+                        let totalAbsTime = sectionOffset + barOffset + relTimeInBar;
+                        let data = {note: playNote, relStart: totalAbsTime, duration: 0.5};
+                        melodyData.push(data);
+                    }
+                }
+
+                let up = () => {
+                    k.classList.remove('active');
+                    k.removeEventListener('mouseup', up); k.removeEventListener('touchend', up); k.removeEventListener('mouseleave', up);
+                };
+                k.addEventListener('mouseup', up); k.addEventListener('touchend', up); k.addEventListener('mouseleave', up);
+            };
+            k.addEventListener('mousedown', fn); k.addEventListener('touchstart', fn);
+        });
+
+        function visualizeMagic(note) {
+            document.querySelectorAll('.key').forEach(k => k.classList.remove('magic-hit'));
+            let targetKey = document.querySelector(`.key[data-note="${note.replace(/[0-9]/g,'')}"]`);
+            if (!targetKey) targetKey = document.querySelector(`.key[data-note="${note.replace(/[0-9]/g,'')+"2"}"]`);
+            if (targetKey) {
+                targetKey.classList.add('magic-hit');
+                setTimeout(() => targetKey.classList.remove('magic-hit'), 200);
+            }
+        }
+
+        function toggleAutoTune() { 
+            isAutoTune = !isAutoTune; 
+            document.getElementById('autoTuneBtn').classList.toggle('on'); 
+            updateMsg(isAutoTune ? "🪄 프로듀서 도깨비 ON! (틀린 음 자동 보정)" : "기본 모드 (보정 없음)");
+            showGuide(currentChords[currentStep], currentStep);
+        }
+        function updateMsg(t) { document.getElementById('statusMsg').innerText = t; }
+        
+        function getFreq(note) { const f = {'C':261.6,'C#':277.1,'D':293.6,'D#':311.1,'E':329.6,'F':349.2,'F#':369.9,'G':392.0,'G#':415.3,'A':440.0,'A#':466.1,'B':493.8}; if(note.includes('2')) return (f[note.replace('2','')]||261.6)*2; return f[note]||261.6; }
+        function saveLog() { const t=document.getElementById('q1').value; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([t])); a.download='music_log.txt'; a.click(); }
+        function exportAudio() { if(!audioCtx)return; const btn=document.querySelector('.save-btn'); btn.innerText="녹음 중..."; let c=[]; let r=new MediaRecorder(destNode.stream); r.ondataavailable=e=>c.push(e.data); r.onstop=()=>{const u=URL.createObjectURL(new Blob(c,{type:'audio/webm'})); const a=document.createElement('a'); a.style.display='none'; a.href=u; a.download='Band.webm'; document.body.appendChild(a); a.click(); btn.innerText="💾 저장";}; r.start(); playEnsemble(); 
+            let lastNoteTime = 0; melodyData.forEach(m => { if(m.relStart > lastNoteTime) lastNoteTime = m.relStart; });
+            let totalDuration = Math.ceil(Math.max(lastNoteTime, 0.1) / (BAR_TIME*4)) * (BAR_TIME*4);
+            if (totalDuration < BAR_TIME*4) totalDuration = BAR_TIME*4;
+            setTimeout(()=>r.stop(), totalDuration*1000 + 2000); 
+        }
+
+        // ★★★ 아르페지오(분산화음) 연주 함수 추가됨 ★★★
+        function playGuitarArpeggio_synth(chord, time) {
+            let root = chord.replace('m','');
+            let isMinor = chord.includes('m');
+            let rootIdx = notesScale.indexOf(root);
+            
+            let notes = [
+                rootIdx, 
+                (rootIdx + (isMinor ? 3 : 4)) % 12, 
+                (rootIdx + 7) % 12, 
+                rootIdx + 12
+            ];
+            
+            let timings = [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5]; 
+            let patterns = [0, 2, 1, 2, 0, 2, 1, 2]; 
+
+            timings.forEach((t, i) => {
+                let noteIdx = notes[patterns[i]];
+                let freq = getFreq(notesScale[noteIdx%12]);
+                if (patterns[i] === 3) freq *= 2; 
+                
+                let osc = audioCtx.createOscillator();
+                let g = audioCtx.createGain();
+                osc.type = 'triangle'; 
+                osc.frequency.value = freq;
+                
+                osc.connect(g); g.connect(bandGain);
+                
+                let noteTime = time + (t * BEAT_TIME);
+                g.gain.setValueAtTime(0, noteTime);
+                g.gain.linearRampToValueAtTime(0.3, noteTime + 0.05); 
+                g.gain.exponentialRampToValueAtTime(0.01, noteTime + 0.6); 
+                
+                osc.start(noteTime);
+                osc.stop(noteTime + 0.7);
+            });
+        }
+        
+        function playGuitarStrum_synth(chord, time) { let root=chord.replace('m',''); let m=chord.includes('m'); let f1=getFreq(root)*2; let f2=getFreq(notesScale[(notesScale.indexOf(root)+(m?3:4))%12])*2; const drive=audioCtx.createWaveShaper(); drive.curve=makeDistortionCurve(50); drive.oversample='4x'; const gain=audioCtx.createGain(); gain.gain.setValueAtTime(0.1, time); gain.gain.exponentialRampToValueAtTime(0.01, time+0.2); drive.connect(gain); gain.connect(bandGain); [f1,f2].forEach((f,i)=>{let osc=audioCtx.createOscillator();osc.type='sawtooth';osc.frequency.value=f;osc.connect(drive);osc.start(time);osc.stop(time+0.2);}); }
+        function makeDistortionCurve(k) { let n=44100,c=new Float32Array(n),d=Math.PI/180; for(let i=0;i<n;++i){let x=i*2/n-1;c[i]=(3+k)*x*20*d/(Math.PI+k*Math.abs(x));}return c;}
+        function playBass_synth(n,t,d,h=false) { let o=audioCtx.createOscillator();let g=audioCtx.createGain();let f=audioCtx.createBiquadFilter();o.type='square';o.frequency.value=getFreq(n)/(h?1:2);f.type='lowpass';f.frequency.value=800;o.connect(f);f.connect(g);g.connect(bandGain);g.gain.setValueAtTime(0.6,t);g.gain.exponentialRampToValueAtTime(0.01,t+d);o.start(t);o.stop(t+d);}
+        function playDrum(n,t,v=1.0) { let o=audioCtx.createOscillator();let g=audioCtx.createGain();if(n=='kick'){o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(0.01,t+0.5);g.gain.setValueAtTime(1.0*v,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.5);o.connect(g);g.connect(bandGain);o.start(t);o.stop(t+0.5);}else if(n=='snare'){let b=audioCtx.createBuffer(1,44100*0.1,44100);let d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;let src=audioCtx.createBufferSource();src.buffer=b;let f=audioCtx.createBiquadFilter();f.type='highpass';f.frequency.value=1000;src.connect(f);f.connect(g);g.connect(bandGain);g.gain.setValueAtTime(0.7*v,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.1);src.start(t);}else{let b=audioCtx.createBuffer(1,44100*0.05,44100);let d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;let src=audioCtx.createBufferSource();src.buffer=b;let f=audioCtx.createBiquadFilter();f.type='highpass';f.frequency.value=6000;src.connect(f);f.connect(g);g.connect(bandGain);g.gain.setValueAtTime(0.3*v,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.05);src.start(t);}}
+        // ══ 진짜 악기 소리 (play-sound.js) — 준비 안 됐으면 위의 합성음 사용 ══
+        const kits = {};
+        function loadKits(){
+            if(!window.EAIMSound || !audioCtx) return;
+            const spec = { lead:'piano', guitar:'guitar', bass:'bass' };
+            let total=0, done=0;
+            Object.entries(spec).forEach(([k,inst])=>{
+                kits[k] = new EAIMSound.SampleKit(audioCtx, inst, k==='bass'?{low:28,high:60,step:3}:{low:40,high:96,step:3});
+                total += kits[k].bases.length;
+                kits[k].load(()=>{ done++; if(done%8===0) updateMsg(`🎻 악기 소리 불러오는 중… ${Math.round(done/total*100)}%`); })
+                  .then(ok=>{ if(ok && Object.values(kits).every(x=>x.ready)) updateMsg('🎻 진짜 악기 소리 준비 완료!'); });
+            });
+        }
+        function noteName(n){ const c=n.replace('2',''); return c + (n.includes('2') ? 5 : 4); }
+        function playSynthLead(note, time, duration){
+            if(!(kits.lead && kits.lead.ready)) return playSynthLead_synth(note, time, duration);
+            const r = kits.lead.play(noteName(note), time, Math.max(duration, 0.25), melodyGain, 0.85, {release:0.6});
+            if(r){ scheduledEvents.push(r.src); return { osc:r.src, gain:r.gain }; }
+            return playSynthLead_synth(note, time, duration);
+        }
+        function playGuitarStrum(chord, time){
+            if(!(kits.guitar && kits.guitar.ready)) return playGuitarStrum_synth(chord, time);
+            const root=chord.replace('m',''), m=chord.includes('m'), ri=notesScale.indexOf(root);
+            const tones=[root+'3', notesScale[(ri+(m?3:4))%12]+'4', notesScale[(ri+7)%12]+'4', root+'4'];
+            tones.forEach((n,i)=>{ const r=kits.guitar.play(n, time+i*0.02, 0.35, bandGain, 0.32, {release:0.3}); if(r) scheduledEvents.push(r.src); });
+        }
+        function playBass(n,t,d,h=false){
+            if(!(kits.bass && kits.bass.ready)) return playBass_synth(n,t,d,h);
+            const r=kits.bass.play(n+(h?3:2), t, d, bandGain, 0.9, {release:0.15}); if(r) scheduledEvents.push(r.src);
+        }
+        function playGuitarArpeggio(chord, time){
+            if(!(kits.guitar && kits.guitar.ready)) return playGuitarArpeggio_synth(chord, time);
+            const root=chord.replace('m',''), m=chord.includes('m'), ri=notesScale.indexOf(root);
+            const names=[root+'3', notesScale[(ri+(m?3:4))%12]+'3', notesScale[(ri+7)%12]+'3', root+'4'];
+            const timings=[0,0.5,1.0,1.5,2.0,2.5,3.0,3.5], pattern=[0,2,1,2,0,2,1,2];
+            timings.forEach((tt,i)=>{ const r=kits.guitar.play(names[pattern[i]], time+tt*BEAT_TIME, 0.55, bandGain, 0.4, {release:0.4}); if(r) scheduledEvents.push(r.src); });
+        }
+
+    </script>
+<script src="play-sound.js"></script>
+<script src="play-shell.js"></script>
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>스마트 가이드 피아노 V8</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="play-sound.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
+        
+        body { 
+            background: #2c3e50; color: white; 
+            font-family: 'Gamja Flower', cursive, sans-serif; 
+            text-align: center; margin: 0; padding: 10px;
+            user-select: none; -webkit-user-select: none;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        
+        h1 { margin: 5px 0; font-size: 1.8rem; color: #f1c40f; }
+
+        .container {
+            width: 100%; max-width: 700px;
+            background: #34495e; border-radius: 15px; padding: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        /* 컨트롤 그룹 */
+        .control-group {
+            background: #222; border-radius: 10px; padding: 10px; margin-bottom: 10px;
+            display: flex; flex-direction: column; gap: 8px; border: 1px solid #555;
+        }
+        .control-row { display: flex; gap: 5px; overflow-x: auto; align-items: center; justify-content: center;}
+        .control-label { font-size: 1rem; color: #f1c40f; margin-right: 5px; min-width: 50px; text-align: right;}
+        
+        .opt-btn {
+            background: #444; border: 1px solid #666; color: #ddd; padding: 5px 10px;
+            border-radius: 15px; cursor: pointer; white-space: nowrap; font-family: inherit;
+        }
+        .opt-btn.active { background: #3498db; color: white; border-color: #fff; font-weight: bold; }
+        .opt-btn.rhythm.active { background: #e67e22; }
+
+        /* 악보 뷰어 */
+        .score-display-area {
+            background: #222; border-radius: 10px; padding: 10px; margin-bottom: 10px;
+            border: 2px solid #555;
+        }
+        .score-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
+        }
+        .score-bar {
+            background: #34495e; border: 1px solid #7f8c8d; border-radius: 8px;
+            height: 50px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; color: #ecf0f1; font-weight: bold; position: relative;
+        }
+        .score-bar.active {
+            background: #f1c40f; color: black; border-color: white;
+            box-shadow: 0 0 10px #f1c40f; transform: scale(1.05); z-index: 10;
+        }
+        .bar-number { position: absolute; top: 2px; left: 5px; font-size: 0.6rem; color: #bbb; }
+        .score-bar.active .bar-number { color: #444; }
+
+        /* 공통 스타일 */
+        .key-settings { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 10px; border-bottom: 1px solid #555; }
+        .key-btn { background: #555; border: none; padding: 5px 10px; border-radius: 5px; color: #ddd; white-space: nowrap; cursor: pointer; font-family: inherit; }
+        .key-btn.active { background: #f1c40f; color: black; font-weight: bold; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 10px; }
+        .tab-btn { flex: 1; padding: 8px; border: 2px solid #555; border-radius: 8px; background: #2c3e50; color: #aaa; cursor: pointer; font-family: inherit; }
+        .tab-btn.active { background: #3498db; color: white; border-color: #3498db; }
+        
+        .panel { display: none; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; }
+        .panel.show { display: block; }
+        
+        .chord-pad { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 5px; }
+        .type-pad { display: flex; gap: 5px; margin-bottom: 10px; }
+        .input-btn { padding: 8px 0; background: #7f8c8d; border: none; border-radius: 5px; color: white; cursor: pointer; font-family: inherit; }
+        .btn-add { background: #2ecc71; width: 100%; padding: 10px; font-size: 1.1rem; border:none; border-radius:8px; color:white; cursor:pointer;}
+
+        .nav-controls { display: flex; gap: 10px; justify-content: center; margin: 10px 0; }
+        .nav-btn { background: #95a5a6; border: none; padding: 10px; border-radius: 30px; color: white; flex: 1; font-family: inherit; cursor: pointer;}
+
+        .piano-wrap { position: relative; height: 160px; background: #111; border-radius: 10px; display: flex; justify-content: center; padding: 10px 20px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .key { position: relative; cursor: pointer; border-radius: 0 0 5px 5px; transition: 0.1s; }
+        .white-key { width: 14%; height: 100%; background: white; border: 1px solid #ccc; margin: 0 1px; z-index: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; color: #555; font-weight: bold; font-size: 1.2rem; }
+        .black-key { width: 8%; height: 60%; background: black; position: absolute; z-index: 2; top: 10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
+        
+        .guide-on { background: #f1c40f !important; box-shadow: 0 0 15px #f1c40f inset; }
+        .key-pressed { transform: translateY(3px); background: #e74c3c !important; }
+
+        #start-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    </style>
+</head>
+<body>
+
+    <div id="start-overlay">
+        <h1>🎹 스마트 가이드 V8</h1>
+        <p id="load-msg">진짜 악기 소리를 불러오는 중…</p>
+        <button onclick="startApp()" style="padding:15px 30px; font-size:1.5rem; background:#f1c40f; border:none; border-radius:50px; cursor:pointer;">수업 시작하기</button>
+    </div>
+
+    <h1>🎵 Smart Guide Piano</h1>
+
+    <div class="container">
+        
+        <div class="control-group">
+            <div class="control-row">
+                <span class="control-label">악기</span>
+                <button class="opt-btn active" onclick="setInst('piano', this)">🎹 피아노</button>
+                <button class="opt-btn" onclick="setInst('synth', this)">🎹 신디</button>
+                <button class="opt-btn" onclick="setInst('strings', this)">🎻 스트링</button>
+                <button class="opt-btn" onclick="setInst('brass', this)">🎺 브라스</button>
+                <button class="opt-btn" onclick="setInst('xylo', this)">🔨 실로폰</button>
+            </div>
+            <div class="control-row">
+                <span class="control-label">리듬</span>
+                <button class="opt-btn rhythm active" onclick="setRhythm('none', this)">없음</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('4beat', this)">4비트</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('arp', this)">아르페지오</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('waltz', this)">왈츠</button>
+            </div>
+        </div>
+
+        <div style="text-align:left; color:#ccc; font-size:0.8rem; margin-bottom:5px;">Step 1. 악보 Key</div>
+        <div class="key-settings" id="key-buttons"></div>
+
+        <div class="score-display-area">
+            <div class="score-grid" id="score-board">
+                <span style="grid-column: 1 / -1; color:#666; padding:10px;">코드를 입력하세요</span>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="setTab('manual')">✍️ 수동 입력</button>
+            <button class="tab-btn" onclick="setTab('scan')">📸 악보 스캔</button>
+        </div>
+
+        <div id="panel-manual" class="panel show">
+            <div class="chord-pad">
+                <button class="input-btn" onclick="selRoot('C')">C</button>
+                <button class="input-btn" onclick="selRoot('D')">D</button>
+                <button class="input-btn" onclick="selRoot('E')">E</button>
+                <button class="input-btn" onclick="selRoot('F')">F</button>
+                <button class="input-btn" onclick="selRoot('G')">G</button>
+                <button class="input-btn" onclick="selRoot('A')">A</button>
+                <button class="input-btn" onclick="selRoot('B')">B</button>
+            </div>
+            <div class="type-pad">
+                <button class="input-btn" style="flex:1" onclick="selType('')">Maj</button>
+                <button class="input-btn" style="flex:1" onclick="selType('m')">min</button>
+                <button class="input-btn" style="flex:1" onclick="selType('7')">7</button>
+            </div>
+            <button class="btn-add" onclick="addChordManual()">⬇️ 넣기 (<span id="preview-chord">C</span>)</button>
+        </div>
+
+        <div id="panel-scan" class="panel">
+            <button class="btn-add" style="background:#e74c3c; height:80px;" onclick="runScanSimulation()">
+                📸 찰칵! (자동 입력)
+            </button>
+        </div>
+
+        <div class="nav-controls">
+            <button class="nav-btn" onclick="moveStep(-1)">◀ 이전</button>
+            <button class="nav-btn" onclick="moveStep(1)">다음 ▶</button>
+        </div>
+        
+        <div class="piano-wrap" id="piano"></div>
+        <div style="margin-top:5px; color:#aaa; font-size:0.8rem;">리듬을 켜면 건반을 꾹 누르고 있으세요!</div>
+
+    </div>
+
+    <script>
+        // --- 오디오 엔진 설정 ---
+        let synth;
+        const vol = new Tone.Volume(-5).toDestination();
+        
+        // 악기 프리셋 (브라스 추가됨)
+        const instruments = {
+            piano: { oscillator: { type: "triangle" }, envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 } },
+            synth: { oscillator: { type: "square" }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.5, release: 0.5 } },
+            strings: { oscillator: { type: "fmsine" }, envelope: { attack: 0.3, decay: 0.5, sustain: 1, release: 2 } },
+            brass: { oscillator: { type: "sawtooth" }, envelope: { attack: 0.1, decay: 0.3, sustain: 0.6, release: 0.5 } },
+            xylo: { oscillator: { type: "sine" }, envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }
+        };
+
+        const rhythmPatterns = {
+            'none': null,
+            '4beat': [0, 1, 2, 3],
+            'arp': [0, 1, 2, 1],
+            'waltz': [0, [1,2], [1,2]]
+        };
+        
+        let currentInst = 'piano';
+        let currentRhythm = 'none';
+        let isHoldingKey = false;
+
+        const keys = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+        const pianoData = [
+            {n:"C4",t:"w",l:"도"}, {n:"C#4",t:"b",l:""}, {n:"D4",t:"w",l:"레"}, {n:"D#4",t:"b",l:""},
+            {n:"E4",t:"w",l:"미"}, {n:"F4",t:"w",l:"파"}, {n:"F#4",t:"b",l:""}, {n:"G4",t:"w",l:"솔"},
+            {n:"G#4",t:"b",l:""}, {n:"A4",t:"w",l:"라"}, {n:"A#4",t:"b",l:""}, {n:"B4",t:"w",l:"시"}, {n:"C5",t:"w",l:"도"}
+        ];
+
+        let songKey = 0; 
+        let chordList = [];
+        let currentIdx = -1;
+        let tempR = 'C', tempT = '';
+        let keyElements = {};
+
+        // ── 진짜 악기 샘플 (없으면 합성음으로 대체) ──
+        let fallback = null;
+        const samplers = {};
+        const SAMPLE_MAP = { piano:'piano', synth:'synth', strings:'strings', brass:'brass', xylo:'xylophone' };
+        function loadSamplers(){
+            if(!window.EAIMSound) return;
+            let done=0; const keys=Object.keys(SAMPLE_MAP);
+            keys.forEach(k=>{
+                try{
+                    const sm = EAIMSound.toneSampler(SAMPLE_MAP[k], {release: k==='xylo'?0.3:1});
+                    sm.connect(vol);
+                    sm.onload = ()=>{ samplers[k]=sm; done++; const m=document.getElementById('load-msg'); if(m) m.textContent = done<keys.length ? `진짜 악기 소리 불러오는 중… (${done}/${keys.length})` : '진짜 악기 소리 준비 완료 🎻'; if(currentInst===k) updateInstSound(); };
+                    sm.onerror = ()=>{};
+                }catch(e){}
+            });
+        }
+        function init() {
+            fallback = new Tone.PolySynth(Tone.Synth).connect(vol);
+            synth = fallback;
+            loadSamplers();
+            updateInstSound();
+
+            const kb = document.getElementById('key-buttons');
+            keys.forEach((k, i) => {
+                let btn = document.createElement('button');
+                btn.className = i===0 ? 'key-btn active' : 'key-btn';
+                btn.innerText = k;
+                btn.onclick = () => setKey(i, btn);
+                kb.appendChild(btn);
+            });
+
+            const pw = document.getElementById('piano');
+            pianoData.forEach((d, i) => {
+                let k = document.createElement('div');
+                k.className = d.t === 'w' ? 'white-key key' : 'black-key key';
+                if(d.t==='b') {
+                    let whiteCount = pianoData.slice(0, i).filter(x=>x.t==='w').length;
+                    k.style.left = (whiteCount * 14 + 10) + "%"; 
+                    k.style.marginLeft = "-4%";
+                }
+                if(d.t==='w') k.innerText = d.l;
+
+                const press = (e) => { 
+                    if(e) e.preventDefault(); 
+                    k.classList.add('key-pressed'); 
+                    handleKeyPress(d.n, true); 
+                };
+                const release = (e) => { 
+                    if(e) e.preventDefault(); 
+                    k.classList.remove('key-pressed'); 
+                    handleKeyPress(d.n, false); 
+                };
+
+                k.addEventListener('mousedown', press); k.addEventListener('mouseup', release);
+                k.addEventListener('mouseleave', release);
+                k.addEventListener('touchstart', press); k.addEventListener('touchend', release);
+
+                pw.appendChild(k);
+                keyElements[d.n] = k;
+            });
+        }
+
+        async function startApp() { 
+            await Tone.start(); 
+            Tone.Transport.bpm.value = 100;
+            document.getElementById('start-overlay').style.display = 'none'; 
+        }
+
+        function setInst(type, btn) {
+            currentInst = type;
+            updateInstSound();
+            btn.parentNode.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+        function updateInstSound() {
+            if(synth) { try{ synth.releaseAll(); }catch(e){} }
+            if(samplers[currentInst]) { synth = samplers[currentInst]; }
+            else { synth = fallback; fallback.set(instruments[currentInst]); }
+        }
+
+        function setRhythm(type, btn) {
+            currentRhythm = type;
+            btn.parentNode.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            Tone.Transport.stop(); Tone.Transport.cancel();
+            if(isHoldingKey) handleKeyPress(null, false);
+        }
+
+        function handleKeyPress(inputNote, isPressed) {
+            if(!inputNote && !isPressed) { synth.releaseAll(); isHoldingKey = false; Tone.Transport.stop(); return; }
+
+            let targetNotes = [];
+            if(currentIdx !== -1 && chordList[currentIdx]) {
+                let target = chordList[currentIdx];
+                let rootFreq = Tone.Frequency(target.root + "4").toFrequency();
+                let scale = target.type === 'm' ? [0, 3, 7] : [0, 4, 7];
+                targetNotes = scale.map(interval => Tone.Frequency(rootFreq).transpose(interval));
+            } else {
+                targetNotes = [Tone.Frequency(inputNote).transpose(songKey)];
+            }
+
+            if (isPressed) {
+                isHoldingKey = true;
+                if (currentRhythm === 'none') {
+                    synth.triggerAttack(targetNotes);
+                } else {
+                    startRhythmPattern(targetNotes);
+                }
+            } else {
+                isHoldingKey = false;
+                if (currentRhythm === 'none') {
+                    synth.releaseAll();
+                } else {
+                    Tone.Transport.stop(); synth.releaseAll();
+                }
+            }
+        }
+
+        function startRhythmPattern(notes) {
+            Tone.Transport.stop(); Tone.Transport.cancel();
+            let pattern = rhythmPatterns[currentRhythm];
+
+            if(currentRhythm === '4beat') {
+                new Tone.Loop(time => { synth.triggerAttackRelease(notes, "8n", time); }, "4n").start(0);
+            } 
+            else if(currentRhythm === 'arp') {
+                new Tone.Sequence((time, noteIdx) => {
+                    if(notes[noteIdx]) synth.triggerAttackRelease(notes[noteIdx], "8n", time);
+                }, pattern, "8n").start(0);
+            }
+            else if(currentRhythm === 'waltz') {
+                let root = notes[0]; let chordUpper = notes.slice(1);
+                new Tone.Sequence((time, grp) => { synth.triggerAttackRelease(grp, "8n", time); }, [root, chordUpper, chordUpper], "4n").start(0);
+            }
+            Tone.Transport.start();
+        }
+
+        function setKey(idx, btn) {
+            songKey = idx;
+            document.querySelectorAll('.key-btn').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            updateGuide(); renderScoreBoard();
+        }
+
+        function setTab(mode) {
+            document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+            if(mode === 'manual') {
+                document.querySelector('.tab-btn:first-child').classList.add('active');
+                document.getElementById('panel-manual').classList.add('show');
+            } else {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.getElementById('panel-scan').classList.add('show');
+            }
+        }
+
+        function selRoot(r) { tempR = r; updatePreview(); }
+        function selType(t) { tempT = t; updatePreview(); }
+        function updatePreview() { document.getElementById('preview-chord').innerText = tempR + tempT; }
+        
+        function addChordManual() { addChordToData(tempR, tempT); }
+        function runScanSimulation() {
+            chordList = [];
+            addChordToData('C', ''); addChordToData('G', ''); addChordToData('A', 'm'); addChordToData('F', '');
+            setTab('manual');
+        }
+
+        function addChordToData(root, type) {
+            chordList.push({ name: root+type, root: root, type: type });
+            renderScoreBoard();
+            if(currentIdx === -1) { currentIdx = 0; renderScoreBoard(); updateGuide(); }
+        }
+
+        function renderScoreBoard() {
+            const board = document.getElementById('score-board');
+            board.innerHTML = "";
+            if(chordList.length === 0) { board.innerHTML = "<span style='grid-column:1/-1; padding:10px; color:#666;'>코드 없음</span>"; return; }
+            chordList.forEach((c, i) => {
+                let div = document.createElement('div');
+                div.className = `score-bar ${i === currentIdx ? 'active' : ''}`;
+                div.onclick = () => { currentIdx = i; renderScoreBoard(); updateGuide(); };
+                let num = document.createElement('span'); num.className = 'bar-number'; num.innerText = i + 1; div.appendChild(num);
+                let rootIdx = keys.indexOf(c.root);
+                let guideIdx = rootIdx - songKey;
+                if(guideIdx < 0) guideIdx += 12;
+                div.append(keys[guideIdx] + c.type);
+                board.appendChild(div);
+            });
+            let activeEl = board.querySelector('.active');
+            if(activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function moveStep(dir) {
+            if(chordList.length === 0) return;
+            let next = currentIdx + dir;
+            if(next >= 0 && next < chordList.length) { currentIdx = next; renderScoreBoard(); updateGuide(); }
+        }
+
+        function updateGuide() {
+            document.querySelectorAll('.key').forEach(k=>k.classList.remove('guide-on'));
+            if(currentIdx === -1 || !chordList[currentIdx]) return;
+            let target = chordList[currentIdx];
+            let rootIdx = keys.indexOf(target.root);
+            let guideIdx = rootIdx - songKey;
+            if(guideIdx < 0) guideIdx += 12;
+            let guideRoot = keys[guideIdx];
+            let notes = [keys[guideIdx], keys[(keys.indexOf(guideRoot)+4)%12], keys[(keys.indexOf(guideRoot)+7)%12]];
+            notes.forEach(n => {
+                let map = n + "4";
+                if(keyElements[map]) keyElements[map].classList.add('guide-on');
+                if(n==='C' && keyElements['C5']) keyElements['C5'].classList.add('guide-on');
+            });
+        }
+
+        init();
+    </script>
+<script src="play-shell.js"></script>
+</body>
+</html>

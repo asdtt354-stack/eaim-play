@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EAIM Master v5.5 | Wind Orchestra Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Space+Mono:wght@700&display=swap');
+        
+        :root {
+            --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+            --accent: #8b5cf6; --accent2: #f43f5e; --accent3: #10b981;
+            --text: #f8fafc; --muted: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+
+        /* Header */
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo { font-family: 'Space Mono', monospace; font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* Instrument Selector */
+        .selector-box { background: var(--surface); padding: 20px; border-radius: 20px; margin-bottom: 20px; border: 1px solid var(--surface2); }
+        .selector-title { font-size: 0.9rem; margin-bottom: 15px; color: var(--accent3); font-weight: 700; text-align: center; }
+        .btn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+        .inst-btn { padding: 12px; border-radius: 12px; border: 2px solid var(--surface2); background: none; color: white; cursor: pointer; transition: 0.3s; font-weight: 700; font-size: 0.85rem; }
+        .inst-btn.active { border-color: var(--accent); background: rgba(139, 92, 246, 0.2); color: var(--accent); }
+
+        /* Main Guide Display */
+        .guide-display { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 30px; padding: 50px 20px; text-align: center; border: 1px solid var(--surface2); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        .note-display { font-size: 8rem; font-weight: 900; line-height: 1; margin-bottom: 10px; text-shadow: 0 0 30px rgba(139, 92, 246, 0.5); }
+        .origin-info { font-size: 1rem; color: var(--muted); margin-bottom: 30px; }
+
+        /* Fingering Visualization */
+        .fingering-container { display: flex; justify-content: center; gap: 12px; margin-bottom: 20px; }
+        .key-hole { width: 35px; height: 35px; border: 3px solid #475569; border-radius: 50%; background: #0f172a; transition: 0.2s; position: relative; }
+        .key-hole.active { background: var(--accent); border-color: white; box-shadow: 0 0 20px var(--accent); }
+        .key-hole::after { content: attr(data-label); position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: var(--muted); }
+
+        /* Control Panel */
+        .control-panel { display: flex; gap: 10px; margin-top: 30px; }
+        .btn-action { flex: 1; padding: 18px; border-radius: 15px; border: none; font-weight: 900; cursor: pointer; font-size: 1rem; transition: 0.2s; }
+        .btn-play { background: var(--accent); color: white; }
+        .btn-print { background: var(--accent3); color: #0f172a; }
+        .btn-action:hover { transform: translateY(-3px); filter: brightness(1.1); }
+
+        /* Mixer Panel */
+        .mixer-panel { background: var(--surface); padding: 20px; border-radius: 20px; margin-top: 20px; }
+        .track-row { display: flex; align-items: center; gap: 15px; background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid var(--surface2); }
+        
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; color: black; padding: 0; }
+            .guide-display { border: 2px solid black; background: white; color: black; box-shadow: none; }
+            .note-display { text-shadow: none; color: black; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header no-print">
+        <div class="logo">⭐ EAIM Wind Orchestra</div>
+        <p style="color: var(--muted); font-size: 0.85rem; margin-top: 5px;">멀티 이조 & 한글 계이름 자동 생성 시스템 v5.5</p>
+    </div>
+
+    <div class="selector-box no-print">
+        <div class="selector-title">🎺 연주할 악기를 선택하세요 (실시간 이조)</div>
+        <div class="btn-grid">
+            <button class="inst-btn active" onclick="setInstrument('C', this)">C (플루트/건반)</button>
+            <button class="inst-btn" onclick="setInstrument('Bb', this)">Bb (트럼펫/클라)</button>
+            <button class="inst-btn" onclick="setInstrument('Eb', this)">Eb (알토 색소폰)</button>
+            <button class="inst-btn" onclick="setInstrument('F', this)">F (호른)</button>
+        </div>
+    </div>
+
+    <div class="guide-display">
+        <div class="origin-info" id="originInfo">원곡: C Major | 현재 마디: 1</div>
+        <div class="note-display" id="noteDisplay">-</div>
+        
+        <div class="fingering-container" id="fingerMap">
+            <div class="key-hole" id="k1" data-label="L1"></div>
+            <div class="key-hole" id="k2" data-label="L2"></div>
+            <div class="key-hole" id="k3" data-label="L3"></div>
+            <div style="width: 20px;"></div>
+            <div class="key-hole" id="k4" data-label="R1"></div>
+            <div class="key-hole" id="k5" data-label="R2"></div>
+            <div class="key-hole" id="k6" data-label="R3"></div>
+        </div>
+        <div id="instTag" style="font-weight: 900; color: var(--accent3); letter-spacing: 2px;">C INSTRUMENT</div>
+    </div>
+
+    <div class="no-print">
+        <div class="control-panel">
+            <button class="btn-action btn-play" id="playBtn" onclick="toggleEnsemble()">▶ 실시간 합주 시작</button>
+            <button class="btn-action btn-print" onclick="window.print()">🖨️ 한글 가이드북 인쇄</button>
+        </div>
+
+        <div class="mixer-panel">
+            <div style="margin-bottom:15px; font-size:0.85rem; font-weight:700;">🎼 트랙별 음원 컨트롤 (LALAL.AI분리)</div>
+            <div id="mixerList">
+                <div class="track-row"><span>🎸 BASS</span><input type="range" style="flex:1" min="0" max="1" step="0.1"></div>
+                <div class="track-row"><span>🥁 DRUMS</span><input type="range" style="flex:1" min="0" max="1" step="0.1"></div>
+                <div class="track-row"><span>🎷 MY PART</span><input type="range" style="flex:1" min="0" max="1" step="0.1"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedInst = 'C';
+    let isPlaying = false;
+    let playTimer = null;
+    let currentIdx = 0;
+
+    // --- [마법의 이조 로직 테이블] ---
+    // 원곡(C)의 '도레미파솔라시'가 각 악기에서 어떻게 보이고 잡히는지 정의
+    const transEngine = {
+        'C': { label: 'C INSTRUMENT', offset: 0, 
+               notes: { '도':['도',[1,1,1,1,1,1]], '레':['레',[1,1,1,1,1,0]], '미':['미',[1,1,1,1,0,0]], '파':['파',[1,1,1,0,0,0]], '솔':['솔', [1,1,0,0,0,0]], '라':['라',[1,0,0,0,0,0]], '시':['시',[0,0,0,0,0,0]] }},
+        'Bb': { label: 'Bb TRUMPET / CLARINET', offset: 2, 
+               notes: { '도':['레',[1,1,1,1,1,0]], '레':['미',[1,1,1,1,0,0]], '미':['파#',[1,1,1,0,1,0]], '파':['솔',[1,1,0,0,0,0]], '솔':['라',[1,0,0,0,0,0]], '라':['시',[0,0,0,0,0,0]], '시':['도#',[0,0,0,1,1,1]] }},
+        'Eb': { label: 'Eb ALTO SAXOPHONE', offset: 9, 
+               notes: { '도':['라',[1,0,0,0,0,0]], '레':['시',[0,0,0,0,0,0]], '미':['도#',[0,0,0,1,1,1]], '파':['레',[1,1,1,1,1,0]], '솔':['미',[1,1,1,1,0,0]], '라':['파#',[1,1,1,0,1,0]], '시':['솔#',[1,1,0,1,0,0]] }},
+        'F': { label: 'F FRENCH HORN', offset: 7, 
+               notes: { '도':['솔',[1,1,0,0,0,0]], '레':['라',[1,0,0,0,0,0]], '미':['시',[0,0,0,0,0,0]], '파':['도',[1,1,1,1,1,1]], '솔':['레',[1,1,1,1,1,0]], '라':['미',[1,1,1,1,0,0]], '시':['파#',[1,1,1,0,1,0]] }}
+    };
+
+    // 시뮬레이션용 연습곡 (학교 윈드 오케스트라 기초곡 예시)
+    const ensembleScore = ['도', '레', '미', '파', '솔', '솔', '라', '라', '솔', '파', '미', '레', '도'];
+
+    function setInstrument(key, btn) {
+        selectedInst = key;
+        document.querySelectorAll('.inst-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('instTag').textContent = transEngine[key].label;
+        updateDisplay();
+    }
+
+    function toggleEnsemble() {
+        isPlaying = !isPlaying;
+        const btn = document.getElementById('playBtn');
+        if(isPlaying) {
+            btn.textContent = '⏸ 합주 중지';
+            playTimer = setInterval(() => {
+                currentIdx = (currentIdx + 1) % ensembleScore.length;
+                updateDisplay();
+            }, 1000);
+        } else {
+            btn.textContent = '▶ 실시간 합주 시작';
+            clearInterval(playTimer);
+        }
+    }
+
+    function updateDisplay() {
+        const originNote = ensembleScore[currentIdx];
+        const data = transEngine[selectedInst].notes[originNote];
+
+        const hangeulNote = data[0];
+        const fingers = data[1];
+
+        // 1. 계이름 업데이트
+        document.getElementById('noteDisplay').textContent = hangeulNote;
+        document.getElementById('originInfo').textContent = `원곡 키: C | 현재 마디: ${currentIdx + 1} (Original: ${originNote})`;
+
+        // 2. 핑거링 시각화 업데이트
+        fingers.forEach((on, i) => {
+            const hole = document.getElementById(`k${i+1}`);
+            if(on) hole.classList.add('active');
+            else hole.classList.remove('active');
+        });
+    }
+
+    // 초기 실행
+    updateDisplay();
+</script>
+<script src="play-shell.js"></script>
+</body>
+</html>
