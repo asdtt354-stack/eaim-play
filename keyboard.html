@@ -81,6 +81,12 @@
         .nav-controls { display: flex; gap: 10px; justify-content: center; margin: 10px 0; }
         .nav-btn { background: #95a5a6; border: none; padding: 10px; border-radius: 30px; color: white; flex: 1; font-family: inherit; cursor: pointer;}
 
+        .auto-bar { display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; margin:0 0 10px; }
+        .auto-btn { background:#2ecc71; border:none; color:#fff; padding:10px 22px; border-radius:30px; font-family:inherit; font-size:1.15rem; cursor:pointer; }
+        .auto-btn.on { background:#e74c3c; }
+        .auto-opt { font-size:0.95rem; color:#ddd; display:flex; align-items:center; gap:5px; }
+        .auto-opt input[type=range] { width:110px; accent-color:#f1c40f; }
+        .score-bar.playing { background:#2ecc71; color:#fff; border-color:#fff; }
         .piano-wrap { position: relative; height: 160px; background: #111; border-radius: 10px; display: flex; justify-content: center; padding: 10px 0; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
         .key { position: relative; cursor: pointer; border-radius: 0 0 5px 5px; transition: 0.1s; }
         .white-key { width: 12.5%; height: 100%; background: white; border: 1px solid #ccc; margin: 0; z-index: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; color: #555; font-weight: bold; font-size: 1.2rem; }
@@ -167,9 +173,15 @@
             <button class="nav-btn" onclick="moveStep(-1)">◀ 이전</button>
             <button class="nav-btn" onclick="moveStep(1)">다음 ▶</button>
         </div>
+        <div class="auto-bar">
+            <button class="auto-btn" id="autoBtn" onclick="toggleAuto()">▶ 자동 반주</button>
+            <label class="auto-opt">빠르기 <input type="range" id="bpm" min="60" max="160" value="90" oninput="setBpm(this.value)"> <span id="bpmLbl">90</span></label>
+            <label class="auto-opt"><input type="checkbox" id="metro" checked> 메트로놈</label>
+            <label class="auto-opt"><input type="checkbox" id="loopChk" checked> 반복</label>
+        </div>
         
         <div class="piano-wrap" id="piano"></div>
-        <div style="margin-top:5px; color:#aaa; font-size:0.8rem;">건반을 누르면 그 음이 나요. 리듬을 켜고 꾹 누르면 코드 반주가 나와요!</div>
+        <div style="margin-top:5px; color:#aaa; font-size:0.8rem;">반주를 고르고 ▶ 자동 반주를 누르면 마디마다 코드가 넘어가요. 그 위에서 노란 건반을 짚어 보세요!</div>
 
     </div>
 
@@ -275,7 +287,7 @@
 
         async function startApp() { 
             await Tone.start(); 
-            Tone.Transport.bpm.value = 100;
+            Tone.Transport.bpm.value = 90;
             document.getElementById('start-overlay').style.display = 'none'; 
         }
 
@@ -295,6 +307,7 @@
             currentRhythm = type;
             btn.parentNode.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('active'));
             btn.classList.add('active');
+            if (autoPlaying) stopAuto();
             Tone.Transport.stop(); Tone.Transport.cancel();
             if(isHoldingKey) handleKeyPress(null, false);
         }
@@ -312,18 +325,20 @@
                 chordNotes = scale.map(interval => Tone.Frequency(target.root + "4").transpose(interval).toNote());
             }
             // 리듬이 꺼져 있으면 누른 음이 그대로 나고, 리듬을 켜면 코드 반주 패턴이 나옴
-            let targetNotes = (currentRhythm === 'none' || !chordNotes) ? single : chordNotes;
+            let targetNotes = (currentRhythm === 'none' || !chordNotes || autoPlaying) ? single : chordNotes;
 
             if (isPressed) {
                 isHoldingKey = true;
-                if (currentRhythm === 'none') {
+                if (currentRhythm === 'none' || autoPlaying) {
                     synth.triggerAttack(targetNotes);
                 } else {
                     startRhythmPattern(targetNotes);
                 }
             } else {
                 isHoldingKey = false;
-                if (currentRhythm === 'none') {
+                if (autoPlaying) {
+                    synth.triggerRelease(targetNotes);
+                } else if (currentRhythm === 'none') {
                     synth.releaseAll();
                 } else {
                     Tone.Transport.stop(); synth.releaseAll();
@@ -360,6 +375,63 @@
                 new Tone.Sequence((time, grp) => { synth.triggerAttackRelease(grp, "8n", time); }, [[bass, root], upper, upper], "4n").start(0);
             }
             Tone.Transport.start();
+        }
+
+        // ══ 자동 반주: 마디마다 코드가 넘어가며 반주 패턴이 흐름 ══
+        let autoPlaying = false, autoLoop = null, autoIdx = 0;
+        let metro = null;
+        function chordNotesOf(c) {
+            const iv = c.type === 'm' ? [0,3,7] : c.type === '7' ? [0,4,7,10] : [0,4,7];
+            const gi = ((keys.indexOf(c.root) - songKey) + 12) % 12;      // 악보 Key 반영
+            const rootName = keys[gi] + '4';
+            return iv.map(i => Tone.Frequency(rootName).transpose(i).toNote());
+        }
+        function setBpm(v) { Tone.Transport.bpm.value = Number(v); document.getElementById('bpmLbl').textContent = v; }
+        function toggleAuto() {
+            if (autoPlaying) { stopAuto(); return; }
+            if (chordList.length === 0) { alert('먼저 코드를 넣어주세요 (예: C · Dm · G · C)'); return; }
+            if (currentRhythm === 'none') { alert('반주 종류를 하나 고르세요 (4비트, 발라드 등)'); return; }
+            startAuto();
+        }
+        function startAuto() {
+            Tone.Transport.stop(); Tone.Transport.cancel(); synth.releaseAll();
+            const isWaltz = currentRhythm === 'waltz';
+            Tone.Transport.timeSignature = isWaltz ? 3 : 4;
+            if (!metro) { metro = new Tone.Synth({ oscillator:{type:'sine'}, envelope:{attack:0.001, decay:0.05, sustain:0, release:0.02} }).connect(vol); metro.volume.value = -8; }
+            autoIdx = 0; autoPlaying = true;
+            document.getElementById('autoBtn').textContent = '■ 정지'; document.getElementById('autoBtn').classList.add('on');
+
+            const beat = Tone.Time('4n').toSeconds();
+            const beats = isWaltz ? 3 : 4;
+            autoLoop = new Tone.Loop((time) => {
+                if (autoIdx >= chordList.length) {
+                    if (document.getElementById('loopChk').checked) autoIdx = 0;
+                    else { Tone.Draw.schedule(() => stopAuto(), time + 0.01); return; }
+                }
+                const c = chordList[autoIdx]; const notes = chordNotesOf(c);
+                const root = notes[0], upper = notes.slice(1), bass = Tone.Frequency(root).transpose(-12).toNote();
+                const hit = (grp, t, dur) => synth.triggerAttackRelease(grp, dur, t);
+                switch (currentRhythm) {
+                    case 'whole':  hit([bass, ...notes], time, '1m'); break;
+                    case '4beat':  for (let b = 0; b < beats; b++) hit(notes, time + b*beat, '8n'); break;
+                    case '8beat':  for (let b = 0; b < beats*2; b++) hit(notes, time + b*beat/2, '16n'); break;
+                    case 'ballad': hit([bass, root], time, '8n'); for (let b = 1; b < beats; b++) hit(upper, time + b*beat, '8n'); break;
+                    case 'arp':    { const seq = notes.length === 4 ? [0,1,2,3,2,1,0,1] : [0,1,2,1,0,1,2,1]; for (let b = 0; b < beats*2; b++) hit(notes[seq[b % seq.length]], time + b*beat/2, '8n'); } break;
+                    case 'waltz':  hit([bass, root], time, '8n'); hit(upper, time + beat, '8n'); hit(upper, time + 2*beat, '8n'); break;
+                }
+                if (document.getElementById('metro').checked) for (let b = 0; b < beats; b++) metro.triggerAttackRelease(b === 0 ? 'C6' : 'G5', '32n', time + b*beat);
+                const idxNow = autoIdx;
+                Tone.Draw.schedule(() => { currentIdx = idxNow; renderScoreBoard(); updateGuide(); document.querySelectorAll('.score-bar')[idxNow]?.classList.add('playing'); }, time);
+                autoIdx++;
+            }, '1m').start(0);
+            Tone.Transport.start('+0.1');
+        }
+        function stopAuto() {
+            autoPlaying = false;
+            if (autoLoop) { autoLoop.stop(); autoLoop.dispose(); autoLoop = null; }
+            Tone.Transport.stop(); Tone.Transport.cancel(); synth.releaseAll();
+            document.getElementById('autoBtn').textContent = '▶ 자동 반주'; document.getElementById('autoBtn').classList.remove('on');
+            document.querySelectorAll('.score-bar').forEach(b => b.classList.remove('playing'));
         }
 
         function setKey(idx, btn) {
@@ -424,6 +496,7 @@
 
         function moveStep(dir) {
             if(chordList.length === 0) return;
+            if (autoPlaying) stopAuto();
             let next = currentIdx + dir;
             if(next >= 0 && next < chordList.length) { currentIdx = next; renderScoreBoard(); updateGuide(); }
         }
