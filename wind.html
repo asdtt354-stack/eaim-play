@@ -1,180 +1,219 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EAIM Master v5.5 | Wind Orchestra Edition</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Space+Mono:wght@700&display=swap');
-        
-        :root {
-            --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
-            --accent: #8b5cf6; --accent2: #f43f5e; --accent3: #10b981;
-            --text: #f8fafc; --muted: #94a3b8;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
-
-        /* Header */
-        .header { text-align: center; margin-bottom: 30px; }
-        .logo { font-family: 'Space Mono', monospace; font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-        /* Instrument Selector */
-        .selector-box { background: var(--surface); padding: 20px; border-radius: 20px; margin-bottom: 20px; border: 1px solid var(--surface2); }
-        .selector-title { font-size: 0.9rem; margin-bottom: 15px; color: var(--accent3); font-weight: 700; text-align: center; }
-        .btn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
-        .inst-btn { padding: 12px; border-radius: 12px; border: 2px solid var(--surface2); background: none; color: white; cursor: pointer; transition: 0.3s; font-weight: 700; font-size: 0.85rem; }
-        .inst-btn.active { border-color: var(--accent); background: rgba(139, 92, 246, 0.2); color: var(--accent); }
-
-        /* Main Guide Display */
-        .guide-display { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 30px; padding: 50px 20px; text-align: center; border: 1px solid var(--surface2); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); margin-bottom: 20px; }
-        .note-display { font-size: 8rem; font-weight: 900; line-height: 1; margin-bottom: 10px; text-shadow: 0 0 30px rgba(139, 92, 246, 0.5); }
-        .origin-info { font-size: 1rem; color: var(--muted); margin-bottom: 30px; }
-
-        /* Fingering Visualization */
-        .fingering-container { display: flex; justify-content: center; gap: 12px; margin-bottom: 20px; }
-        .key-hole { width: 35px; height: 35px; border: 3px solid #475569; border-radius: 50%; background: #0f172a; transition: 0.2s; position: relative; }
-        .key-hole.active { background: var(--accent); border-color: white; box-shadow: 0 0 20px var(--accent); }
-        .key-hole::after { content: attr(data-label); position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: var(--muted); }
-
-        /* Control Panel */
-        .control-panel { display: flex; gap: 10px; margin-top: 30px; }
-        .btn-action { flex: 1; padding: 18px; border-radius: 15px; border: none; font-weight: 900; cursor: pointer; font-size: 1rem; transition: 0.2s; }
-        .btn-play { background: var(--accent); color: white; }
-        .btn-print { background: var(--accent3); color: #0f172a; }
-        .btn-action:hover { transform: translateY(-3px); filter: brightness(1.1); }
-
-        /* Mixer Panel */
-        .mixer-panel { background: var(--surface); padding: 20px; border-radius: 20px; margin-top: 20px; }
-        .track-row { display: flex; align-items: center; gap: 15px; background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid var(--surface2); }
-        
-        @media print {
-            .no-print { display: none !important; }
-            body { background: white; color: black; padding: 0; }
-            .guide-display { border: 2px solid black; background: white; color: black; box-shadow: none; }
-            .note-display { text-shadow: none; color: black; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎺 관악실 | EAIM 연주실</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<script src="play-sound.js"></script>
+<script src="play-key.js"></script>
+<style>
+:root{--bg:#141021;--panel:#1e1830;--panel2:#2a2240;--line:#3d3358;--text:#f3eefb;--sub:#a99cc4;--gold:#d4a843;--purple:#a78bfa;--green:#4ade80;--red:#f87171;--blue:#60a5fa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+button,input,textarea,select{font-family:inherit;font-size:inherit}
+header{padding:22px 16px 10px;text-align:center}
+.logo{font-family:'Space Mono',monospace;font-size:1.9rem;font-weight:700;color:var(--gold)}
+.tag{font-size:.78rem;color:var(--sub);letter-spacing:.15em}
+main{max-width:940px;margin:0 auto;padding:10px 14px 90px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+.card h2{font-size:1.1rem;font-weight:900;margin-bottom:4px}
+.desc{font-size:.85rem;color:var(--sub);margin-bottom:10px;line-height:1.6}
+.lbl{font-size:.78rem;color:var(--sub);margin:10px 0 5px}
+.in{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--text);outline:none;font-size:1rem}
+textarea.in{min-height:80px;resize:vertical;line-height:1.7;font-family:'Space Mono',monospace;font-size:.95rem}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row label{font-size:.85rem;color:var(--sub);display:flex;align-items:center;gap:6px}
+input[type=range]{accent-color:var(--gold);width:120px}
+.btn{padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;font-weight:700;font-size:.9rem}
+.btn.p{background:var(--gold);color:#1a1200;border-color:var(--gold)}
+.btn.g{background:var(--green);color:#052e16;border-color:var(--green)}
+.btn.r{background:var(--red);color:#fff;border-color:var(--red)}
+.btn:disabled{opacity:.45}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:8px 13px;border-radius:20px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-size:.88rem}
+.chip.on{background:rgba(212,168,67,.18);border-color:var(--gold);color:#fff;font-weight:700}
+.chip small{display:block;font-size:.68rem;color:var(--sub);font-weight:400}
+.note{font-size:.78rem;color:var(--sub);line-height:1.6}
+.st{font-size:.8rem;color:var(--sub);margin-top:6px;min-height:18px}.st.err{color:var(--red)}
+.stage{background:#000;border:1px solid var(--line);border-radius:18px;padding:18px 14px;text-align:center}
+.stage .who{font-size:.8rem;color:var(--sub);letter-spacing:.2em}
+.stage .big{font-size:clamp(4rem,16vw,8rem);font-weight:900;line-height:1.05;color:var(--gold);text-shadow:0 0 40px rgba(212,168,67,.4);margin:6px 0}
+.stage .orig{font-size:1rem;color:var(--sub)}
+.stage .orig b{color:#fff;font-size:1.3rem}
+.valves{display:flex;gap:10px;justify-content:center;margin:10px 0 4px}
+.valve{width:38px;height:38px;border-radius:50%;border:3px solid #555;display:flex;align-items:center;justify-content:center;font-weight:900;color:#777}
+.valve.on{background:var(--gold);border-color:#fff;color:#1a1200;box-shadow:0 0 14px var(--gold)}
+.strip{display:flex;gap:6px;overflow-x:auto;padding:10px 4px;scroll-behavior:smooth}
+.cell{min-width:64px;padding:8px 4px;border-radius:10px;background:var(--panel2);border:2px solid var(--line);text-align:center;flex-shrink:0;cursor:pointer}
+.cell.now{border-color:var(--gold);background:rgba(212,168,67,.15)}
+.cell.bar{min-width:6px;padding:0;background:transparent;border:0;border-left:2px solid var(--line);cursor:default}
+.cell .w{font-weight:900;font-size:1.1rem}
+.cell .c{font-size:.7rem;color:var(--sub)}
+.cell .l{font-size:.6rem;color:var(--sub)}
+.cell.rest .w{color:var(--sub)}
+table.guide{width:100%;border-collapse:collapse;font-size:.85rem}
+table.guide th,table.guide td{border:1px solid var(--line);padding:6px 8px;text-align:center}
+table.guide th{background:var(--panel2)}
+.gate{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px}
+.gate h1{font-family:'Space Mono',monospace;color:var(--gold);font-size:2rem}
+.gate p{color:var(--sub);max-width:440px;line-height:1.6}
+.gate button{padding:16px 40px;border-radius:40px;border:0;background:var(--gold);color:#1a1200;font-size:1.2rem;font-weight:900;cursor:pointer}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(74,222,128,.95);color:#052e16;padding:9px 16px;border-radius:10px;font-size:.85rem;font-weight:700;display:none;z-index:100}
+#drop{border:2px dashed var(--line);border-radius:10px;padding:10px;text-align:center;color:var(--sub);cursor:pointer;font-size:.85rem}
+@media print{body{background:#fff;color:#000}header,.gate,.btn,.row,#drop,.stage,.strip,.card:not(.print){display:none!important}.card.print{border:0;padding:0}table.guide th,table.guide td{border:1px solid #000;color:#000}table.guide th{background:#eee}}
+</style>
 </head>
 <body>
+<div class="gate" id="gate"><h1>🎺 관악실</h1><p>원곡(C 악보)의 계이름을 넣으면 트럼펫·클라리넷·색소폰·호른이 각자 무슨 계이름으로 불어야 하는지 바로 바꿔 보여줘요. 소리를 켜려면 시작을 눌러주세요.</p><button onclick="startApp()">시작하기</button></div>
+<header><div class="logo">WIND ROOM</div><div class="tag">EAIM 연주실 · 관악실 · 실시간 이조</div></header>
 
-<div class="container">
-    <div class="header no-print">
-        <div class="logo">⭐ EAIM Wind Orchestra</div>
-        <p style="color: var(--muted); font-size: 0.85rem; margin-top: 5px;">멀티 이조 & 한글 계이름 자동 생성 시스템 v5.5</p>
-    </div>
-
-    <div class="selector-box no-print">
-        <div class="selector-title">🎺 연주할 악기를 선택하세요 (실시간 이조)</div>
-        <div class="btn-grid">
-            <button class="inst-btn active" onclick="setInstrument('C', this)">C (플루트/건반)</button>
-            <button class="inst-btn" onclick="setInstrument('Bb', this)">Bb (트럼펫/클라)</button>
-            <button class="inst-btn" onclick="setInstrument('Eb', this)">Eb (알토 색소폰)</button>
-            <button class="inst-btn" onclick="setInstrument('F', this)">F (호른)</button>
-        </div>
-    </div>
-
-    <div class="guide-display">
-        <div class="origin-info" id="originInfo">원곡: C Major | 현재 마디: 1</div>
-        <div class="note-display" id="noteDisplay">-</div>
-        
-        <div class="fingering-container" id="fingerMap">
-            <div class="key-hole" id="k1" data-label="L1"></div>
-            <div class="key-hole" id="k2" data-label="L2"></div>
-            <div class="key-hole" id="k3" data-label="L3"></div>
-            <div style="width: 20px;"></div>
-            <div class="key-hole" id="k4" data-label="R1"></div>
-            <div class="key-hole" id="k5" data-label="R2"></div>
-            <div class="key-hole" id="k6" data-label="R3"></div>
-        </div>
-        <div id="instTag" style="font-weight: 900; color: var(--accent3); letter-spacing: 2px;">C INSTRUMENT</div>
-    </div>
-
-    <div class="no-print">
-        <div class="control-panel">
-            <button class="btn-action btn-play" id="playBtn" onclick="toggleEnsemble()">▶ 실시간 합주 시작</button>
-            <button class="btn-action btn-print" onclick="window.print()">🖨️ 한글 가이드북 인쇄</button>
-        </div>
-
-        <div class="mixer-panel">
-            <div style="margin-bottom:15px; font-size:0.85rem; font-weight:700;">🎼 트랙별 음원 컨트롤 (LALAL.AI분리)</div>
-            <div id="mixerList">
-                <div class="track-row"><span>🎸 BASS</span><input type="range" style="flex:1" min="0" max="1" step="0.1"></div>
-                <div class="track-row"><span>🥁 DRUMS</span><input type="range" style="flex:1" min="0" max="1" step="0.1"></div>
-                <div class="track-row"><span>🎷 MY PART</span><input type="range" style="flex:1" min="0" max="1" step="0.1"></div>
-            </div>
-        </div>
-    </div>
+<main>
+<div class="card">
+  <h2>① 원곡 넣기 (C 악보 · 실음)</h2>
+  <div class="desc">피아노나 플루트 악보의 계이름을 그대로 적어요. 띄어쓰기 = 한 음, <b>|</b> = 마디, 높은 음은 <b>↑</b> 또는 숫자(도5), 반음은 <b>#</b>·<b>b</b>, 쉼표는 <b>-</b>, 길게는 <b>~</b>(한 박 더). 영어(C4 D4)로 적어도 돼요.</div>
+  <textarea class="in" id="src" placeholder="도 도 솔 솔 | 라 라 솔~ | 파 파 미 미 | 레 레 도~"></textarea>
+  <div class="row" style="margin-top:8px">
+    <button class="btn" onclick="ex(0)">작은 별</button><button class="btn" onclick="ex(1)">학교 종</button><button class="btn" onclick="ex(2)">환희의 송가</button>
+    <label>원곡 조 옮기기 <input type="range" id="shift" min="-6" max="6" value="0" oninput="setShift(this.value)"> <b id="shiftLbl">0</b> 반음</label>
+  </div>
+  <div class="lbl">📷 악보 사진으로 넣기 <span class="note">(선생님 키가 있을 때)</span></div>
+  <div id="drop" onclick="document.getElementById('file').click()">악보 사진을 올리면 계이름으로 읽어줘요 (JPG·PNG·PDF)</div>
+  <input type="file" id="file" accept="image/*,.pdf" style="display:none">
+  <div class="st" id="ocrSt"></div>
 </div>
 
+<div class="card">
+  <h2>② 내 악기</h2>
+  <div class="chips" id="insts"></div>
+  <div class="row" style="margin-top:10px">
+    <label>표기 <select id="spell" class="in" style="width:auto;padding:5px 8px" onchange="render()"><option value="auto">자동</option><option value="#">♯로</option><option value="b">♭로</option></select></label>
+    <label>빠르기 <input type="range" id="bpm" min="50" max="140" value="84" oninput="document.getElementById('bpmLbl').textContent=this.value"> <b id="bpmLbl">84</b> BPM</label>
+    <label><input type="checkbox" id="sound" checked> 내 악기 소리로 들려주기</label>
+    <label><input type="checkbox" id="metro" checked> 메트로놈</label>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="who" id="who">—</div>
+  <div class="big" id="big">—</div>
+  <div class="orig">원곡(실음) <b id="orig">—</b> <span id="barInfo"></span></div>
+  <div class="valves" id="valves" style="display:none"><div class="valve">1</div><div class="valve">2</div><div class="valve">3</div></div>
+  <div class="note" id="valveNote"></div>
+</div>
+<div class="strip" id="strip"></div>
+<div class="row" style="justify-content:center;margin:6px 0 16px">
+  <button class="btn g" id="playBtn" onclick="togglePlay()">▶ 실시간 이조 재생</button>
+  <button class="btn" onclick="step(-1)">◀</button><button class="btn" onclick="step(1)">▶</button>
+  <button class="btn" onclick="window.print()">🖨 전 악기 가이드 인쇄</button>
+</div>
+
+<div class="card print">
+  <h2>③ 악기별 가이드 (인쇄용)</h2>
+  <div class="desc">같은 곡을 각 악기가 불어야 할 계이름. 합주 전에 파트별로 나눠주세요.</div>
+  <div id="guide"></div>
+</div>
+
+<div class="card">
+  <h2>왜 계이름이 달라지나요?</h2>
+  <p class="note">트럼펫·클라리넷은 <b>B♭ 악기</b>라, 악보의 "도"를 불면 실제로는 시♭ 소리가 나요. 그래서 원곡 "도"를 내려면 악보상 <b>레</b>를 불어야 하죠(장2도 위). 알토 색소폰은 <b>E♭ 악기</b>라 장6도 위(도→라), 호른은 <b>F 악기</b>라 완전5도 위(도→솔)를 불어요. 플루트·오보에·트롬본·튜바는 C 악기라 원곡 그대로예요.</p>
+</div>
+</main>
+<div id="toast"></div>
+
 <script>
-    let selectedInst = 'C';
-    let isPlaying = false;
-    let playTimer = null;
-    let currentIdx = 0;
+'use strict';
+if(!window.EAIMSound||!window.EAIMKey){document.body.innerHTML='<div style="padding:40px;text-align:center;color:#fff;background:#141021;min-height:100vh"><h2>⚠️ play-sound.js / play-key.js 가 옛 버전이에요</h2></div>';throw new Error('deps')}
+const $=id=>document.getElementById(id);
+const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2000)};
+const PC=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const SOL={C:'도',D:'레',E:'미',F:'파',G:'솔',A:'라',B:'시'};
+const SOL2PC={'도':0,'레':2,'미':4,'파':5,'솔':7,'라':9,'시':11};
+const NAT=[0,2,4,5,7,9,11];
+const INSTS=[
+ {id:'C',n:'플루트 · 오보에 · 피아노',short:'C 악기',iv:0,snd:'flute'},
+ {id:'Bb',n:'트럼펫 · 클라리넷 · 테너/소프라노 색소폰',short:'B♭ 악기',iv:2,snd:'trumpet'},
+ {id:'Eb',n:'알토 · 바리톤 색소폰',short:'E♭ 악기',iv:9,snd:'sax'},
+ {id:'F',n:'호른',short:'F 악기',iv:7,snd:'horn'},
+ {id:'bass',n:'트롬본 · 유포니움 · 튜바',short:'C 악기 (낮은음자리)',iv:0,snd:'trombone'},
+];
+// 트럼펫 밸브 (기보 음 기준, 표준 운지)
+const TRUMPET={'F#3':'123','G3':'13','G#3':'23','A3':'12','A#3':'1','B3':'2','C4':'','C#4':'123','D4':'13','D#4':'23','E4':'12','F4':'1','F#4':'2','G4':'','G#4':'23','A4':'12','A#4':'1','B4':'2','C5':'','C#5':'12','D5':'1','D#5':'2','E5':'','F5':'1','F#5':'2','G5':'','G#5':'23','A5':'12','A#5':'1','B5':'2','C6':''};
+const EX=['도 도 솔 솔 | 라 라 솔~ | 파 파 미 미 | 레 레 도~','솔 솔 라 라 | 솔 솔 미~ | 솔 솔 미 미 | 레~ - - | 솔 솔 라 라 | 솔 솔 미~ | 솔 미 레 미 | 도~ - -','미 미 파 솔 | 솔 파 미 레 | 도 도 레 미 | 미~ 레 레~'];
+const S={inst:'Bb',shift:0,notes:[]};
 
-    // --- [마법의 이조 로직 테이블] ---
-    // 원곡(C)의 '도레미파솔라시'가 각 악기에서 어떻게 보이고 잡히는지 정의
-    const transEngine = {
-        'C': { label: 'C INSTRUMENT', offset: 0, 
-               notes: { '도':['도',[1,1,1,1,1,1]], '레':['레',[1,1,1,1,1,0]], '미':['미',[1,1,1,1,0,0]], '파':['파',[1,1,1,0,0,0]], '솔':['솔', [1,1,0,0,0,0]], '라':['라',[1,0,0,0,0,0]], '시':['시',[0,0,0,0,0,0]] }},
-        'Bb': { label: 'Bb TRUMPET / CLARINET', offset: 2, 
-               notes: { '도':['레',[1,1,1,1,1,0]], '레':['미',[1,1,1,1,0,0]], '미':['파#',[1,1,1,0,1,0]], '파':['솔',[1,1,0,0,0,0]], '솔':['라',[1,0,0,0,0,0]], '라':['시',[0,0,0,0,0,0]], '시':['도#',[0,0,0,1,1,1]] }},
-        'Eb': { label: 'Eb ALTO SAXOPHONE', offset: 9, 
-               notes: { '도':['라',[1,0,0,0,0,0]], '레':['시',[0,0,0,0,0,0]], '미':['도#',[0,0,0,1,1,1]], '파':['레',[1,1,1,1,1,0]], '솔':['미',[1,1,1,1,0,0]], '라':['파#',[1,1,1,0,1,0]], '시':['솔#',[1,1,0,1,0,0]] }},
-        'F': { label: 'F FRENCH HORN', offset: 7, 
-               notes: { '도':['솔',[1,1,0,0,0,0]], '레':['라',[1,0,0,0,0,0]], '미':['시',[0,0,0,0,0,0]], '파':['도',[1,1,1,1,1,1]], '솔':['레',[1,1,1,1,1,0]], '라':['미',[1,1,1,1,0,0]], '시':['파#',[1,1,1,0,1,0]] }}
-    };
+/* ── 파싱 ── */
+function parse(txt){const out=[];let bar=0;txt.replace(/\r/g,'').split(/\s+/).filter(Boolean).forEach(tok=>{
+ if(tok==='|'){bar++;return}
+ let t=tok;let extra=0;while(t.endsWith('~')){extra++;t=t.slice(0,-1)}
+ if(t==='-'||t==='쉼'||t==='0'){out.push({midi:null,len:1+extra,bar});return}
+ let m;
+ if((m=t.match(/^([A-Ga-g])([#b]?)(\d)?$/))){const pc=PC.indexOf(m[1].toUpperCase())+(m[2]==='#'?1:m[2]==='b'?-1:0);const oct=m[3]?Number(m[3]):4;out.push({midi:12*(oct+1)+((pc+12)%12),len:1+extra,bar});return}
+ if((m=t.match(/^(도|레|미|파|솔|라|시)([#♯b♭]?)(↑+|↓+|\d)?$/))){let pc=SOL2PC[m[1]]+(/[#♯]/.test(m[2])?1:/[b♭]/.test(m[2])?-1:0);let oct=4;if(m[3]){if(/^\d$/.test(m[3]))oct=Number(m[3]);else if(m[3][0]==='↑')oct+=m[3].length;else oct-=m[3].length}out.push({midi:12*(oct+1)+((pc+12)%12),len:1+extra,bar});return}
+});return out}
+function name(midi,spell){
+ if(midi==null)return{sol:'쉼',en:'-'};
+ const pc=midi%12,oct=Math.floor(midi/12)-1;
+ if(NAT.includes(pc)){const l=PC[pc];return{sol:SOL[l]+arrow(oct),en:l+oct}}
+ // 자동: 기보 조(원곡 조 + 이조 간격)가 ♭ 조성이면 ♭, 아니면 ♯  (예: C장조 원곡 → B♭악기는 D장조 → 파♯·도♯)
+ const keyPc=((detectKey()+S.shift+(spell==='auto'?_ivForSpell:0))%12+12)%12;
+ const useFlat=spell==='b'||(spell==='auto'&&[5,10,3,8,1].includes(keyPc));
+ if(useFlat){const l=PC[(pc+1)%12];return{sol:SOL[l]+'♭'+arrow(oct),en:l+'b'+oct}}
+ const l=PC[pc-1];return{sol:SOL[l]+'♯'+arrow(oct),en:l+'#'+oct}}
+function arrow(oct){return oct>=5?'↑'.repeat(oct-4):oct<=3?'↓'.repeat(4-oct):''}
+let _ivForSpell=0;
+// 원곡 조 추정: 음 집합이 가장 잘 맞는 장조 (기본 C)
+function detectKey(){const pcs=S.notes.filter(n=>n.midi!=null).map(n=>n.midi%12);if(!pcs.length)return 0;let best=0,bs=-1;for(let k=0;k<12;k++){const sc=NAT.map(i=>(i+k)%12);const sc_=pcs.filter(p=>sc.includes(p)).length;if(sc_>bs||(sc_===bs&&k===0)){bs=sc_;best=k}}return best}
+const inst=()=>INSTS.find(i=>i.id===S.inst);
+const written=(midi)=>midi==null?null:midi+S.shift+inst().iv;
+const concert=(midi)=>midi==null?null:midi+S.shift;
 
-    // 시뮬레이션용 연습곡 (학교 윈드 오케스트라 기초곡 예시)
-    const ensembleScore = ['도', '레', '미', '파', '솔', '솔', '라', '라', '솔', '파', '미', '레', '도'];
+/* ── 화면 ── */
+function renderInsts(){$('insts').innerHTML=INSTS.map(i=>`<div class="chip ${S.inst===i.id?'on':''}" onclick="S.inst='${i.id}';renderInsts();render()">${i.short}<small>${i.n}</small></div>`).join('')}
+let pos=0;
+function render(){S.notes=parse($('src').value);const sp=$('spell').value;const strip=$('strip');let html='';let lastBar=0;
+ const W=(m)=>{_ivForSpell=inst().iv;return name(written(m),sp)}, Cn=(m)=>{_ivForSpell=0;return name(concert(m),'auto')};
+ S.notes.forEach((n,i)=>{if(n.bar!==lastBar){html+='<div class="cell bar"></div>';lastBar=n.bar}const w=W(n.midi),c=Cn(n.midi);html+=`<div class="cell ${i===pos?'now':''} ${n.midi==null?'rest':''}" data-i="${i}" onclick="pos=${i};render();audition(${i})"><div class="w">${w.sol}</div><div class="c">${c.sol}</div><div class="l">${n.len>1?n.len+'박':''}</div></div>`});
+ strip.innerHTML=html||'<div class="note" style="padding:10px">①에 계이름을 넣으면 여기 나와요</div>';
+ const n=S.notes[pos];$('who').textContent=inst().short+' 악보로';
+ if(n){const w=W(n.midi),c=Cn(n.midi);$('big').textContent=w.sol;$('orig').textContent=c.sol;$('barInfo').textContent=`· ${n.bar+1}마디`;showValves(written(n.midi))}else{$('big').textContent='—';$('orig').textContent='—';$('barInfo').textContent='';showValves(null)}
+ const cur=strip.querySelector('.cell.now');if(cur&&cur.scrollIntoView)cur.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
+ renderGuide()}
+function showValves(w){const v=$('valves');if(S.inst!=='Bb'||w==null){v.style.display='none';$('valveNote').textContent='';return}_ivForSpell=inst().iv;const en=name(w,'#').en;const f=TRUMPET[en];v.style.display='flex';[...v.children].forEach((d,i)=>d.classList.toggle('on',f!==undefined&&f.includes(String(i+1))));$('valveNote').textContent=f===undefined?'트럼펫 운지: 이 음역은 표 밖이에요':f===''?'트럼펫: 밸브 없이(개방)':'트럼펫 밸브 '+f.split('').join('+')+'  · 클라리넷·색소폰 운지는 준비 중'}
+function renderGuide(){if(!S.notes.length){$('guide').innerHTML='';return}const sp=$('spell').value;const bars=[];S.notes.forEach(n=>{(bars[n.bar]=bars[n.bar]||[]).push(n)});
+ $('guide').innerHTML=`<table class="guide"><tr><th>마디</th>${bars.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr>${INSTS.map(I=>`<tr><th>${I.short}<br><small style="font-weight:400">${I.n}</small></th>${bars.map(b=>`<td>${b.map(n=>{if(n.midi==null)return'-';_ivForSpell=I.iv;const s=name(n.midi+S.shift+I.iv,sp).sol;return s+(n.len>1?'~'.repeat(n.len-1):'')}).join(' ')}</td>`).join('')}</tr>`).join('')}</table>`}
+function ex(i){$('src').value=EX[i];pos=0;render()}
+function setShift(v){S.shift=Number(v);$('shiftLbl').textContent=(v>0?'+':'')+v;render()}
+$('src').addEventListener('input',()=>{pos=0;render()});
+function step(d){if(!S.notes.length)return;pos=Math.max(0,Math.min(S.notes.length-1,pos+d));render();audition(pos)}
 
-    function setInstrument(key, btn) {
-        selectedInst = key;
-        document.querySelectorAll('.inst-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('instTag').textContent = transEngine[key].label;
-        updateDisplay();
-    }
+/* ── 소리 ── */
+let ctx,master,kits={};
+function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.9;master.connect(ctx.destination);
+ ['flute','trumpet','clarinet','sax','horn','trombone'].forEach(k=>{kits[k]=new EAIMSound.SampleKit(ctx,k,{low:48,high:88,step:3});kits[k].load()});$('gate').style.display='none';toast('🎺 악기 소리 불러오는 중…')}
+function play(midi,t,len,vol=.8){if(midi==null||!ctx)return;const k=kits[inst().snd]||kits.flute;if(k&&k.ready)k.play(midi,t,len,master,vol,{attack:.03,release:.2})}
+function click(t,acc){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=acc?1500:1000;g.gain.setValueAtTime(acc?.4:.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.04);o.connect(g);g.connect(master);o.start(t);o.stop(t+.05)}
+function audition(i){const n=S.notes[i];if(n&&ctx&&$('sound').checked)play(concert(n.midi),ctx.currentTime,60/Number($('bpm').value)*n.len)}
+let timers=[],playing=false;
+function togglePlay(){if(playing){stop();return}if(!S.notes.length){toast('①에 계이름을 먼저 넣어주세요');return}if(!ctx){toast('시작하기를 먼저 눌러주세요');return}playing=true;$('playBtn').textContent='■ 정지';$('playBtn').classList.replace('g','r');
+ const beat=60/Number($('bpm').value);let t=ctx.currentTime+.1;
+ for(let b=0;b<4;b++){if($('metro').checked)click(t+b*beat,b===0)}
+ t+=4*beat;let acc=0;
+ S.notes.forEach((n,i)=>{const tt=t+acc*beat;if($('sound').checked)play(concert(n.midi),tt,n.len*beat*.95);if($('metro').checked)for(let b=0;b<n.len;b++)click(tt+b*beat,false);timers.push(setTimeout(()=>{pos=i;render()},(tt-ctx.currentTime)*1000));acc+=n.len});
+ timers.push(setTimeout(stop,(t+acc*beat-ctx.currentTime)*1000+300))}
+function stop(){timers.forEach(clearTimeout);timers=[];playing=false;$('playBtn').textContent='▶ 실시간 이조 재생';$('playBtn').classList.replace('r','g')}
 
-    function toggleEnsemble() {
-        isPlaying = !isPlaying;
-        const btn = document.getElementById('playBtn');
-        if(isPlaying) {
-            btn.textContent = '⏸ 합주 중지';
-            playTimer = setInterval(() => {
-                currentIdx = (currentIdx + 1) % ensembleScore.length;
-                updateDisplay();
-            }, 1000);
-        } else {
-            btn.textContent = '▶ 실시간 합주 시작';
-            clearInterval(playTimer);
-        }
-    }
+/* ── 악보 사진 → 계이름 ── */
+let sheet=null;$('file').onchange=e=>{sheet=e.target.files[0];if(sheet)readSheet()};
+$('drop').addEventListener('dragover',e=>e.preventDefault());$('drop').addEventListener('drop',e=>{e.preventDefault();sheet=e.dataTransfer.files[0];readSheet()});
+async function readSheet(){const st=$('ocrSt');st.classList.remove('err');const key=await EAIMKey.get();if(!key){st.textContent=EAIMKey.NO_KEY_MSG;st.classList.add('err');return}
+ st.textContent='악보를 읽는 중…';
+ try{const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result.split(',')[1]);fr.onerror=rej;fr.readAsDataURL(sheet)});
+  const d=await EAIMKey.gemini('',{json:true,temperature:.1,maxTokens:900,parts:[{inline_data:{mime_type:sheet.type||'image/jpeg',data:b64}},{text:'이 악보의 멜로디(가장 위 성부)를 실음 기준 계이름으로 읽어 주세요. 규칙: 고정도(도=C). 4옥타브를 기본으로 하고 높은 옥타브는 ↑, 낮은 옥타브는 ↓. 반음은 # 또는 b를 계이름 뒤에. 쉼표는 -. 한 박보다 길면 ~를 박 수만큼 뒤에 붙임(두 박=도~). 마디는 |. 이 악보가 이조 악기용(트럼펫 in Bb 등)이면 실음으로 바꿔서. JSON만: {"title":"","concert_key":"C","notes":"도 도 솔 솔 | 라 라 솔~","transposed_from":""}'}]});
+  if(d.notes){$('src').value=d.notes;pos=0;render();st.textContent=`✅ 읽었어요${d.title?' — '+d.title:''}${d.transposed_from?' ('+d.transposed_from+' 악보를 실음으로 바꿈)':''}. 틀린 음은 ①에서 고치세요.`}else throw new Error('계이름을 못 읽었어요')}
+ catch(e){st.textContent='❌ '+e.message;st.classList.add('err')}}
 
-    function updateDisplay() {
-        const originNote = ensembleScore[currentIdx];
-        const data = transEngine[selectedInst].notes[originNote];
-
-        const hangeulNote = data[0];
-        const fingers = data[1];
-
-        // 1. 계이름 업데이트
-        document.getElementById('noteDisplay').textContent = hangeulNote;
-        document.getElementById('originInfo').textContent = `원곡 키: C | 현재 마디: ${currentIdx + 1} (Original: ${originNote})`;
-
-        // 2. 핑거링 시각화 업데이트
-        fingers.forEach((on, i) => {
-            const hole = document.getElementById(`k${i+1}`);
-            if(on) hole.classList.add('active');
-            else hole.classList.remove('active');
-        });
-    }
-
-    // 초기 실행
-    updateDisplay();
+renderInsts();ex(0);
 </script>
 <script src="play-shell.js"></script>
 </body>

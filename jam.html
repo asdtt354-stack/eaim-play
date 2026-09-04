@@ -85,7 +85,7 @@ textarea.in{width:100%;background:var(--panel2);border:1px solid var(--line);bor
   <div class="lbl">반주 스타일</div><div class="chips" id="styles"></div>
   <div class="lbl">빠르기</div><div class="row"><input type="range" id="bpm" min="60" max="140" value="84" oninput="setBpm(this.value)"><b id="bpmLbl">84</b> BPM</div>
   <div class="bars" id="bars1"></div>
-  <div class="row" style="justify-content:center"><button class="btn b" onclick="preview()">🔊 반주 미리 듣기</button><button class="btn" onclick="stopAll()">■</button></div>
+  <div class="row" style="justify-content:center"><button class="btn b" onclick="preview()">🔊 반주 미리 듣기 (4마디)</button><button class="btn r" onclick="stopAll()">■ 정지</button></div>
 </div><div class="nav"><span></span><button class="btn p" onclick="go(2)">건반 익히기 →</button></div></section>
 
 <!-- 2 건반 익히기 -->
@@ -156,8 +156,8 @@ const MOODS={
 const STYLES={kpop:'K-pop 발라드',pop16:'16비트 팝',rnb:'R&B',dance:'댄스',synth:'신스팝',ballad:'발라드 기본'};
 const S={mood:'happy',style:'pop16',bpm:96,bars:[],sections:1,notes:[]}; // notes: {bar, at(박,0~4), note:'C5', len}
 function chordsOf(){return S.bars}
-function setMood(k){S.mood=k;const m=MOODS[k];S.bars=m.prog.split(' ').map(C.parse);S.style=m.style;setBpm(m.bpm);renderAll()}
-function setStyle(k){S.style=k;renderAll()}
+function setMood(k){if(ctx)stopAll();S.mood=k;const m=MOODS[k];S.bars=m.prog.split(' ').map(C.parse);S.style=m.style;setBpm(m.bpm);renderAll()}
+function setStyle(k){if(ctx)stopAll();S.style=k;renderAll()}
 function setBpm(v){S.bpm=Number(v);$('bpm').value=v;$('bpmLbl').textContent=v}
 
 /* ═════ 화면 ═════ */
@@ -185,8 +185,10 @@ function majorScale(root){const r=PC.indexOf(root);return[0,2,4,5,7,9,11].map(i=
 function paintGuide(){const c=S.bars[sel%S.bars.length];if(!c)return;const g=guideClasses(c);document.querySelectorAll('.key').forEach(k=>{k.classList.remove('tone','color','pass');const cls=g(k.dataset.n);if(cls)k.classList.add(cls)})}
 
 /* ═════ 오디오 ═════ */
-let ctx,master,dest,kits={},leadKit=null,metroGain;
-function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.9;const comp=ctx.createDynamicsCompressor();master.connect(comp);comp.connect(ctx.destination);dest=ctx.createMediaStreamDestination();comp.connect(dest);
+let ctx,master,dest,kits={},leadKit=null,comp,bus;
+function newBus(){bus=ctx.createGain();bus.gain.value=1;bus.connect(comp);return bus}
+function killBus(){if(!bus)return;const old=bus,now=ctx.currentTime;old.gain.cancelScheduledValues(now);old.gain.setValueAtTime(old.gain.value,now);old.gain.linearRampToValueAtTime(0,now+.06);setTimeout(()=>{try{old.disconnect()}catch{}},200);newBus()}
+function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.9;comp=ctx.createDynamicsCompressor();master.connect(comp);comp.connect(ctx.destination);dest=ctx.createMediaStreamDestination();comp.connect(dest);newBus();
  const spec={piano:['piano',{low:40,high:96}],guitar:['guitar',{low:40,high:76}],bass:['bass',{low:28,high:55}]};for(const[k,[i,r]]of Object.entries(spec)){kits[k]=new EAIMSound.SampleKit(ctx,i,{...r,step:3});kits[k].load()}
  loadLead('piano');$('gate').style.display='none';setMood('happy');toast('🎻 악기 소리 불러오는 중…')}
 function loadLead(inst){const k=new EAIMSound.SampleKit(ctx,inst,{low:55,high:88,step:3});k.load().then(()=>{leadKit=k});leadKit=kits.piano}
@@ -199,17 +201,17 @@ function flash(n){const k=document.querySelector(`.key[data-n="${n}"]`);if(!k)re
 function fixNote(n,c){const pc=n.replace(/\d/,''),oct=n.match(/\d/)[0];const t=C.tones(c);if(t.includes(pc))return n;const scale=majorScale(S.bars[0].root);if(scale.includes(pc)&&!rec.strict)return n; // 스케일 음은 살려둠 (지나가는 음)
  const i=PC.indexOf(pc);let best=t[0],d=99;t.forEach(x=>{const dd=Math.min((PC.indexOf(x)-i+12)%12,(i-PC.indexOf(x)+12)%12);if(dd<d){d=dd;best=x}});return best+oct}
 const beatSec=()=>60/S.bpm;
-function auditionChord(c){if(!ctx)return;stopAll();const t=ctx.currentTime+.02;C.voicing(c,4).forEach(n=>kits.piano.ready&&kits.piano.play(n,t,1.2,master,.5));kits.bass.ready&&kits.bass.play(C.bassNote(c,2),t,1.2,master,.8)}
+function auditionChord(c){if(!ctx)return;stopAll();const t=ctx.currentTime+.02;C.voicing(c,4).forEach(n=>kits.piano.ready&&kits.piano.play(n,t,1.2,bus,.5));kits.bass.ready&&kits.bass.play(C.bassNote(c,2),t,1.2,bus,.8)}
 
 /* 밴드 한 마디 */
 function bandBar(c,t,vol=1){const beat=beatSec();const p=kits.piano,g=kits.guitar,b=kits.bass;
- if(p&&p.ready)C.renderPattern(S.style,c,(ns,at,len,vel)=>ns.forEach(n=>p.play(n,t+at*beat,len*beat*.95,master,vel*.7*vol,{release:.4})),4);
- if(b&&b.ready){const lines={kpop:[[0,4]],pop16:[[0,1.5],[1.5,.5],[2,1.5],[3.5,.5]],rnb:[[0,1],[1.5,.5],[2.5,1],[3.75,.25]],dance:[[0,.5],[1,.5],[2,.5],[3,.5]],synth:[[0,.75],[.75,.75],[1.5,1],[2.5,.75],[3.25,.75]],ballad:[[0,2],[2,2]]}[S.style]||[[0,4]];lines.forEach(([at,len])=>b.play(C.bassNote(c,2),t+at*beat,len*beat*.9,master,.85*vol,{release:.15}))}
+ if(p&&p.ready)C.renderPattern(S.style,c,(ns,at,len,vel)=>ns.forEach(n=>p.play(n,t+at*beat,len*beat*.95,bus,vel*.7*vol,{release:.4})),4);
+ if(b&&b.ready){const lines={kpop:[[0,4]],pop16:[[0,1.5],[1.5,.5],[2,1.5],[3.5,.5]],rnb:[[0,1],[1.5,.5],[2.5,1],[3.75,.25]],dance:[[0,.5],[1,.5],[2,.5],[3,.5]],synth:[[0,.75],[.75,.75],[1.5,1],[2.5,.75],[3.25,.75]],ballad:[[0,2],[2,2]]}[S.style]||[[0,4]];lines.forEach(([at,len])=>b.play(C.bassNote(c,2),t+at*beat,len*beat*.9,bus,.85*vol,{release:.15}))}
  const D={kpop:{h:[0,.5,1,1.5,2,2.5,3,3.5],k:[0,1.75,2.5],s:[1,3]},pop16:{h:[0,.25,.5,.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75],k:[0,1.5,2,3.5],s:[1,3]},rnb:{h:[0,.5,1,1.5,2,2.5,3,3.5],k:[0,.75,2.5],s:[1,3]},dance:{h:[.5,1.5,2.5,3.5],k:[0,1,2,3],s:[1,3]},synth:{h:[0,.5,1,1.5,2,2.5,3,3.5],k:[0,1.5,2,3.5],s:[1,3]},ballad:{h:[0,.5,1,1.5,2,2.5,3,3.5],k:[0,2.5],s:[1,3]}}[S.style]||{h:[0,.5,1,1.5,2,2.5,3,3.5],k:[0,2],s:[1,3]};
  D.h.forEach(x=>drum('hat',t+x*beat,(x%1?.4:.7)*vol));D.k.forEach(x=>drum('kick',t+x*beat,vol));D.s.forEach(x=>drum('snare',t+x*beat,vol))}
-function drum(kind,t,v=1){const g=ctx.createGain();g.connect(master);if(kind==='kick'){const o=ctx.createOscillator();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(40,t+.25);g.gain.setValueAtTime(1.1*v,t);g.gain.exponentialRampToValueAtTime(.01,t+.3);o.connect(g);o.start(t);o.stop(t+.3)}else{const len=kind==='snare'?.14:.05;const b=ctx.createBuffer(1,ctx.sampleRate*len,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=ctx.createBufferSource();s.buffer=b;const f=ctx.createBiquadFilter();f.type=kind==='snare'?'bandpass':'highpass';f.frequency.value=kind==='snare'?1800:8000;g.gain.setValueAtTime((kind==='snare'?.7:.3)*v,t);g.gain.exponentialRampToValueAtTime(.01,t+len);s.connect(f);f.connect(g);s.start(t)}}
-function click(t,accent){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=accent?1500:1000;g.gain.setValueAtTime(accent?.6:.35,t);g.gain.exponentialRampToValueAtTime(.001,t+.04);o.connect(g);g.connect(master);o.start(t);o.stop(t+.05)}
-function melodyBar(i,t,vol=1){const beat=beatSec();const k=leadKit&&leadKit.ready?leadKit:kits.piano;if(!k||!k.ready)return;S.notes.filter(n=>n.bar===i).forEach(n=>k.play(n.note,t+n.at*beat,(n.len||.5)*beat*.95,master,.85*vol,{release:.35}))}
+function drum(kind,t,v=1){const g=ctx.createGain();g.connect(bus);if(kind==='kick'){const o=ctx.createOscillator();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(40,t+.25);g.gain.setValueAtTime(1.1*v,t);g.gain.exponentialRampToValueAtTime(.01,t+.3);o.connect(g);o.start(t);o.stop(t+.3)}else{const len=kind==='snare'?.14:.05;const b=ctx.createBuffer(1,ctx.sampleRate*len,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=ctx.createBufferSource();s.buffer=b;const f=ctx.createBiquadFilter();f.type=kind==='snare'?'bandpass':'highpass';f.frequency.value=kind==='snare'?1800:8000;g.gain.setValueAtTime((kind==='snare'?.7:.3)*v,t);g.gain.exponentialRampToValueAtTime(.01,t+len);s.connect(f);f.connect(g);s.start(t)}}
+function click(t,accent){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=accent?1500:1000;g.gain.setValueAtTime(accent?.6:.35,t);g.gain.exponentialRampToValueAtTime(.001,t+.04);o.connect(g);g.connect(bus);o.start(t);o.stop(t+.05)}
+function melodyBar(i,t,vol=1){const beat=beatSec();const k=leadKit&&leadKit.ready?leadKit:kits.piano;if(!k||!k.ready)return;S.notes.filter(n=>n.bar===i).forEach(n=>k.play(n.note,t+n.at*beat,(n.len||.5)*beat*.95,bus,.85*vol,{release:.35}))}
 
 /* ═════ 미리듣기 (① 단계) ═════ */
 let timers=[];
@@ -240,7 +242,7 @@ function playSong(){playing=true;$('playBtn').textContent='■ 정지';$('playBt
  for(let i=0;i<total;i++){const c=S.bars[i%S.bars.length],t=t0+i*4*beat;if($('withBand').checked)bandBar(c,t,.8);melodyBar(i,t);timers.push(setTimeout(()=>{sel=i;$('stageNow').textContent=c.name;document.querySelectorAll('#bars4 .bar').forEach((b,k)=>b.classList.toggle('now',k===i));for(let b=0;b<4;b++)timers.push(setTimeout(()=>beatDot($('beat4'),b),b*beat*1000))},(i*4*beat+.1)*1000))}
  loopTimer=setTimeout(()=>{if($('loop').checked&&playing)playSong();else stopAll()},(total*4*beat+.12)*1000)}
 function addSection(){S.sections++;renderAll();toast(`${S.sections}절 추가 — ③에서 녹음하세요`)}
-function stopAll(){timers.forEach(clearTimeout);timers=[];clearTimeout(loopTimer);playing=false;rec.active=false;$('playBtn').textContent='▶ 전체 듣기';$('playBtn').classList.replace('r','g');$('recBtn').textContent='🔴 이 마디 녹음';$('msg3').classList.remove('rec');document.querySelectorAll('.bar .fill').forEach(f=>{f.style.transition='none';f.style.width='0'});document.querySelectorAll('.bar.rec').forEach(b=>b.classList.remove('rec'))}
+function stopAll(){timers.forEach(clearTimeout);timers=[];clearTimeout(loopTimer);playing=false;rec.active=false;if(ctx)killBus();$('playBtn').textContent='▶ 전체 듣기';$('playBtn').classList.replace('r','g');$('recBtn').textContent='🔴 이 마디 녹음';$('msg3').classList.remove('rec');document.querySelectorAll('.bar .fill').forEach(f=>{f.style.transition='none';f.style.width='0'});document.querySelectorAll('.bar.rec').forEach(b=>b.classList.remove('rec'))}
 function exportWav(){if(!S.notes.length){toast('녹음된 멜로디가 없어요');return}const chunks=[];const r=new MediaRecorder(dest.stream);r.ondataavailable=e=>chunks.push(e.data);r.onstop=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(chunks,{type:'audio/webm'}));a.download=($('j3').value.trim()||'my_jam')+'.webm';a.click();toast('💾 저장됨')};const beat=beatSec(),total=S.bars.length*S.sections;$('loop').checked=false;r.start();playSong();setTimeout(()=>r.stop(),(total*4*beat+1.5)*1000)}
 function saveJournal(){const t=`[EAIM 즉흥실 음악 일지]\n기분: ${MOODS[S.mood].n} / 코드: ${S.bars.map(c=>c.name).join(' ')} / 스타일: ${STYLES[S.style]} / ${S.bpm} BPM\n\n1. ${$('j1').value}\n2. ${$('j2').value}\n3. 제목: ${$('j3').value}`;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'}));a.download='jam_journal.txt';a.click()}
 
