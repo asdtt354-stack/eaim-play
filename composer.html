@@ -47,7 +47,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
 .aibox{background:rgba(167,139,250,.1);border:1px dashed var(--purple);border-radius:10px;padding:10px 12px;font-size:.9rem;line-height:1.7;white-space:pre-wrap;margin-top:8px}
 /* 동기 표시 */
 .motif{display:flex;gap:4px;align-items:flex-end;height:90px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px}
-.motif .n{background:var(--gold);color:#1a1200;border-radius:6px;display:flex;align-items:flex-end;justify-content:center;font-size:.72rem;font-weight:700;padding-bottom:3px;min-width:14px}
+.motif .n{background:var(--gold);color:#1a1200;border-radius:6px;display:flex;align-items:flex-end;justify-content:center;font-size:.72rem;font-weight:700;padding-bottom:3px;min-width:14px;text-align:center;line-height:1.15}
 .motif .n.rest{background:var(--line);color:var(--sub)}
 .beat{display:flex;gap:8px;justify-content:center;margin:8px 0}
 .beat i{width:16px;height:16px;border-radius:50%;background:var(--line);display:block}
@@ -62,6 +62,12 @@ input[type=range]{accent-color:var(--gold);width:120px}
 .key.active{background:#cfc6ea}.key.black.active{background:#3a2f55}
 .key.stable{background:var(--red);color:#fff}.key.black.stable{background:#c94444}
 .key.pass{background:#a5b4fc;color:#1e1b4b}.key.black.pass{background:#6b6fbf}
+.syl{padding:8px 12px;border-radius:10px;background:var(--panel);border:2px solid var(--line);font-weight:900;font-size:1.05rem;min-width:40px;text-align:center}
+.syl.hit{border-color:var(--gold);background:rgba(212,168,67,.18)}
+.syl.now{border-color:#fff}
+.syl small{display:block;font-size:.65rem;color:var(--sub);font-weight:400}
+.pad{border-radius:16px;background:linear-gradient(135deg,#2a2240,#3d3358);border:3px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:900;cursor:pointer;transition:transform .05s;user-select:none}
+.pad:active,.pad.hit{transform:scale(.97);border-color:var(--gold)}
 .rotate{display:none;background:rgba(212,168,67,.12);border:1px dashed rgba(212,168,67,.5);border-radius:10px;padding:8px 12px;font-size:.82rem;color:var(--gold);text-align:center;margin-bottom:8px}
 @media (max-width:820px) and (orientation:portrait){.rotate{display:block}}
 /* 형식 */
@@ -124,9 +130,28 @@ input[type=range]{accent-color:var(--gold);width:120px}
     <button class="btn r" id="recBtn" onclick="recordMotif()">🔴 박자에 맞춰 녹음</button>
     <button class="btn g" onclick="playMotif()">▶ 들어보기</button>
     <button class="btn ai" onclick="aiMotif()">✨ AI 동기 제안</button>
+    <button class="btn" style="border-color:rgba(74,222,128,.5);color:var(--green)" onclick="openSpeech()">🗣 말 리듬으로</button>
     <label>빠르기 <input type="range" id="bpm" min="60" max="140" value="92" oninput="setBpm(this.value)"> <b id="bpmLbl">92</b></label>
   </div>
   <div class="st" id="motifSt"></div>
+  <div id="speechBox" style="display:none;margin-top:12px;background:var(--panel2);border:1px solid rgba(74,222,128,.4);border-radius:14px;padding:14px">
+    <b style="color:var(--green)">🗣 말 리듬으로 동기 만들기</b>
+    <div class="note" style="margin:4px 0 8px">이야기 문장 하나를 골라 <b>말하듯 글자마다 패드를 두드리면</b> 그 리듬이 동기가 돼요. 4박 안에 들어가게 짧은 구절(8글자 안팎)이 좋아요.</div>
+    <div class="chips" id="phraseChips"></div>
+    <div class="row" style="margin-top:8px"><input class="in" id="phraseIn" placeholder="또는 직접 적기 (예: 우산 없이 뛰었다)" style="flex:1;min-width:200px"><button class="btn" onclick="setPhrase($('phraseIn').value)">이 구절로</button></div>
+    <div id="syls" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:12px 0;min-height:44px"></div>
+    <div class="beat" id="beatS"></div>
+    <div class="pad" id="speechPad" style="height:110px;font-size:1.2rem">여기를 말하듯 두드려요</div>
+    <div class="msg" id="msgS"></div>
+    <div class="row" style="justify-content:center;margin-top:8px">
+      <button class="btn r" id="speechRec" onclick="speechRecord()">🔴 카운트인 뒤 두드리기</button>
+      <button class="btn ai" onclick="speechPitchAI()">✨ 억양대로 음 붙이기</button>
+      <button class="btn" onclick="speechPitchManual()">🎹 내가 음 붙이기</button>
+      <button class="btn g" onclick="speechApply()">✅ 동기로 쓰기</button>
+      <button class="btn" onclick="$('speechBox').style.display='none'">닫기</button>
+    </div>
+    <div class="note" style="text-align:center;margin-top:6px">"내가 음 붙이기"를 누른 뒤 건반을 글자 수만큼 차례로 누르면 돼요.</div>
+  </div>
 </div><div class="nav"><button class="btn" onclick="go(1)">← 이야기</button><button class="btn p" onclick="go(3)">곡으로 키우기 →</button></div></section>
 
 <!-- 3 형식 -->
@@ -247,7 +272,7 @@ function setMotifTarget(w){S.target=w;document.querySelectorAll('#motifWho .chip
 function setLen(l){S.len=l;document.querySelectorAll('#lens .chip').forEach(c=>c.classList.toggle('on',Number(c.dataset.l)===l))}
 const motif=()=>S.motif[S.target];
 const used=m=>m.reduce((a,n)=>a+n.len,0);
-function renderMotif(){const m=motif();$('motifView').innerHTML=m.length?m.map(n=>{const h=n.rest?12:20+degIdx(n.note)*7;return`<div class="n ${n.rest?'rest':''}" style="height:${h}px;flex:${n.len}">${n.rest?'쉼':LBL[n.note[0]]+(n.note.endsWith('5')?'↑':'')}</div>`}).join('')+(used(m)<4?`<div class="n rest" style="flex:${4-used(m)};opacity:.4">…</div>`:''):'<div class="note" style="align-self:center;width:100%;text-align:center">건반을 눌러 4박을 채워요 (한박 4개, 반박 8개, 섞어도 됨)</div>';
+function renderMotif(){const m=motif();$('motifView').innerHTML=m.length?m.map(n=>{const h=n.rest?12:20+degIdx(n.note)*7;return`<div class="n ${n.rest?'rest':''}" style="height:${h}px;flex:${n.len}" title="${n.syl||''}">${n.rest?'쉼':(n.syl?n.syl+'<br>':'')+LBL[n.note[0]]+(n.note.endsWith('5')?'↑':'')}</div>`}).join('')+(used(m)<4?`<div class="n rest" style="flex:${4-used(m)};opacity:.4">…</div>`:''):'<div class="note" style="align-self:center;width:100%;text-align:center">건반을 눌러 4박을 채워요 (한박 4개, 반박 8개, 섞어도 됨)</div>';
  renderBeat($('beat2'));$('msg2').textContent=m.length?`${used(m)} / 4박${used(m)>=4?' — 완성! ▶ 들어보기':''}`:'';document.querySelectorAll('#lens .chip').forEach(c=>c.classList.toggle('on',Number(c.dataset.l)===S.len))}
 function renderBeat(el){el.innerHTML=Array.from({length:4},(_,i)=>`<i class="${i===0?'one':''}"></i>`).join('')}
 function addNoteClick(note){const m=motif();const room=4-used(m);if(room<=0){toast('4박이 다 찼어요. 지우고 다시 넣거나 B 동기로');return}const len=Math.min(S.len,room);m.push({note,len,at:used(m)});renderMotif();persist()}
@@ -256,7 +281,7 @@ function undoNote(){motif().pop();renderMotif();persist()}
 function clearMotif(){S.motif[S.target]=[];renderMotif();persist()}
 const held={};
 function keyDown(n){if(!ctx)return;const r=leadKit&&leadKit.ready?leadKit.play(n,ctx.currentTime,2,master,.8,{release:.4}):tempTone(n);held[n]={r,t:ctx.currentTime};
- if(rec.active){const at=(ctx.currentTime-rec.t0)/beatSec();if(at>=-0.6&&at<3.9)rec.buf.push({at:Math.max(0,at),note:n})}else if(cur===2)addNoteClick(n)}
+ if(rec.active){const at=(ctx.currentTime-rec.t0)/beatSec();if(at>=-0.6&&at<3.9)rec.buf.push({at:Math.max(0,at),note:n})}else if(cur===2){if(!speechManualKey(n))addNoteClick(n)}}
 function keyUp(n){const h=held[n];if(!h)return;if(h.r&&h.r.stop)h.r.stop();if(rec.active){const dur=(ctx.currentTime-h.t)/beatSec();const last=[...rec.buf].reverse().find(x=>x.note===n&&x.len===undefined);if(last)last.len=Math.max(.5,Math.min(dur,4-last.at))}delete held[n]}
 function tempTone(n){const midi=EAIMSound.midi(n);const o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=440*Math.pow(2,(midi-69)/12);const t=ctx.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.3,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+1.2);o.connect(g);g.connect(master);o.start(t);o.stop(t+1.3);return{stop:()=>{}}}
 /* 녹음 */
@@ -277,6 +302,44 @@ JSON만: {"notes":[{"idx":0,"len":1}],"why":"학생에게 한 문장"}
   let sum=0;const out=[];(d.notes||[]).forEach(n=>{const idx=Math.max(0,Math.min(9,Number(n.idx)||0));let len=[.5,1,2].includes(Number(n.len))?Number(n.len):1;if(sum+len>4)len=4-sum;if(len<=0)return;out.push({note:WHITE[idx],len,at:sum});sum+=len});if(sum<4)out.push({rest:true,len:4-sum,at:sum});
   S.motif[S.target]=out;renderMotif();persist();st.textContent='💡 '+(d.why||'')+' — 마음에 안 들면 고치거나 다시';playMotif()}
  catch(e){st.textContent='❌ '+e.message}}
+
+/* ═════ 말 리듬으로 동기 만들기 ═════ */
+const SP={phrase:'',syl:[],taps:[],pitches:[],manual:false,active:false,t0:0};
+function syllables(t){return [...t.replace(/[^\uAC00-\uD7A3A-Za-z0-9]/g,'')].slice(0,12)}
+function openSpeech(){const box=$('speechBox');box.style.display='block';const sentences=S.scenes.flatMap(sc=>(sc.text||'').split(/(?<=[.!?。,])\s*|\n+/)).map(x=>x.trim()).filter(x=>x.length>=2);
+ // 긴 문장은 어절 단위로 8글자 안팎 구절로 자름
+ const phrases=[];sentences.forEach(sn=>{const words=sn.split(/\s+/);let cur='';words.forEach(w=>{if(syllables(cur+w).length>9&&cur){phrases.push(cur.trim());cur=''}cur+=w+' '});if(cur.trim())phrases.push(cur.trim())});
+ $('phraseChips').innerHTML=phrases.length?[...new Set(phrases)].slice(0,12).map(ph=>`<div class="chip ${SP.phrase===ph?'on':''}" onclick="setPhrase(${JSON.stringify(ph)})">${esc(ph)}</div>`).join(''):'<span class="note">① 이야기에 글이 있으면 여기 구절이 나와요. 아래에 직접 적어도 됩니다.</span>';
+ renderBeat($('beatS'));if(!SP.phrase&&phrases.length)setPhrase(phrases[0]);else renderSyls();box.scrollIntoView({behavior:'smooth',block:'start'})}
+function setPhrase(ph){ph=(ph||'').trim();if(!ph)return;SP.phrase=ph;SP.syl=syllables(ph);SP.taps=[];SP.pitches=[];SP.manual=false;$('phraseIn').value=ph;document.querySelectorAll('#phraseChips .chip').forEach(c=>c.classList.toggle('on',c.textContent===ph));renderSyls();$('msgS').textContent=SP.syl.length>8?`${SP.syl.length}글자 — 4박에 넣기엔 길어요. 빠르게 말하듯 두드리거나 구절을 줄여요`:`${SP.syl.length}글자 · 🔴을 누르고 "하나 둘 셋 넷" 뒤에 말하듯 두드려요`}
+function renderSyls(){$('syls').innerHTML=SP.syl.map((c,i)=>`<div class="syl ${SP.taps[i]!==undefined?'hit':''}" id="syl${i}">${c}<small>${SP.taps[i]!==undefined?(SP.taps[i]+1).toFixed(1)+'박':''}${SP.pitches[i]?' '+LBL[SP.pitches[i][0]]+(SP.pitches[i].endsWith('5')?'↑':''):''}</small></div>`).join('')}
+function speechRecord(){if(!ctx){toast('시작하기를 먼저 눌러주세요');return}if(!SP.syl.length){toast('구절을 먼저 골라주세요');return}stopAll();SP.taps=[];SP.pitches=[];SP.active=false;renderSyls();const beat=beatSec();const t0=ctx.currentTime+.1;
+ for(let b=0;b<4;b++){click(t0+b*beat,b===0);timers.push(setTimeout(()=>{$('msgS').textContent=['하나','둘','셋','넷'][b]+' …';beatDot($('beatS'),b)},(b*beat+.1)*1000))}
+ const tRec=t0+4*beat;for(let b=0;b<4;b++){click(tRec+b*beat,b===0);timers.push(setTimeout(()=>beatDot($('beatS'),b),((4+b)*beat+.1)*1000))}
+ SP.t0=tRec;timers.push(setTimeout(()=>{SP.active=true;$('msgS').textContent='🗣 지금! 말하듯 두드려요 — '+SP.phrase;$('msgS').classList.add('rec')},(3.6*beat+.1)*1000));
+ timers.push(setTimeout(()=>{SP.active=false;$('msgS').classList.remove('rec');finishSpeech()},(8.2*beat+.1)*1000))}
+function speechTap(){if(!ctx)return;$('speechPad').classList.add('hit');setTimeout(()=>$('speechPad').classList.remove('hit'),80);drum('hat',ctx.currentTime,.9);
+ if(!SP.active)return;const i=SP.taps.length;if(i>=SP.syl.length)return;const at=Math.max(0,(ctx.currentTime-SP.t0)/beatSec());SP.taps.push(at);$('syl'+i)?.classList.add('hit');document.querySelectorAll('.syl.now').forEach(e=>e.classList.remove('now'));$('syl'+(i+1))?.classList.add('now')}
+function drum(kind,t,v){const g=ctx.createGain();g.connect(master);const len=.05;const b=ctx.createBuffer(1,ctx.sampleRate*len,ctx.sampleRate),d=b.getChannelData(0);for(let k=0;k<d.length;k++)d[k]=Math.random()*2-1;const src=ctx.createBufferSource();src.buffer=b;const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=6000;g.gain.setValueAtTime(.35*v,t);g.gain.exponentialRampToValueAtTime(.01,t+len);src.connect(f);f.connect(g);src.start(t)}
+function finishSpeech(){if(!SP.taps.length){$('msgS').textContent='두드린 게 없어요. 다시 해볼까요?';return}
+ const g=.5;const q=SP.taps.map(t=>Math.min(3.5,Math.round(t/g)*g));for(let i=1;i<q.length;i++)if(q[i]<=q[i-1])q[i]=Math.min(3.5,q[i-1]+g); // 겹치면 뒤로
+ SP.taps=q;renderSyls();$('msgS').textContent=`✅ ${SP.taps.length}글자 리듬이 잡혔어요 — 이제 음을 붙여요 (✨ 억양대로 또는 🎹 내가)`;playSpeechRhythm()}
+function playSpeechRhythm(){const beat=beatSec();const t=ctx.currentTime+.1;SP.taps.forEach((at,i)=>{const n=SP.pitches[i];if(n)pianoNoteSp(n,t+at*beat,(SP.taps[i+1]??4)-at);else drum('hat',t+at*beat,1)})}
+function pianoNoteSp(n,t,lenBeats){const k=leadKit&&leadKit.ready?leadKit:kits.piano;if(k&&k.ready)k.play(n,t,lenBeats*beatSec()*.9,bus,.8,{release:.3})}
+function speechPitchManual(){if(!SP.taps.length){toast('먼저 리듬을 두드려요');return}SP.manual=true;SP.pitches=[];renderSyls();$('syl0')?.classList.add('now');$('msgS').textContent=`🎹 "${SP.syl[0]}"부터 건반을 차례로 누르세요 (${SP.taps.length}개)`}
+function speechManualKey(n){if(!SP.manual)return false;const i=SP.pitches.length;if(i>=SP.taps.length)return false;SP.pitches.push(n);renderSyls();document.querySelectorAll('.syl.now').forEach(e=>e.classList.remove('now'));if(i+1<SP.taps.length){$('syl'+(i+1))?.classList.add('now');$('msgS').textContent=`🎹 "${SP.syl[i+1]}"`}else{SP.manual=false;$('msgS').textContent='✅ 음을 다 붙였어요 — ✅ 동기로 쓰기';playSpeechRhythm()}return true}
+async function speechPitchAI(){if(!SP.taps.length){toast('먼저 리듬을 두드려요');return}$('msgS').textContent='억양을 읽고 음을 붙이는 중…';
+ const stableIdx=S.mode==='major'?[0,2,4,7]:[5,7,9];
+ try{const d=await EAIMKey.gemini(`한국어 구절을 말할 때의 억양(올라감/내려감/평탄)을 따라 음높이를 붙여 주세요. 글자 수만큼, ${S.mode==='major'?'다장조':'가단조'} 흰건반 인덱스(도4=0 레4=1 미4=2 파4=3 솔4=4 라4=5 시4=6 도5=7 레5=8 미5=9). 강조되는 글자는 높게, 문장 끝은 안정음(${S.mode==='major'?'도·미·솔':'라·도·미'})으로 내려오게. 물음이면 끝을 올려요. 감정: ${EMO[S.emo]}. JSON만: {"idx":[..글자 수만큼..],"why":"한 문장"}
+구절: ${SP.phrase} (글자: ${SP.syl.join(' ')}, ${SP.taps.length}개)`,{json:true,temperature:.6,maxTokens:200});
+  const idx=(d.idx||[]).slice(0,SP.taps.length).map(x=>Math.max(0,Math.min(9,Number(x)||0)));while(idx.length<SP.taps.length)idx.push(stableIdx[0]);SP.pitches=idx.map(i=>WHITE[i]);renderSyls();$('msgS').textContent='💡 '+(d.why||'억양대로 붙였어요')+' — 마음에 안 들면 🎹 내가 음 붙이기';playSpeechRhythm()}
+ catch(e){// 키 없으면 간단 규칙: 첫 음 안정음, 가운데는 위로, 끝은 내려와 안정음
+  const n=SP.taps.length;SP.pitches=SP.taps.map((_,i)=>{if(i===0)return WHITE[stableIdx[0]];if(i===n-1)return WHITE[stableIdx[0]];const mid=Math.round(stableIdx[0]+2+Math.sin(i/n*Math.PI)*3);return WHITE[Math.max(0,Math.min(9,mid))]});renderSyls();$('msgS').textContent='(AI 없이) 올라갔다 내려오는 기본 억양으로 붙였어요 — 🎹 내가 음 붙이기로 고쳐도 돼요';playSpeechRhythm()}}
+function speechApply(){if(!SP.taps.length){toast('먼저 리듬을 두드려요');return}if(SP.pitches.length<SP.taps.length){toast('음을 먼저 붙여요 (✨ 또는 🎹)');return}
+ const out=[];let cursor=0;SP.taps.forEach((at,i)=>{if(at>cursor)out.push({rest:true,len:at-cursor,at:cursor});const len=(SP.taps[i+1]??4)-at;out.push({note:SP.pitches[i],len,at,syl:SP.syl[i]});cursor=at+len});
+ S.motif[S.target]=out;renderMotif();persist();$('speechBox').style.display='none';$('motifSt').textContent=`✅ "${SP.phrase}"의 말 리듬이 ${S.target} 동기가 됐어요`;playMotif()}
+$('speechPad').addEventListener('mousedown',e=>{e.preventDefault();speechTap()});$('speechPad').addEventListener('touchstart',e=>{e.preventDefault();speechTap()},{passive:false});
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&$('speechBox').style.display==='block'){e.preventDefault();speechTap()}});
 
 /* ═════ 변주 ═════ */
 const shiftDeg=(note,d)=>{const i=degIdx(note);if(i<0)return note;return WHITE[Math.max(0,Math.min(9,i+d))]};
@@ -333,7 +396,7 @@ function togglePlay(){if(playing){stopAll();return}if(!S.motif.A.length){toast('
 function playSong(){playing=true;['play3','play4'].forEach(id=>{$(id).textContent='■ 정지';$(id).classList.replace('g','r')});const beat=beatSec(),bars=arrangement();const band=cur===3?$('band3').checked:true;const t0=ctx.currentTime+.1;
  bars.forEach((notes,i)=>{const t=t0+i*4*beat;if(band)bandBar(chordAt(i),t,.8);playNotes(notes,t);timers.push(setTimeout(()=>{$('stageNow').textContent=chordAt(i).name;$('stageScene').textContent=`${SCENE_NAMES[Math.floor(i/4)]} 장면 · ${i+1}마디 · ${sceneOfBar(i).why[i%4]||''}`;document.querySelectorAll('#formSections .slot').forEach((s,k)=>s.classList.toggle('now',k===i));for(let b=0;b<4;b++)timers.push(setTimeout(()=>beatDot($('beat4'),b),b*beat*1000))},(i*4*beat+.1)*1000))});
  loopTimer=setTimeout(()=>{if(cur===4&&$('loop').checked&&playing)playSong();else stopAll()},(bars.length*4*beat+.12)*1000)}
-function stopAll(){timers.forEach(clearTimeout);timers=[];clearTimeout(loopTimer);playing=false;rec.active=false;if(ctx)killBus();['play3','play4'].forEach(id=>{const e=$(id);if(e){e.textContent=id==='play3'?'▶ 곡 듣기':'▶ 전체 듣기';e.classList.replace('r','g')}});const rb=$('recBtn');if(rb)rb.textContent='🔴 박자에 맞춰 녹음';$('msg2').classList.remove('rec');document.querySelectorAll('#formSections .slot').forEach(s=>s.classList.remove('now'));if(galleryPlaying>=0&&savedState){galleryPlaying=-1;Object.assign(S,savedState);savedState=null;renderGallery()}}
+function stopAll(){timers.forEach(clearTimeout);timers=[];clearTimeout(loopTimer);playing=false;rec.active=false;SP.active=false;if(ctx)killBus();['play3','play4'].forEach(id=>{const e=$(id);if(e){e.textContent=id==='play3'?'▶ 곡 듣기':'▶ 전체 듣기';e.classList.replace('r','g')}});const rb=$('recBtn');if(rb)rb.textContent='🔴 박자에 맞춰 녹음';$('msg2').classList.remove('rec');document.querySelectorAll('#formSections .slot').forEach(s=>s.classList.remove('now'));if(galleryPlaying>=0&&savedState){galleryPlaying=-1;Object.assign(S,savedState);savedState=null;renderGallery()}}
 
 /* ═════ ⑤ 악보 · 저장 ═════ */
 const DIA={C:0,D:1,E:2,F:3,G:4,A:5,B:6};
@@ -356,7 +419,8 @@ function renderScore(){const el=$('score');const bars=arrangement();if(!S.motif.
     if(sharp)svg+=`<text x="${x-14}" y="${y+4}" font-size="12" fill="${col}">♯</text>`;
     const hollow=n.len>=2;svg+=`<ellipse cx="${x}" cy="${y}" rx="5.2" ry="3.8" transform="rotate(-20 ${x} ${y})" fill="${hollow?'#fff':col}" stroke="${col}" stroke-width="1.6"/>`;
     if(n.len<4){const up=sdeg<4;const sx=up?x+4.6:x-4.6,sy2=up?y-26:y+26;svg+=`<line x1="${sx}" y1="${y}" x2="${sx}" y2="${sy2}" stroke="${col}" stroke-width="1.4"/>`;if(n.len<1)svg+=`<path d="M${sx},${sy2} c${up?'8,6 8,14 3,20':'8,-6 8,-14 3,-20'}" fill="none" stroke="${col}" stroke-width="1.6"/>`}
-    if(n.len===1.5||n.len===3)svg+=`<circle cx="${x+9}" cy="${y-2}" r="1.6" fill="${col}"/>`})}}
+    if(n.len===1.5||n.len===3)svg+=`<circle cx="${x+9}" cy="${y-2}" r="1.6" fill="${col}"/>`;
+    if(n.syl)svg+=`<text x="${x}" y="${y0+4*sp+18}" font-size="9" text-anchor="middle" fill="#7a5312">${esc(n.syl)}</text>`})}}
  svg+='</svg>';el.innerHTML=svg}
 function esc(x){return String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 function exportScorePng(){renderScore();const svg=$('score').querySelector('svg');if(!svg){toast('악보가 없어요');return}const xml=new XMLSerializer().serializeToString(svg);const img=new Image();const W=svg.viewBox.baseVal.width,H=svg.viewBox.baseVal.height;img.onload=()=>{const c=document.createElement('canvas');c.width=W*2;c.height=H*2;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.scale(2,2);g.drawImage(img,0,0);const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download=($('title').value.trim()||'my_story')+'_악보.png';a.click()};img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml)}
