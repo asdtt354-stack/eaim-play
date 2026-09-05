@@ -113,10 +113,10 @@ input[type=range]{accent-color:var(--gold);width:120px}
   <h2>① 팀 구성</h2><div class="desc">팀 이름과 팀원을 넣고, <b>팀원마다 악기를 정해요.</b> 피아노를 배운 친구는 피아노, 기타를 잡아본 친구는 기타처럼 할 수 있는 걸로. 정하기 어려우면 🎲로 뽑고 나서 바꿔도 됩니다.</div>
   <div class="lbl">팀 이름</div><input class="in" id="teamName" placeholder="예: 3반 2모둠 밴드">
   <div class="lbl">팀원 (한 줄에 한 명)</div><textarea class="in" id="members" placeholder="민준&#10;서아&#10;지호&#10;하은&#10;도윤"></textarea>
-  <div class="row" style="margin-top:10px"><button class="btn p" onclick="makeTeam()">👥 팀 만들기 → 악기 정하기</button><button class="btn" onclick="assignRandom()" title="못 정하겠을 때">🎲 랜덤으로 뽑기</button><button class="btn" onclick="saveTeam()">💾 팀 저장</button></div>
+  <div class="row" style="margin-top:10px"><button class="btn p" onclick="makeTeam()">👥 팀 만들기 → 악기 정하기</button><button class="btn" onclick="assignRandom()" title="못 정하겠을 때">🎲 랜덤으로 뽑기</button><button class="btn" onclick="saveTeam()">💾 팀 저장</button><button class="btn" onclick="clearCurrentTeam()">🧹 지금 팀 비우기</button></div>
   <div id="teamBox"></div>
   <div class="note" id="coverage" style="margin-top:6px"></div>
-  <div class="lbl">저장된 팀</div><div id="teamList" class="chips"></div>
+  <div class="lbl">저장된 팀 <span class="note">— 이름을 누르면 불러오고, ✕를 누르면 지워요</span></div><div id="teamList" class="chips"></div>
   <p class="note" style="margin-top:8px">팀은 이 기기에 저장돼요. 다른 기기와 공유하려면 화면을 캡처하거나 아래 ⑥ 합주 화면을 앞에 두고 쓰세요.</p>
 </div><div class="nav"><span></span><button class="btn p" onclick="go(2)">곡 정하기 →</button></div></section>
 
@@ -250,7 +250,7 @@ const EXAMPLES=[
  {t:'왈츠 (3박)',c:'C G7 C C | F C G7 C',bpm:100,beats:3,style:'waltz'},
 ];
 const STYLES={kpop:'K-pop 발라드',pop16:'16비트 팝',rnb:'R&B',dance:'댄스',synth:'신스팝',ballad:'발라드 기본',beat8:'8비트 록',waltz:'왈츠 3박'};
-const INSTS={vocal:{n:'보컬',ic:'🎤'},piano:{n:'피아노',ic:'🎹'},guitar:{n:'통기타',ic:'🎸'},bass:{n:'베이스',ic:'🎸'},drum:{n:'드럼',ic:'🥁'}};
+const INSTS={vocal:{n:'보컬',ic:'🎤'},piano:{n:'피아노',ic:'🎹'},guitar:{n:'통기타',ic:'🎸'},eguitar:{n:'일렉기타',ic:'⚡'},bass:{n:'베이스',ic:'🎸'},drum:{n:'드럼',ic:'🥁'}};
 const GUITAR={ // 6현 낮은E→높은E, x=안침, 0=개방  — 요즘 팝 코드 폼 포함
  Cadd9:'x32033',Gadd9:'3x0203',Dadd9:'xx0230',Aadd9:'x02420',Eadd9:'024100',Fadd9:'xx3213',
  Csus2:'x30033',Dsus2:'xx0230',Asus2:'x02200',Esus2:'024400',Gsus2:'300033',
@@ -309,16 +309,18 @@ function go(n){stopAll();cur=n;nowSong();EAIMKey.ping('밴드실',n);document.qu
 /* ═════ ① 팀 ═════ */
 function namesIn(){return $('members').value.split('\n').map(s=>s.trim()).filter(Boolean)}
 function makeTeam(){const names=namesIn();if(!names.length){toast('팀원을 적어주세요');return}const prev=Object.fromEntries((S.team?.members||[]).map(m=>[m.n,m.inst]));S.team={name:$('teamName').value.trim()||'우리 팀',members:names.map(n=>({n,inst:prev[n]||''}))};renderTeam();toast('각자 악기를 골라주세요')}
-function assignRandom(){const names=namesIn();if(!names.length){toast('팀원을 적어주세요');return}const pool=['vocal','guitar','bass','drum','piano'];const shuffled=[...pool].sort(()=>Math.random()-.5);S.team={name:$('teamName').value.trim()||'우리 팀',members:names.map((n,i)=>({n,inst:shuffled[i%pool.length]}))};renderTeam()}
+function assignRandom(){const names=namesIn();if(!names.length){toast('팀원을 적어주세요');return}const pool=['vocal','guitar','eguitar','bass','drum','piano'];const shuffled=[...pool].sort(()=>Math.random()-.5);S.team={name:$('teamName').value.trim()||'우리 팀',members:names.map((n,i)=>({n,inst:shuffled[i%pool.length]}))};renderTeam()}
 function renderTeam(){const t=S.team;if(!t){$('teamBox').innerHTML='';$('coverage').textContent='';return}
  $('teamBox').innerHTML=`<div class="team"><h4>🎸 ${t.name}</h4>${t.members.map((m,i)=>`<div class="member"><span style="min-width:70px">${m.n}</span><select onchange="S.team.members[${i}].inst=this.value;coverage()"><option value="" ${!m.inst?'selected':''}>— 악기 고르기 —</option>${Object.entries(INSTS).map(([k,v])=>`<option value="${k}" ${m.inst===k?'selected':''}>${v.ic} ${v.n}</option>`).join('')}</select><span class="note" style="min-width:60px">${INST_HINT[m.inst]||''}</span></div>`).join('')}</div>`;coverage()}
-const INST_HINT={vocal:'멜로디·가사',piano:'코드 반주',guitar:'코드 스트럼',bass:'근음 라인',drum:'박자 기둥'};
+const INST_HINT={vocal:'멜로디·가사',piano:'코드 반주',guitar:'코드 스트럼',eguitar:'파워코드·리프',bass:'근음 라인',drum:'박자 기둥'};
 function coverage(){const t=S.team;if(!t)return;const have=new Set(t.members.map(m=>m.inst).filter(Boolean));const missing=Object.keys(INSTS).filter(k=>!have.has(k));const undecided=t.members.filter(m=>!m.inst).map(m=>m.n);
  let msg=[];if(undecided.length)msg.push(`아직 안 정함: ${undecided.join(', ')}`);if(missing.length)msg.push(`비어 있는 파트: ${missing.map(k=>INSTS[k].ic+INSTS[k].n).join(' ')} — 없어도 앱이 대신 채워줘요(⑤ 마이너스 원)`);if(!msg.length)msg.push('✅ 모든 파트가 찼어요');
  $('coverage').innerHTML=msg.join('<br>')}
 function saveTeam(){if(!S.team){makeTeam();if(!S.team)return}if(S.team.members.some(m=>!m.inst)&&!confirm('아직 악기를 안 정한 팀원이 있어요. 그대로 저장할까요?'))return;S.team.name=$('teamName').value.trim()||S.team.name;const list=loadTeams().filter(x=>x.name!==S.team.name);list.unshift(S.team);localStorage.setItem('eaim_band_teams',JSON.stringify(list));persist();renderTeamList();toast('팀 저장됨')}
 function loadTeams(){try{return JSON.parse(localStorage.getItem('eaim_band_teams')||'[]')}catch{return[]}}
-function renderTeamList(){$('teamList').innerHTML=loadTeams().map((t,i)=>`<div class="chip" onclick="pickTeam(${i})">${t.name} (${t.members.length})</div>`).join('')||'<span class="note">없음</span>'}
+function renderTeamList(){$('teamList').innerHTML=loadTeams().map((t,i)=>`<div class="chip" style="display:inline-flex;align-items:center;gap:6px"><span onclick="pickTeam(${i})">${t.name} (${t.members.length})</span><span onclick="event.stopPropagation();deleteTeam(${i})" title="이 팀 삭제" style="color:var(--red);font-weight:900;cursor:pointer;padding:0 2px">✕</span></div>`).join('')||'<span class="note">없음</span>'}
+function deleteTeam(i){const list=loadTeams();const t=list[i];if(!t)return;if(!confirm(`"${t.name}" 팀을 지울까요?`))return;list.splice(i,1);localStorage.setItem('eaim_band_teams',JSON.stringify(list));if(S.team&&S.team.name===t.name){S.team=null;$('teamName').value='';$('members').value='';renderTeam();persist()}renderTeamList();toast('팀을 지웠어요')}
+function clearCurrentTeam(){if(!S.team&&!$('members').value.trim())return;if(!confirm('지금 화면의 팀을 비울까요? (저장된 팀 목록은 그대로)'))return;S.team=null;$('teamName').value='';$('members').value='';renderTeam();persist();toast('비웠어요')}
 function pickTeam(i){S.team=loadTeams()[i];$('teamName').value=S.team.name;$('members').value=S.team.members.map(m=>m.n).join('\n');renderTeam();persist()}
 
 /* ═════ ② 곡 ═════ */
@@ -348,10 +350,16 @@ async function readSheet(){const key=await EAIMKey.get();const st=$('ocrSt');st.
 function renderInst(){const me=$('meSel')?.value||S.me||'';S.me=me;if(me&&S.team){const m=S.team.members.find(x=>x.n===me);if(m&&m.inst)S.inst=m.inst}
  const sel=$('meSel');if(sel&&S.team){const cur=sel.value;sel.innerHTML='<option value="">— 나는 누구? —</option>'+S.team.members.map(m=>`<option value="${m.n}" ${m.n===me?'selected':''}>${m.n}${m.inst?' · '+INSTS[m.inst].ic+INSTS[m.inst].n:''}</option>`).join('')}
  $('instGrid').innerHTML=Object.entries(INSTS).map(([k,v])=>`<div class="inst ${S.inst===k?'on':''}" onclick="S.inst='${k}';persist();renderInst()"><div class="ic">${v.ic}</div>${v.n}${S.team?S.team.members.filter(m=>m.inst===k).map(m=>`<div class="note">${m.n}</div>`).join(''):''}</div>`).join('');
- const tips={vocal:'코드가 바뀔 때 근음(첫 음)을 허밍해 보세요. 마디 첫 박에 맞춰 숨을 쉬면 박자가 안정돼요.',piano:'왼손은 근음(한 옥타브 아래), 오른손은 3음 한 번에. 코드가 바뀌기 직전에 다음 코드 위치로 손을 옮겨두세요.',guitar:'운지를 잡고 첫 박은 다운 스트로크, 그 다음은 다운-업. 소리가 안 나는 줄이 있으면 손가락을 프렛에 더 가깝게.',bass:'근음 하나만 박자에 맞춰 또렷하게. 4박이면 1·3박에 근음, 2·4박은 5도음을 넣어도 좋아요.',drum:'하이햇 8분음(치치치치), 킥 1·3박, 스네어 2·4박. 처음엔 하이햇만, 그다음 킥, 그다음 스네어 순서로 쌓아요.'};
+ const tips={vocal:'코드가 바뀔 때 근음(첫 음)을 허밍해 보세요. 마디 첫 박에 맞춰 숨을 쉬면 박자가 안정돼요.',piano:'왼손은 근음(한 옥타브 아래), 오른손은 3음 한 번에. 코드가 바뀌기 직전에 다음 코드 위치로 손을 옮겨두세요.',guitar:'운지를 잡고 첫 박은 다운 스트로크, 그 다음은 다운-업. 소리가 안 나는 줄이 있으면 손가락을 프렛에 더 가깝게.',eguitar:'처음엔 파워코드(근음+5도, 두 줄)만으로도 충분해요. 오른손을 브릿지에 살짝 얹어(팜 뮤트) 짧게 치면 밴드 소리가 나요. 코드가 어려우면 통기타 운지 대신 파워코드 표를 보세요.',bass:'근음 하나만 박자에 맞춰 또렷하게. 4박이면 1·3박에 근음, 2·4박은 5도음을 넣어도 좋아요.',drum:'하이햇 8분음(치치치치), 킥 1·3박, 스네어 2·4박. 처음엔 하이햇만, 그다음 킥, 그다음 스네어 순서로 쌓아요.'};
  $('instTip').innerHTML=`<h4>${INSTS[S.inst].ic} ${INSTS[S.inst].n} 연주법</h4><div style="font-size:.92rem;line-height:1.7">${tips[S.inst]}</div>`}
 function fingeringHTML(c,inst){
-if(inst==='guitar'){const shape=GUITAR[c.name]||GUITAR[c.root+c.quality]||GUITAR[c.root+(c.type==='m'?'m':c.type==='7'?'7':'')]||GUITAR[c.root+(c.type==='m'?'m':'')];const approx=!(GUITAR[c.name]||GUITAR[c.root+c.quality]);if(!shape)return`<h4>🎸 ${c.name}</h4><div class="note">운지표가 없어요. 카포를 쓰거나 코드 단순화를 해보세요.</div>`;
+if(inst==='eguitar'){const bn=c.root;const i=NOTES.indexOf(bn);const e=(i-4+12)%12,a=(i-9+12)%12;const useE=e<=a;const fr=useE?e:a;const str=useE?0:1;
+  let svg=`<svg viewBox="0 0 220 110">`;const names=['E','A','D','G'];for(let s2=0;s2<4;s2++){const y=20+s2*24;svg+=`<text x="4" y="${y+4}" font-size="11" fill="#a99cc4">${names[s2]}</text><line x1="22" y1="${y}" x2="212" y2="${y}" stroke="#ccc" stroke-width="${2.5-s2*.4}"/>`}for(let f=0;f<=5;f++){const x=22+f*38;svg+=`<line x1="${x}" y1="12" x2="${x}" y2="96" stroke="${f===0?'#fff':'#666'}" stroke-width="${f===0?3:1}"/>`;if(f>0)svg+=`<text x="${x-19}" y="108" font-size="9" fill="#777" text-anchor="middle">${f}</text>`}
+  const dot=(strIdx,f,col,label)=>{const x=f===0?14:22+(f-.5)*38;const y=20+strIdx*24;return f>5?'':`<circle cx="${x}" cy="${y}" r="9" fill="${col}"/><text x="${x}" y="${y+4}" font-size="9" fill="#1a1200" text-anchor="middle" font-weight="700">${label}</text>`};
+  svg+=dot(str,fr,'#d4a843',bn)+dot(str+1,fr+2,'#60a5fa','5')+`</svg>`;
+  const shape=GUITAR[c.name]||GUITAR[c.root+c.quality]||GUITAR[c.root+(c.type==='m'?'m':'')];
+  return`<h4>⚡ ${c.name} 파워코드 <span class="note">— 근음 + 5도, 두 줄만 (장·단조 상관없이 같은 모양)</span></h4>${svg}<div class="note" style="text-align:center">노랑 = 근음 ${bn} · 파랑 = 5도 (한 줄 아래 두 프렛 위) · 아래 6줄(낮은 E·A·D·G) 기준${shape?` · 통기타 폼도 가능: ${shape}`:''}</div>`}
+ if(inst==='guitar'){const shape=GUITAR[c.name]||GUITAR[c.root+c.quality]||GUITAR[c.root+(c.type==='m'?'m':c.type==='7'?'7':'')]||GUITAR[c.root+(c.type==='m'?'m':'')];const approx=!(GUITAR[c.name]||GUITAR[c.root+c.quality]);if(!shape)return`<h4>🎸 ${c.name}</h4><div class="note">운지표가 없어요. 카포를 쓰거나 코드 단순화를 해보세요.</div>`;
   const frets=[...shape].map(ch=>ch==='x'?-1:Number(ch));const minF=Math.min(...frets.filter(f=>f>0));const base=(Math.max(...frets)>4&&minF>1)?minF:1;
   let svg=`<svg viewBox="0 0 130 150">`;for(let i=0;i<5;i++)svg+=`<line x1="20" y1="${30+i*24}" x2="120" y2="${30+i*24}" stroke="#aaa" stroke-width="${i===0&&base===1?4:1.5}"/>`;for(let s=0;s<6;s++)svg+=`<line x1="${20+s*20}" y1="30" x2="${20+s*20}" y2="126" stroke="#ccc" stroke-width="1.5"/>`;
   frets.forEach((f,s)=>{const x=20+s*20;if(f<0)svg+=`<text x="${x}" y="22" font-size="12" fill="#f87171" text-anchor="middle">×</text>`;else if(f===0)svg+=`<circle cx="${x}" cy="18" r="5" fill="none" stroke="#fff" stroke-width="1.5"/>`;else{const y=30+(f-base)*24+12;svg+=`<circle cx="${x}" cy="${y}" r="8" fill="#d4a843"/>`}});
@@ -407,8 +415,8 @@ let stemsPlaying=false;
 function stemToggle(){const loaded=Object.values(stems).filter(s=>s.el);if(!loaded.length){toast('스템 파일을 하나 이상 올려주세요');return}if(stemsPlaying){loaded.forEach(s=>{s.el.pause();s.el.currentTime=0});stemsPlaying=false;$('stemPlay').textContent='▶ 함께 재생';return}
  ctx&&ctx.resume();loaded.forEach(s=>{s.el.loop=$('stemLoop').checked;s.el.currentTime=0});Promise.all(loaded.map(s=>s.el.play().catch(()=>{}))).then(()=>{});stemsPlaying=true;$('stemPlay').textContent='■ 정지'}
 function setStemRate(v){$('stemRateLbl').textContent=v;Object.values(stems).forEach(s=>{if(s.el)s.el.playbackRate=Number(v)/100})}
-function stemMyInst(){const target=STEMS.find(st=>st.inst===S.inst);if(!target){toast('내 악기에 해당하는 스템이 없어요');return}STEMS.forEach(st=>{stems[st.id].mute=st.id===target.id;stems[st.id].solo=false});document.querySelectorAll('#stemRows .stemrow').forEach((row,i)=>{const cbs=row.querySelectorAll('input[type=checkbox]');cbs[0].checked=STEMS[i].id===target.id;cbs[1].checked=false});mixStems();toast(`${target.n} 끔 — 그 자리를 내가 채워요`)}
-function renderMinus(){renderChordLine($('cl5'),()=>{});renderBeat($('beat5'));if(S.inst&&S.inst!=='vocal'){document.querySelectorAll('#tracks .chip').forEach(ch=>ch.classList.toggle('on',ch.dataset.t!==S.inst))}if(!$('stemRows').children.length)renderStems()}
+function stemMyInst(){const target=STEMS.find(st=>st.inst===(S.inst==='eguitar'?'guitar':S.inst));if(!target){toast('내 악기에 해당하는 스템이 없어요');return}STEMS.forEach(st=>{stems[st.id].mute=st.id===target.id;stems[st.id].solo=false});document.querySelectorAll('#stemRows .stemrow').forEach((row,i)=>{const cbs=row.querySelectorAll('input[type=checkbox]');cbs[0].checked=STEMS[i].id===target.id;cbs[1].checked=false});mixStems();toast(`${target.n} 끔 — 그 자리를 내가 채워요`)}
+function renderMinus(){renderChordLine($('cl5'),()=>{});renderBeat($('beat5'));if(S.inst&&S.inst!=='vocal'){const mine=S.inst==='eguitar'?'guitar':S.inst;document.querySelectorAll('#tracks .chip').forEach(ch=>ch.classList.toggle('on',ch.dataset.t!==mine))}if(!$('stemRows').children.length)renderStems()}
 
 /* ═════ ⑥ 합주 ═════ */
 function renderStage(){$('stageTitle').textContent=S.song?`${S.song.title} · ${S.song.bars.length}마디 · ${S.bpm} BPM`:'선정곡 없음';renderBeat($('beat6'));$('stageNow').textContent=S.song?viewBars()[0].name:'—';$('stageNext').textContent=S.song?viewBars()[1]?.name||'—':'—'}
@@ -417,17 +425,17 @@ $('checklist').querySelectorAll('li').forEach(li=>li.onclick=()=>li.classList.to
 /* ═════ 오디오 엔진 ═════ */
 let ctx=null,master=null;
 const engine={kits:{},ready:false,
- async load(){if(!window.EAIMSound)return;const spec={piano:['piano',{low:40,high:84}],guitar:['guitar',{low:40,high:76}],bass:['bass',{low:28,high:55}]};for(const[k,[inst,r]]of Object.entries(spec)){this.kits[k]=new EAIMSound.SampleKit(ctx,inst,{...r,step:3});this.kits[k].load().then(()=>{this.ready=true})}},
+ async load(){if(!window.EAIMSound)return;const spec={piano:['piano',{low:40,high:84}],guitar:['guitar',{low:40,high:76}],eguitar:['eguitar',{low:40,high:76}],bass:['bass',{low:28,high:55}]};for(const[k,[inst,r]]of Object.entries(spec)){this.kits[k]=new EAIMSound.SampleKit(ctx,inst,{...r,step:3});this.kits[k].load().then(()=>{this.ready=true})}},
  note(name,oct){return name+oct},
- playChord(c0,t,nb,inst,once){const beat=60/S.bpm;const style=S.song?.style||S.style||'beat8';const key=inst==='vocal'?'piano':inst;const k=this.kits[key];const c=c0;if(!k||!k.ready)return this.fallback(c,t,nb*beat);
+ playChord(c0,t,nb,inst,once){const beat=60/S.bpm;const style=S.song?.style||S.style||'beat8';const key=inst==='vocal'?'piano':inst;const k=this.kits[key];const c=c0;const isE=key==='eguitar';if(!k||!k.ready)return this.fallback(c,t,nb*beat);
   const v=EAIMChord.voicing(c,4), bass2=EAIMChord.bassNote(c,2), bass3=EAIMChord.bassNote(c,3);
-  if(once){ if(key==='bass')k.play(bass2,t,nb*beat*.9,master,.9); else if(key==='guitar')[bass3,...v.slice(1),v[0].replace(/\d/,m=>+m+1)].forEach((n,i)=>k.play(n,t+i*.02,nb*beat*.8,master,.45)); else {k.play(bass3,t,nb*beat*.9,master,.6);v.forEach(n=>k.play(n,t,nb*beat*.9,master,.55));} return; }
+  if(once){ if(key==='bass')k.play(bass2,t,nb*beat*.9,master,.9); else if(key==='guitar')[bass3,...v.slice(1),v[0].replace(/\d/,m=>+m+1)].forEach((n,i)=>k.play(n,t+i*.02,nb*beat*.8,master,.45)); else if(key==='eguitar')[bass3,EAIMChord.PC[(EAIMChord.PC.indexOf(c.root)+7)%12]+'3',c.root+'4'].forEach((n,i)=>k.play(n,t+i*.01,nb*beat*.5,master,.5,{release:.1})); else {k.play(bass3,t,nb*beat*.9,master,.6);v.forEach(n=>k.play(n,t,nb*beat*.9,master,.55));} return; }
   if(key==='piano'){ EAIMChord.renderPattern(style,c,(ns,at,len,vel)=>{ if(at<nb) ns.forEach(n=>k.play(n,t+at*beat,Math.min(len,nb-at)*beat*.95,master,vel*.85,{release:.4})) },nb); }
-  else if(key==='guitar'){ // 기타: 스타일별 스트럼/아르페지오
-    const up=[bass3,...v.slice(1),v[0].replace(/\d/,m=>+m+1)];
-    const strum=(tt,g,down=true)=>(down?up:[...up].reverse()).forEach((n,i)=>k.play(n,tt+i*.016,beat*.6,master,g,{release:.3}));
+  else if(key==='guitar'||isE){ // 기타: 스타일별 스트럼/아르페지오 · 일렉은 파워코드 짧게
+    const up=isE?[bass3,EAIMChord.PC[(EAIMChord.PC.indexOf(c.root)+7)%12]+'3',c.root+'4']:[bass3,...v.slice(1),v[0].replace(/\d/,m=>+m+1)];
+    const strum=(tt,g,down=true)=>(down?up:[...up].reverse()).forEach((n,i)=>k.play(n,tt+i*(isE?.008:.016),beat*(isE?.35:.6),master,g*(isE?1.1:1),{release:isE?.08:.3}));
     const hits={kpop:[[0,.45],[1.5,.3],[2,.4],[2.5,.25],[3,.35],[3.5,.25]],pop16:[[0,.45],[1.5,.35],[2,.4],[2.75,.28],[3.5,.35]],rnb:[[0,.4],[1.5,.3],[2.5,.4],[3.75,.25]],dance:[[.5,.35],[1.5,.35],[2.5,.35],[3.5,.35]],synth:[[0,.4],[1.5,.3],[2,.35],[3.5,.3]],ballad:[[0,.45],[1,.3],[2,.35],[3,.3]],beat8:[[0,.45],[.5,.25],[1,.35],[1.5,.25],[2,.4],[2.5,.25],[3,.35],[3.5,.25]],waltz:[[0,.45],[1,.3],[2,.3]]}[style]||[[0,.45]];
-    if(style==='kpop'){ const arp=[bass3,v[1],v[2],v[3]||v[0].replace(/\d/,m=>+m+1)]; [0,1,2,3,2,1,2,3].forEach((ix,i)=>{ if(i/2<nb) k.play(arp[ix],t+i*beat/2,beat*.55,master,i===0?.5:.38,{release:.35}) }); }
+    if(style==='kpop'&&!isE){ const arp=[bass3,v[1],v[2],v[3]||v[0].replace(/\d/,m=>+m+1)]; [0,1,2,3,2,1,2,3].forEach((ix,i)=>{ if(i/2<nb) k.play(arp[ix],t+i*beat/2,beat*.55,master,i===0?.5:.38,{release:.35}) }); }
     else hits.forEach(([at,g],i)=>{ if(at<nb) strum(t+at*beat,g,(at%1)===0) });
   }
   else if(key==='bass'){ const fifth=EAIMChord.PC[(EAIMChord.PC.indexOf(c.bass||c.root)+7)%12]+'2';
