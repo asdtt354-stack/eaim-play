@@ -36,25 +36,49 @@
   function link(href) { if (!teacher) return href; const g = P.get('group'); return href + (href.includes('?') ? '&' : '?') + 'teacher=' + encodeURIComponent(teacher) + (g ? '&group=' + encodeURIComponent(g) : ''); }
   const NO_KEY_MSG = 'AI 기능을 쓰려면 Gemini 키가 필요해요. 연주실 대문의 "선생님 설정"에서 한 번 넣어두거나, 선생님이 준 초대 링크(?teacher=…)로 들어오세요.';
 
+  /* ── 줄 서기 + 재시도: 같은 기기에서 동시에 여러 요청이 나가지 않게, 429/503이면 기다렸다 다시 ── */
+  let chain = Promise.resolve();
+  function queued(fn) { const run = chain.then(fn, fn); chain = run.catch(() => {}); return run; }
+  async function withRetry(doFetch, onWait) {
+    const delays = [2000, 4000, 8000, 15000];
+    for (let i = 0; ; i++) {
+      const r = await doFetch();
+      if (r.ok) return r;
+      if ((r.status === 429 || r.status === 503 || r.status === 500) && i < delays.length) {
+        const ra = Number(r.headers.get('retry-after')) * 1000;
+        const wait = ra > 0 ? Math.min(ra, 30000) : delays[i];
+        onWait && onWait(Math.round(wait / 1000), i + 1);
+        await new Promise(res => setTimeout(res, wait));
+        continue;
+      }
+      return r;
+    }
+  }
+  const waitMsg = (sec, n) => { try { const t = document.getElementById('toast'); if (t) { t.textContent = `⏳ 요청이 몰려서 ${sec}초 기다렸다 다시 보내요 (${n}번째)`; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', sec * 1000); } } catch {} };
+
   /** 공용 Gemini 텍스트 호출 (JSON 모드 옵션) */
   async function gemini(prompt, { json = false, temperature = .7, maxTokens = 1024, parts = null } = {}) {
     const k = await get(); if (!k) throw new Error(NO_KEY_MSG);
     const body = { contents: [{ parts: parts || [{ text: prompt }] }], generationConfig: { temperature, maxOutputTokens: maxTokens } };
     if (json) body.generationConfig.responseMimeType = 'application/json';
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify(body) });
-    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e?.error?.message || ('오류 ' + r.status)); }
-    const d = await r.json(); const txt = d.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-    return json ? JSON.parse(txt.replace(/```json|```/g, '').trim()) : txt.trim();
+    return queued(async () => {
+      const r = await withRetry(() => fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify(body) }), waitMsg);
+      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(r.status === 429 ? '지금 요청이 너무 많아요. 30초쯤 뒤에 다시 눌러주세요.' : (e?.error?.message || ('오류 ' + r.status))); }
+      const d = await r.json(); const txt = d.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+      return json ? JSON.parse(txt.replace(/```json|```/g, '').trim()) : txt.trim();
+    });
   }
   /** Lyria 30초 클립 → { b64, mime, text } */
   async function lyria(prompt, full = false) {
     const k = await get(); if (!k) throw new Error(NO_KEY_MSG);
     const model = full ? 'lyria-3-pro-preview' : 'lyria-3-clip-preview';
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e?.error?.message || ('오류 ' + r.status)); }
-    const d = await r.json(); const ps = d.candidates?.[0]?.content?.parts || [];
-    const a = ps.find(p => p.inlineData); if (!a) throw new Error('노래가 나오지 않았어요. 문장을 조금 바꿔보세요.');
-    return { b64: a.inlineData.data, mime: a.inlineData.mimeType || 'audio/mpeg', text: ps.filter(p => p.text).map(p => p.text).join('\n') };
+    return queued(async () => {
+      const r = await withRetry(() => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }), waitMsg);
+      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(r.status === 429 ? '노래 생성 요청이 몰려 있어요. 1분쯤 뒤에 다시 눌러주세요.' : (e?.error?.message || ('오류 ' + r.status))); }
+      const d = await r.json(); const ps = d.candidates?.[0]?.content?.parts || [];
+      const a = ps.find(p => p.inlineData); if (!a) throw new Error('노래가 나오지 않았어요. 문장을 조금 바꿔보세요.');
+      return { b64: a.inlineData.data, mime: a.inlineData.mimeType || 'audio/mpeg', text: ps.filter(p => p.text).map(p => p.text).join('\n') };
+    });
   }
   /* ── 수업 상황 신호: 학생이 어느 방 몇 단계인지 (초대 링크로 들어온 경우만) ── */
   let lastPing = 0;
@@ -67,5 +91,5 @@
     const fields = { name: { stringValue: name }, group: { stringValue: group }, room: { stringValue: room }, step: { stringValue: String(step) }, ts: { integerValue: String(now) } };
     try { await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/teachers/${teacher}/presence/${id}?key=${FB_KEY}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields }) }); } catch {}
   }
-  global.EAIMKey = { get, set, has, link, gemini, lyria, teacher, group: P.get('group') || '', ping, NO_KEY_MSG };
+  global.EAIMKey = { get, set, has, link, gemini, lyria, queued, withRetry, teacher, group: P.get('group') || '', ping, NO_KEY_MSG };
 })(window);
