@@ -143,6 +143,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
   <input type="file" id="file" accept="image/*,.pdf" style="display:none">
   <div class="row" style="margin-top:8px"><button class="btn" id="ocrBtn" onclick="readSheet()">🪄 코드 읽어오기</button><span class="st" id="ocrSt"></span></div>
   <div class="row" style="margin-top:14px"><button class="btn g" onclick="chooseSong()">🎯 이 곡으로 정하기</button><span class="st" id="songSt"></span></div>
+  <p class="note" id="shareHint" style="display:none">모둠 QR로 들어왔으면 "이 곡으로 정하기"를 누르는 순간 모둠원 모두의 화면에 이 곡이 올라가요.</p>
 </div><div class="nav"><button class="btn" onclick="go(1)">← 팀</button><button class="btn p" onclick="go(3)">악기 고르기 →</button></div></section>
 
 <!-- 3 악기 -->
@@ -330,13 +331,18 @@ const shared=()=>!!(EAIMKey.teacher&&EAIMKey.group);
 const groupId=()=>encodeURIComponent(EAIMKey.group.replace(/[\/\s]/g,'_'));
 function fsVal(v){if(v===null||v===undefined)return{nullValue:null};if(typeof v==='boolean')return{booleanValue:v};if(typeof v==='number')return Number.isInteger(v)?{integerValue:String(v)}:{doubleValue:v};if(typeof v==='string')return{stringValue:v};if(Array.isArray(v))return{arrayValue:{values:v.map(fsVal)}};return{mapValue:{fields:Object.fromEntries(Object.entries(v).map(([k,x])=>[k,fsVal(x)]))}}}
 function fsRead(f){if(!f)return null;if('stringValue'in f)return f.stringValue;if('integerValue'in f)return Number(f.integerValue);if('doubleValue'in f)return f.doubleValue;if('booleanValue'in f)return f.booleanValue;if('arrayValue'in f)return(f.arrayValue.values||[]).map(fsRead);if('mapValue'in f)return Object.fromEntries(Object.entries(f.mapValue.fields||{}).map(([k,x])=>[k,fsRead(x)]));return null}
-async function pushGroup(){if(!shared())return;const doc={team:S.team||null,song:S.song?{title:S.song.title,chords:S.song.bars.map(b=>b.name).join(' '),bpm:S.song.bpm,beats:S.song.beats,style:S.song.style}:null,ts:Date.now()};
- try{await fetch(`${FS_BASE}/teachers/${EAIMKey.teacher}/bands/${groupId()}?key=${FS_KEY}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:Object.fromEntries(Object.entries(doc).map(([k,v])=>[k,fsVal(v)]))})});showShare('✅ 모둠에 공유됨 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}))}catch(e){showShare('❌ 공유 실패: '+e.message)}}
-async function pullGroup(silent){if(!shared())return;try{const r=await fetch(`${FS_BASE}/teachers/${EAIMKey.teacher}/bands/${groupId()}?key=${FS_KEY}`);if(r.status===404){if(!silent)showShare('아직 우리 모둠 팀이 없어요 — 첫 사람이 팀을 저장하면 모두에게 보여요');return}if(!r.ok)throw new Error('오류 '+r.status);const d=await r.json();const doc=Object.fromEntries(Object.entries(d.fields||{}).map(([k,v])=>[k,fsRead(v)]));
+async function pushGroup(){if(!shared())return;const doc={team:S.team||null,song:S.song?{title:S.song.title,chords:S.song.bars.map(b=>b.name).join(' '),bpm:S.song.bpm,beats:S.song.beats,style:S.song.style}:null,ts:Date.now()};lastTs=doc.ts;
+ try{const r=await fetch(`${FS_BASE}/teachers/${EAIMKey.teacher}/bands/${groupId()}?key=${FS_KEY}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:Object.fromEntries(Object.entries(doc).map(([k,v])=>[k,fsVal(v)]))})});if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error((e?.error?.message)||('오류 '+r.status))}const m='✅ 모둠에 공유됨 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});showShare(m);toast(m)}catch(e){showShare('❌ 공유 실패: '+e.message);toast('❌ 공유 실패: '+e.message)}}
+async function pullGroup(silent){if(!shared()){toast('모둠 QR(teacher+group)로 들어와야 공유가 돼요');return}const btn=document.getElementById('pullBtn');if(btn){btn.textContent='받는 중…';btn.disabled=true}
+ try{const r=await fetch(`${FS_BASE}/teachers/${EAIMKey.teacher}/bands/${groupId()}?key=${FS_KEY}`);if(r.status===404){lastTs=Math.max(lastTs,1);const m='아직 우리 모둠 팀이 없어요 — 첫 사람이 "팀 저장"이나 "이 곡으로 정하기"를 하면 모두에게 보여요';showShare(m);if(!silent)toast(m);return}if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error((e?.error?.message)||('오류 '+r.status))}const d=await r.json();const doc=Object.fromEntries(Object.entries(d.fields||{}).map(([k,v])=>[k,fsRead(v)]));
+ if(!doc.team&&!doc.song){showShare('모둠 문서는 있는데 팀·곡이 비어 있어요');if(!silent)toast('모둠에 저장된 팀·곡이 아직 없어요');return}
   if(doc.team){S.team=doc.team;$('teamName').value=doc.team.name;$('members').value=doc.team.members.map(m=>m.n).join('\n');renderTeam()}
   if(doc.song){$('songTitle').value=doc.song.title;$('chords').value=doc.song.chords;setBpm(doc.song.bpm||90);setKeyLock(doc.song.beats||4);setStyle(doc.song.style||'beat8');const bars=parseProgression(doc.song.chords);if(bars.length){S.song={title:doc.song.title,bars,bpm:S.bpm,beats:S.beats,style:S.style};$('songSt').textContent=`✅ "${S.song.title}" (모둠 공유)`;renderStepBox()}}
-  persist();renderSteps();showShare(`✅ 우리 모둠(${EAIMKey.group}) 팀·곡을 받았어요 · ${doc.ts?new Date(doc.ts).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 저장본':''}`)}catch(e){if(!silent)showShare('❌ 불러오기 실패: '+e.message)}}
-function showShare(msg){const b=$('shareBox');if(!shared()){b.style.display='none';return}b.style.display='block';b.innerHTML=`👥 <b>${esc(EAIMKey.group)}</b> 모둠 공유 — 팀 저장·곡 선정을 하면 같은 QR로 들어온 모둠원 모두에게 보여요. <button class="btn sm" onclick="pullGroup()">🔄 모둠 것 다시 받기</button><div style="margin-top:4px">${msg||''}</div>`}
+  persist();renderSteps();if(doc.ts)lastTs=Math.max(lastTs,doc.ts);const ok=`✅ 우리 모둠(${EAIMKey.group}) 팀·곡을 받았어요${doc.ts?' · '+new Date(doc.ts).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 저장본':''}`;showShare(ok);if(!silent)toast(doc.team?`✅ 팀 "${doc.team.name}"과 곡을 받았어요`:'✅ 곡을 받았어요')}
+ catch(e){showShare('❌ 불러오기 실패: '+e.message);if(!silent)toast('❌ 불러오기 실패: '+e.message)}finally{const b=document.getElementById('pullBtn');if(b){b.textContent='모둠 것 다시 받기';b.disabled=false}}}
+let lastTs=0,pollTimer=null;
+function startPoll(){if(!shared()||pollTimer)return;pollTimer=setInterval(async()=>{try{const r=await fetch(`${FS_BASE}/teachers/${EAIMKey.teacher}/bands/${groupId()}?key=${FS_KEY}`);if(!r.ok)return;const d=await r.json();const ts=Number(d.fields?.ts?.integerValue||0);if(ts>lastTs&&lastTs>0){await pullGroup(true);const song=d.fields?.song?.mapValue?.fields;toast('🔄 모둠 곡이 바뀌었어요'+(song?' — '+(song.chords?.stringValue||''):''))}if(ts>lastTs)lastTs=ts}catch{}},20000)}
+function showShare(msg){const b=$('shareBox');if(!shared()){b.style.display='none';return}b.style.display='block';b.innerHTML=`<b>${esc(EAIMKey.group)}</b> 모둠 공유 — 팀 저장·곡 선정을 하면 같은 QR로 들어온 모둠원 모두에게 보여요. <button class="btn sm" id="pullBtn" onclick="pullGroup()">모둠 것 다시 받기</button><div style="margin-top:4px;font-weight:700">${msg||''}</div>`}
 function esc(x){return String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 
 /* ═════ ② 곡 ═════ */
@@ -525,7 +531,7 @@ function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();ma
 if(!S.style)S.style='kpop';renderSongs();renderStyles();setTimeout(()=>{document.querySelectorAll('#stepChips .chip').forEach(c=>c.classList.toggle('on',Number(c.dataset.s)===S.step));renderStepBox()},0);renderTeamList();renderSteps();setBpm(S.bpm);setKeyLock(S.beats||4);
 if(S.team){$('teamName').value=S.team.name;$('members').value=S.team.members.map(m=>m.n).join('\n');renderTeam()}
 if(S.song){$('songTitle').value=S.song.title;$('chords').value=S.song.bars.map(b=>b.name).join(' ');$('songSt').textContent=`✅ "${S.song.title}" 선정됨`}
-showShare('');if(shared())pullGroup(true);
+showShare('');if(shared()){pullGroup(true);startPoll();const h=$('shareHint');if(h)h.style.display='block'}
 </script>
 <script src="play-shell.js"></script>
 </body>
