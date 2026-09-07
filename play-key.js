@@ -91,5 +91,33 @@
     const fields = { name: { stringValue: name }, group: { stringValue: group }, room: { stringValue: room }, step: { stringValue: String(step) }, ts: { integerValue: String(now) } };
     try { await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/teachers/${teacher}/presence/${id}?key=${FB_KEY}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields }) }); } catch {}
   }
-  global.EAIMKey = { get, set, has, link, gemini, lyria, queued, withRetry, teacher, group: P.get('group') || '', ping, NO_KEY_MSG };
+  /* ── 파일(사진·PDF) → Gemini에 보낼 이미지 base64. PDF는 pdf.js로 첫 페이지를 그려서, 큰 사진은 1600px로 줄여서 ── */
+  let pdfjsReady = null;
+  function loadPdfjs() {
+    if (pdfjsReady) return pdfjsReady;
+    pdfjsReady = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(window.pdfjsLib); }; sc.onerror = () => rej(new Error('PDF 도구를 불러오지 못했어요 (인터넷 확인)')); document.head.appendChild(sc); });
+    return pdfjsReady;
+  }
+  async function fileToImage(file, { maxSide = 1600, page = 1 } = {}) {
+    const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name);
+    let canvas;
+    if (isPdf) {
+      const pdfjs = await loadPdfjs();
+      const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+      const pg = await doc.getPage(Math.min(page, doc.numPages));
+      const v0 = pg.getViewport({ scale: 1 }); const scale = Math.min(2, maxSide / Math.max(v0.width, v0.height));
+      const vp = pg.getViewport({ scale }); canvas = document.createElement('canvas'); canvas.width = vp.width; canvas.height = vp.height;
+      const g = canvas.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, canvas.width, canvas.height);
+      await pg.render({ canvasContext: g, viewport: vp }).promise;
+    } else {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('이미지를 읽지 못했어요')); i.src = URL.createObjectURL(file); });
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      canvas = document.createElement('canvas'); canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
+    const dataUrl = canvas.toDataURL('image/jpeg', .9);
+    return { mime: 'image/jpeg', b64: dataUrl.split(',')[1], dataUrl, isPdf };
+  }
+
+  global.EAIMKey = { fileToImage, get, set, has, link, gemini, lyria, queued, withRetry, teacher, group: P.get('group') || '', ping, NO_KEY_MSG };
 })(window);

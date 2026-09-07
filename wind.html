@@ -208,8 +208,8 @@ let sheet=null;$('file').onchange=e=>{sheet=e.target.files[0];if(sheet)readSheet
 $('drop').addEventListener('dragover',e=>e.preventDefault());$('drop').addEventListener('drop',e=>{e.preventDefault();sheet=e.dataTransfer.files[0];readSheet()});
 async function readSheet(){const st=$('ocrSt');st.classList.remove('err');const key=await EAIMKey.get();if(!key){st.textContent=EAIMKey.NO_KEY_MSG;st.classList.add('err');return}
  st.textContent='악보를 읽는 중…';
- try{const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result.split(',')[1]);fr.onerror=rej;fr.readAsDataURL(sheet)});
-  const d=await EAIMKey.gemini('',{json:true,temperature:.1,maxTokens:900,parts:[{inline_data:{mime_type:sheet.type||'image/jpeg',data:b64}},{text:'이 악보의 멜로디(가장 위 성부)를 실음 기준 계이름으로 읽어 주세요. 규칙: 고정도(도=C). 4옥타브를 기본으로 하고 높은 옥타브는 ↑, 낮은 옥타브는 ↓. 반음은 # 또는 b를 계이름 뒤에. 쉼표는 -. 한 박보다 길면 ~를 박 수만큼 뒤에 붙임(두 박=도~). 마디는 |. 이 악보가 이조 악기용(트럼펫 in Bb 등)이면 실음으로 바꿔서. JSON만: {"title":"","concert_key":"C","notes":"도 도 솔 솔 | 라 라 솔~","transposed_from":""}'}]});
+ try{st.textContent=(/pdf$/i.test(sheet.type)||/\.pdf$/i.test(sheet.name))?'PDF 첫 페이지를 그림으로 바꾸는 중…':'악보를 읽는 중…';const img=await EAIMKey.fileToImage(sheet);st.textContent='악보를 읽는 중…';
+  const d=await EAIMKey.gemini('',{json:true,temperature:.1,maxTokens:900,parts:[{inline_data:{mime_type:img.mime,data:img.b64}},{text:'이 악보의 멜로디(가장 위 성부)를 실음 기준 계이름으로 읽어 주세요. 규칙: 고정도(도=C). 4옥타브를 기본으로 하고 높은 옥타브는 ↑, 낮은 옥타브는 ↓. 반음은 # 또는 b를 계이름 뒤에. 쉼표는 -. 한 박보다 길면 ~를 박 수만큼 뒤에 붙임(두 박=도~). 마디는 |. 이 악보가 이조 악기용(트럼펫 in Bb 등)이면 실음으로 바꿔서. JSON만: {"title":"","concert_key":"C","notes":"도 도 솔 솔 | 라 라 솔~","transposed_from":""}'}]});
   if(d.notes){$('src').value=d.notes;pos=0;render();st.textContent=`✅ 읽었어요${d.title?' — '+d.title:''}${d.transposed_from?' ('+d.transposed_from+' 악보를 실음으로 바꿈)':''}. 틀린 음은 ①에서 고치세요.`}else throw new Error('계이름을 못 읽었어요')}
  catch(e){st.textContent='❌ '+e.message;st.classList.add('err')}}
 

@@ -293,7 +293,7 @@ function renderStepBox(){const box=$('stepBox');const bars=parseProgression($('c
  const hard1=names.filter(n=>!OPEN.has(n)).map(disp);
  box.innerHTML=`<div style="margin-bottom:6px">1단계 원키 &nbsp;<span style="font-family:'Space Mono',monospace">${line(s1)}</span>${hard1.length?` <span class="note">(바레·어려움: ${hard1.join(' ')})</span>`:' <span class="note">이미 쉬워요</span>'}</div>
   <div style="margin-bottom:6px">2단계 쉬운 조 &nbsp;<span style="font-family:'Space Mono',monospace">${line(s2)}</span>${sh?` <span class="note">🎸 카포 ${sh} · 🎹 트랜스포즈 +${sh} (또는 −${up})</span>`:' <span class="note">옮길 필요 없음</span>'}</div>
-  <div>3단계 쉬운 모양 &nbsp;<span style="font-family:'Space Mono',monospace">${line(s3)}</span> <span class="note">바레 → 7·maj7, 분수코드 → 원코드</span></div>
+  <div>3단계 쉬운 모양 &nbsp;<span style="font-family:'Space Mono',monospace">${line(s3)}</span> <span class="note">바레 → 7·maj7, 분수코드 → 원코드${sh?` · 🎸 카포 ${sh} · 🎹 트랜스포즈 +${sh} (2단계와 같은 조)`:''}</span></div>
   <div class="note" style="margin-top:6px">잘 치는 학생은 1단계, 처음이면 3단계. 합주 때 다른 단계끼리 섞여도 소리는 같은 조예요.</div>`;
  // 현재 선택 단계와 무관하게 S.capo 는 쓰지 않음
  S.capo=0}
@@ -355,11 +355,11 @@ async function readSheet(){const key=await EAIMKey.get();const st=$('ocrSt');st.
  if(!sheetFile){st.textContent='먼저 악보 사진을 올려주세요';return}
  if(!key){st.textContent=EAIMKey.NO_KEY_MSG;st.classList.add('err');return}
  st.textContent='악보를 읽는 중…';$('ocrBtn').disabled=true;
- try{const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result.split(',')[1]);fr.onerror=rej;fr.readAsDataURL(sheetFile)});
-  const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:sheetFile.type||'image/jpeg',data:b64}},{text:'이 악보의 코드 진행을 마디 순서대로 읽어 주세요. 코드명이 적혀 있으면 그대로, 없으면 멜로디로 추정(추정임을 estimated:true로). 한 마디에 코드가 둘이면 "C/G". JSON만: {"title":"곡 제목 또는 빈칸","bpm":90,"beats":4,"chords":"C G Am F | ...","estimated":false}'}]}],generationConfig:{temperature:.2,maxOutputTokens:600,responseMimeType:'application/json'}})});
-  if(!res.ok)throw new Error('오류 '+res.status);const j=await res.json();const d=JSON.parse((j.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'{}').replace(/```json|```/g,''));
+ try{st.textContent=(/pdf$/i.test(sheetFile.type)||/\.pdf$/i.test(sheetFile.name))?'PDF 첫 페이지를 그림으로 바꾸는 중…':'악보를 읽는 중…';
+  const img=await EAIMKey.fileToImage(sheetFile);if(img.isPdf)$('prev').innerHTML=`<br><img src="${img.dataUrl}">`;st.textContent='악보를 읽는 중…';
+  const d=await EAIMKey.gemini('',{json:true,temperature:.2,maxTokens:600,parts:[{inline_data:{mime_type:img.mime,data:img.b64}},{text:'이 악보의 코드 진행을 마디 순서대로 읽어 주세요. 코드명이 적혀 있으면 그대로, 없으면 멜로디로 추정(추정임을 estimated:true로). 한 마디에 코드가 둘이면 "C-G". JSON만: {"title":"곡 제목 또는 빈칸","bpm":90,"beats":4,"chords":"C G Am F | ...","estimated":false}'}]});
   if(d.chords)$('chords').value=d.chords;if(d.title)$('songTitle').value=d.title;if(d.bpm)setBpm(d.bpm);if(d.beats)setKeyLock(d.beats);
-  st.textContent=d.estimated?'⚠️ 코드명이 없어서 AI가 추정했어요. 꼭 확인하고 고쳐 쓰세요.':'✅ 읽었어요. 확인 후 "이 곡으로 정하기"';
+  st.textContent=(d.estimated?'⚠️ 코드명이 없어서 AI가 추정했어요. 꼭 확인하고 고쳐 쓰세요.':'✅ 읽었어요. 확인 후 "이 곡으로 정하기"')+(img.isPdf?' (PDF 첫 페이지만 읽었어요)':'');
  }catch(e){st.textContent='❌ '+e.message;st.classList.add('err')}finally{$('ocrBtn').disabled=false}}
 
 /* ═════ ③ 악기 + 운지 ═════ */
@@ -368,18 +368,44 @@ function renderInst(){const me=$('meSel')?.value||S.me||'';S.me=me;if(me&&S.team
  $('instGrid').innerHTML=Object.entries(INSTS).map(([k,v])=>`<div class="inst ${S.inst===k?'on':''}" onclick="S.inst='${k}';persist();renderInst()"><div class="ic">${v.ic}</div>${v.n}${S.team?S.team.members.filter(m=>m.inst===k).map(m=>`<div class="note">${m.n}</div>`).join(''):''}</div>`).join('');
  const tips={vocal:'코드가 바뀔 때 근음(첫 음)을 허밍해 보세요. 마디 첫 박에 맞춰 숨을 쉬면 박자가 안정돼요.',piano:'왼손은 근음(한 옥타브 아래), 오른손은 3음 한 번에. 코드가 바뀌기 직전에 다음 코드 위치로 손을 옮겨두세요.',guitar:'운지를 잡고 첫 박은 다운 스트로크, 그 다음은 다운-업. 소리가 안 나는 줄이 있으면 손가락을 프렛에 더 가깝게.',eguitar:'처음엔 파워코드(근음+5도, 두 줄)만으로도 충분해요. 오른손을 브릿지에 살짝 얹어(팜 뮤트) 짧게 치면 밴드 소리가 나요. 코드가 어려우면 통기타 운지 대신 파워코드 표를 보세요.',bass:'근음 하나만 박자에 맞춰 또렷하게. 4박이면 1·3박에 근음, 2·4박은 5도음을 넣어도 좋아요.',drum:'하이햇 8분음(치치치치), 킥 1·3박, 스네어 2·4박. 처음엔 하이햇만, 그다음 킥, 그다음 스네어 순서로 쌓아요.'};
  $('instTip').innerHTML=`<h4>${INSTS[S.inst].ic} ${INSTS[S.inst].n} 연주법</h4><div style="font-size:.92rem;line-height:1.7">${tips[S.inst]}</div>`}
+/* 오른손: 스타일별 스트로크·아르페지오 (숫자 리듬 1 2 3 4 1 2 3 4 위에) */
+const STRUM={
+ beat8:{n:'8비트 스트럼',p:['↓','','↓','↑','↓','','↓','↑'],tip:'1·3은 힘 있게, 뒤 ↑은 가볍게'},
+ ballad:{n:'발라드 스트럼',p:['↓','','↓','↑','','↑','↓','↑'],tip:'"쿵 짝짝 짝 짝짝" — 3박 첫 ↓은 쉬고 ↑부터'},
+ pop16:{n:'16비트 팝',p:['↓','↓','↑','','↑','↓','↑','↓'],tip:'손목은 계속 16분으로 흔들고 닿을 때만 소리'},
+ rnb:{n:'R&B 스트럼',p:['↓','','','↑','','↓','','↑'],tip:'뒷박 ↑을 살짝 앞당겨서'},
+ dance:{n:'댄스 (뒷박)',p:['','↑','','↑','','↑','','↑'],tip:'강박은 비우고 뒷박만 짧게 (레게 느낌)'},
+ synth:{n:'신스팝',p:['↓','','','↑','↓','','','↑'],tip:'길게 울리고 뒷박 ↑'},
+ kpop:{n:'K-pop 아르페지오',arp:['6','3','2','1','3','2','1','3'],tip:'엄지가 6·5줄, 검지·중지·약지가 3·2·1줄'},
+ waltz:{n:'왈츠 3박',p:['↓','','↑','↓','↑','↓'],tip:'1박 베이스 줄만 ↓, 2·3박 위 세 줄'},
+};
+const EGSTRUM={
+ beat8:{n:'파워코드 8비트',p:['↓','↓','↓','↓','↓','↓','↓','↓'],tip:'전부 다운, 팜 뮤트로 짧게 "즈즈즈즈"'},
+ ballad:{n:'파워코드 발라드',p:['↓','','','','↓','','↓',''],tip:'길게 울리고 3박 뒤에 한 번 더'},
+ pop16:{n:'파워코드 16비트',p:['↓','↓','↓','↓','↓','↓','↓','↓'],tip:'팜 뮤트, 4박 마지막만 뮤트 풀기'},
+ rnb:{n:'R&B 컷팅',p:['↓','','','↑','','↓','','↑'],tip:'왼손을 살짝 떼어 "촥" 소리'},
+ dance:{n:'댄스 뒷박',p:['','↓','','↓','','↓','','↓'],tip:'뒷박만, 짧게'},
+ synth:{n:'신스팝 스탭',p:['↓','','','↓','','','↓',''],tip:'짧게 끊어서'},
+ kpop:{n:'K-pop 리프',arp:['6','5','6','5','6','5','6','5'],tip:'근음·5도 줄을 번갈아 (팜 뮤트)'},
+ waltz:{n:'왈츠 3박',p:['↓','','↓','','↓',''],tip:'박마다 한 번'},
+};
+function strumHTML(inst){const style=S.song?.style||S.style||'beat8';const T=(inst==='eguitar'?EGSTRUM:STRUM)[style]||STRUM.beat8;const n=T.p?T.p.length:T.arp.length;const lab=Array.from({length:n},(_,i)=>String(i%4+1));
+ const cells=(arr,cls)=>arr.map((x,i)=>`<div style="text-align:center"><div style="font-family:'Space Mono',monospace;font-size:.7rem;color:${i%4===0?'var(--gold)':'var(--sub)'}">${lab[i]}</div><div style="height:30px;border-radius:6px;background:${x?'rgba(212,168,67,.18)':'var(--panel)'};border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:${cls==='arp'?'.9rem':'1.1rem'};color:${x?'#fff':'var(--line)'}">${x||'·'}</div></div>`).join('');
+ return`<div style="margin-top:10px"><h4>✋ 오른손 — ${T.n} <span class="note">(${STYLES[style]||style})</span></h4><div style="display:grid;grid-template-columns:repeat(${n},1fr);gap:3px">${T.p?cells(T.p,'strum'):cells(T.arp,'arp')}</div><div class="note" style="margin-top:4px">${T.p?'↓ 다운 · ↑ 업 · 숫자는 "일 이 삼 사"로 세기':'숫자 = 뜯는 줄 (6이 제일 굵은 줄)'} — ${T.tip}</div></div>`}
 function fingeringHTML(c,inst){
 if(inst==='eguitar'){const bn=c.root;const i=NOTES.indexOf(bn);const e=(i-4+12)%12,a=(i-9+12)%12;const useE=e<=a;const fr=useE?e:a;const str=useE?0:1;
-  let svg=`<svg viewBox="0 0 220 110">`;const names=['E','A','D','G'];for(let s2=0;s2<4;s2++){const y=20+s2*24;svg+=`<text x="4" y="${y+4}" font-size="11" fill="#a99cc4">${names[s2]}</text><line x1="22" y1="${y}" x2="212" y2="${y}" stroke="#ccc" stroke-width="${2.5-s2*.4}"/>`}for(let f=0;f<=5;f++){const x=22+f*38;svg+=`<line x1="${x}" y1="12" x2="${x}" y2="96" stroke="${f===0?'#fff':'#666'}" stroke-width="${f===0?3:1}"/>`;if(f>0)svg+=`<text x="${x-19}" y="108" font-size="9" fill="#777" text-anchor="middle">${f}</text>`}
-  const dot=(strIdx,f,col,label)=>{const x=f===0?14:22+(f-.5)*38;const y=20+strIdx*24;return f>5?'':`<circle cx="${x}" cy="${y}" r="9" fill="${col}"/><text x="${x}" y="${y+4}" font-size="9" fill="#1a1200" text-anchor="middle" font-weight="700">${label}</text>`};
-  svg+=dot(str,fr,'#d4a843',bn)+dot(str+1,fr+2,'#60a5fa','5')+`</svg>`;
+  // 6줄 (위가 굵은 E, 아래가 얇은 e) — 파워코드는 굵은 두 줄만
+  let svg=`<svg viewBox="0 0 220 130">`;const names=['E','A','D','G','B','e'];for(let s2=0;s2<6;s2++){const y=16+s2*18;svg+=`<text x="4" y="${y+4}" font-size="10" fill="#a99cc4">${names[s2]}</text><line x1="22" y1="${y}" x2="212" y2="${y}" stroke="#ccc" stroke-width="${2.4-s2*.3}"/>`}for(let f=0;f<=5;f++){const x=22+f*38;svg+=`<line x1="${x}" y1="10" x2="${x}" y2="112" stroke="${f===0?'#fff':'#666'}" stroke-width="${f===0?3:1}"/>`;if(f>0)svg+=`<text x="${x-19}" y="124" font-size="9" fill="#777" text-anchor="middle">${f}</text>`}
+  const dot=(strIdx,f,col,label)=>{const x=f===0?14:22+(f-.5)*38;const y=16+strIdx*18;return f>5?'':`<circle cx="${x}" cy="${y}" r="8" fill="${col}"/><text x="${x}" y="${y+3.5}" font-size="8.5" fill="#1a1200" text-anchor="middle" font-weight="700">${label}</text>`};
+  const mute=(strIdx)=>`<text x="14" y="${16+strIdx*18+4}" font-size="11" fill="#f87171" text-anchor="middle">×</text>`;
+  svg+=dot(str,fr,'#d4a843',bn)+dot(str+1,fr+2,'#60a5fa','5');for(let k=0;k<6;k++)if(k!==str&&k!==str+1)svg+=mute(k);svg+=`</svg>`;
   const shape=GUITAR[c.name]||GUITAR[c.root+c.quality]||GUITAR[c.root+(c.type==='m'?'m':'')];
-  return`<h4>⚡ ${c.name} 파워코드 <span class="note">— 근음 + 5도, 두 줄만 (장·단조 상관없이 같은 모양)</span></h4>${svg}<div class="note" style="text-align:center">노랑 = 근음 ${bn} · 파랑 = 5도 (한 줄 아래 두 프렛 위) · 아래 6줄(낮은 E·A·D·G) 기준${shape?` · 통기타 폼도 가능: ${shape}`:''}</div>`}
- if(inst==='guitar'){const shape=GUITAR[c.name]||GUITAR[c.root+c.quality]||GUITAR[c.root+(c.type==='m'?'m':c.type==='7'?'7':'')]||GUITAR[c.root+(c.type==='m'?'m':'')];const approx=!(GUITAR[c.name]||GUITAR[c.root+c.quality]);if(!shape)return`<h4>🎸 ${c.name}</h4><div class="note">운지표가 없어요. 카포를 쓰거나 코드 단순화를 해보세요.</div>`;
+  return`<h4>⚡ ${c.name} 파워코드 <span class="note">— 근음 + 5도, 두 줄만 (장·단조 상관없이 같은 모양)</span></h4>${svg}<div class="note" style="text-align:center">노랑 = 근음 ${bn} · 파랑 = 5도 (한 줄 아래 두 프렛 위) · × 표시 줄은 치지 않아요${shape?` · 통기타 폼도 가능: ${shape}`:''}</div>${strumHTML('eguitar')}`}
+ if(inst==='guitar'){const shape=GUITAR[c.name]||GUITAR[c.root+c.quality]||GUITAR[c.root+(c.type==='m'?'m':c.type==='7'?'7':'')]||GUITAR[c.root+(c.type==='m'?'m':'')];const approx=!(GUITAR[c.name]||GUITAR[c.root+c.quality]);if(!shape)return`<h4>🎸 ${c.name}</h4><div class="note">운지표가 없어요. 2·3단계로 바꾸거나 코드 단순화를 해보세요.</div>${strumHTML('guitar')}`;
   const frets=[...shape].map(ch=>ch==='x'?-1:Number(ch));const minF=Math.min(...frets.filter(f=>f>0));const base=(Math.max(...frets)>4&&minF>1)?minF:1;
   let svg=`<svg viewBox="0 0 130 150">`;for(let i=0;i<5;i++)svg+=`<line x1="20" y1="${30+i*24}" x2="120" y2="${30+i*24}" stroke="#aaa" stroke-width="${i===0&&base===1?4:1.5}"/>`;for(let s=0;s<6;s++)svg+=`<line x1="${20+s*20}" y1="30" x2="${20+s*20}" y2="126" stroke="#ccc" stroke-width="1.5"/>`;
   frets.forEach((f,s)=>{const x=20+s*20;if(f<0)svg+=`<text x="${x}" y="22" font-size="12" fill="#f87171" text-anchor="middle">×</text>`;else if(f===0)svg+=`<circle cx="${x}" cy="18" r="5" fill="none" stroke="#fff" stroke-width="1.5"/>`;else{const y=30+(f-base)*24+12;svg+=`<circle cx="${x}" cy="${y}" r="8" fill="#d4a843"/>`}});
-  if(base>1)svg+=`<text x="4" y="46" font-size="11" fill="#aaa">${base}fr</text>`;svg+=`</svg>`;return`<h4>🎸 ${c.name} 운지 <span class="note">(왼쪽이 굵은 줄)</span></h4>${svg}${approx?'<div class="note" style="text-align:center">텐션을 뺀 기본 폼이에요</div>':''}`}
+  if(base>1)svg+=`<text x="4" y="46" font-size="11" fill="#aaa">${base}fr</text>`;svg+=`</svg>`;return`<h4>🎸 ${c.name} 운지 <span class="note">(왼쪽이 굵은 줄)</span></h4>${svg}${approx?'<div class="note" style="text-align:center">텐션을 뺀 기본 폼이에요</div>':''}${strumHTML('guitar')}`}
  if(inst==='bass'){const bn=c.bass||c.root;const i=NOTES.indexOf(bn);const e=(i-4+12)%12,a=(i-9+12)%12;const fifth=NOTES[(NOTES.indexOf(c.root)+7)%12];const useE=e<=a;const fret=useE?e:a;const str=useE?0:1;const fi=NOTES.indexOf(fifth);const f5=[(fi-4+12)%12,(fi-9+12)%12,(fi-2+12)%12];const s5=f5.indexOf(Math.min(...f5.filter(x=>x<=7).concat([99])));
   let svg=`<svg viewBox="0 0 220 110">`;const names=['E','A','D','G'];for(let s=0;s<4;s++){const y=20+s*24;svg+=`<text x="4" y="${y+4}" font-size="11" fill="#a99cc4">${names[s]}</text><line x1="22" y1="${y}" x2="212" y2="${y}" stroke="#ccc" stroke-width="${2.5-s*.4}"/>`}for(let f=0;f<=5;f++){const x=22+f*38;svg+=`<line x1="${x}" y1="12" x2="${x}" y2="96" stroke="${f===0?'#fff':'#666'}" stroke-width="${f===0?3:1}"/>`;if(f>0)svg+=`<text x="${x-19}" y="108" font-size="9" fill="#777" text-anchor="middle">${f}</text>`}
   const dot=(strIdx,fr,col,label)=>{const x=fr===0?14:22+(fr-.5)*38;const y=20+strIdx*24;return fr>5?'':`<circle cx="${x}" cy="${y}" r="9" fill="${col}"/><text x="${x}" y="${y+4}" font-size="9" fill="#1a1200" text-anchor="middle" font-weight="700">${label}</text>`};
@@ -394,7 +420,8 @@ function renderChordLine(el,onPick){const bars=S.song?viewBars():[];el.innerHTML
 /* ═════ ④ 개인 연습 ═════ */
 let sel4=0;
 function renderPractice(){renderChordLine($('cl4'),i=>{sel4=i;showFing4();const c=S.song.bars[i];if(engine.ready)engine.playChord(c,ctx.currentTime,S.beats,S.inst==='drum'?'guitar':S.inst,true)});showFing4();renderBeat($('beat4'))}
-function showFing4(){const c=S.song?viewBars()[sel4]:null;if(!c){$('fing4').innerHTML='';$('notes4').textContent='';return}document.querySelectorAll('#cl4 .cb').forEach((d,i)=>d.classList.toggle('sel',i===sel4));$('fing4').innerHTML=fingeringHTML(c,S.inst);$('notes4').textContent=chordTones(c).join(' · ');pianoMini($('pm4'),c)}
+function capoNote(){const sh=S.song&&S.step>1?viewShift():0;if(!sh)return'';const g=['guitar','eguitar'].includes(S.inst),k=S.inst==='piano';return`<div style="background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.5);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:.85rem">${g?`🎸 <b>카포 ${sh}프렛</b>을 끼우고 아래 모양대로 치세요`:k?`🎹 디지털 피아노 <b>트랜스포즈 +${sh}</b>(또는 −${(12-sh)%12})로 두고 아래 코드대로 치세요`:`${S.step}단계 코드예요 · 기타는 카포 ${sh}, 건반은 트랜스포즈 +${sh}`} — 소리는 원키와 같아요 (1단계로 바꾸면 원키 코드)</div>`}
+function showFing4(){const c=S.song?viewBars()[sel4]:null;if(!c){$('fing4').innerHTML='';$('notes4').textContent='';return}document.querySelectorAll('#cl4 .cb').forEach((d,i)=>d.classList.toggle('sel',i===sel4));$('fing4').innerHTML=capoNote()+fingeringHTML(c,S.inst);$('notes4').textContent=chordTones(c).join(' · ');pianoMini($('pm4'),c)}
 function renderBeat(el){el.innerHTML=Array.from({length:S.beats},(_,i)=>`<i class="${i===0?'one':''}"></i>`).join('')}
 
 /* ═════ ⑤ 음원: mp3 / 간이 분리 / 스템 / 앱 반주 ═════ */
@@ -435,7 +462,7 @@ function stemMyInst(){const target=STEMS.find(st=>st.inst===(S.inst==='eguitar'?
 function renderMinus(){renderChordLine($('cl5'),()=>{});renderBeat($('beat5'));if(S.inst&&S.inst!=='vocal'){const mine=S.inst==='eguitar'?'guitar':S.inst;document.querySelectorAll('#tracks .chip').forEach(ch=>ch.classList.toggle('on',ch.dataset.t!==mine))}if(!$('stemRows').children.length)renderStems()}
 
 /* ═════ ⑥ 합주 ═════ */
-function renderStage(){$('stageTitle').textContent=S.song?`${S.song.title} · ${S.song.bars.length}마디 · ${S.bpm} BPM`:'선정곡 없음';renderBeat($('beat6'));$('stageNow').textContent=S.song?viewBars()[0].name:'—';$('stageNext').textContent=S.song?viewBars()[1]?.name||'—':'—'}
+function renderStage(){const sh=S.song&&S.step>1?viewShift():0;$('stageTitle').textContent=S.song?`${S.song.title} · ${S.song.bars.length}마디 · ${S.bpm} BPM${sh?` · ${S.step}단계 (🎸 카포 ${sh} · 🎹 트랜스포즈 +${sh})`:S.step>1?` · ${S.step}단계`:''}`:'선정곡 없음';renderBeat($('beat6'));$('stageNow').textContent=S.song?viewBars()[0].name:'—';$('stageNext').textContent=S.song?viewBars()[1]?.name||'—':'—'}
 $('checklist').querySelectorAll('li').forEach(li=>li.onclick=()=>li.classList.toggle('on'));
 
 /* ═════ 오디오 엔진 ═════ */
