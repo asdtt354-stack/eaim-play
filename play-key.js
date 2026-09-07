@@ -56,6 +56,20 @@
   }
   const waitMsg = (sec, n) => { try { const t = document.getElementById('toast'); if (t) { t.textContent = `⏳ 요청이 몰려서 ${sec}초 기다렸다 다시 보내요 (${n}번째)`; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', sec * 1000); } } catch {} };
 
+  /** 깨진 JSON 살리기: 4/4 같은 값, 코드펜스, 앞뒤 잡글, 끝 쉼표 */
+  function safeJSON(txt) {
+    let t = String(txt || '').replace(/```json|```/g, '').trim();
+    try { return JSON.parse(t); } catch {}
+    const a = t.indexOf('{'), b = t.lastIndexOf('}'); if (a >= 0 && b > a) t = t.slice(a, b + 1);
+    t = t.replace(/:\s*(\d+)\s*\/\s*(\d+)/g, (m, x) => ': ' + x)      // "beats": 4/4 → 4
+         .replace(/,\s*([}\]])/g, '$1')                                  // 끝 쉼표
+         .replace(/[\u201c\u201d]/g, '"').replace(/[\u2018\u2019]/g, "'"); // 예쁜 따옴표
+    try { return JSON.parse(t); } catch {}
+    // 값 안의 큰따옴표를 작은따옴표로 (문자열 내부 " 만)
+    t = t.replace(/"([^"\n]*)"\s*:\s*"((?:[^"\\]|\\.)*)"/g, (m, k, v) => `"${k}": "${v.replace(/"/g, "'")}"`);
+    return JSON.parse(t);
+  }
+
   /** 공용 Gemini 텍스트 호출 (JSON 모드 옵션) */
   async function gemini(prompt, { json = false, temperature = .7, maxTokens = 1024, parts = null } = {}) {
     const k = await get(); if (!k) throw new Error(NO_KEY_MSG);
@@ -65,7 +79,15 @@
       const r = await withRetry(() => fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify(body) }), waitMsg);
       if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(r.status === 429 ? '지금 요청이 너무 많아요. 30초쯤 뒤에 다시 눌러주세요.' : (e?.error?.message || ('오류 ' + r.status))); }
       const d = await r.json(); const txt = d.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-      return json ? JSON.parse(txt.replace(/```json|```/g, '').trim()) : txt.trim();
+      if (!json) return txt.trim();
+      try { return safeJSON(txt); }
+      catch (e) {
+        // 한 번 더: 답을 JSON 으로만 고쳐 달라고
+        const fix = { contents: [{ parts: [{ text: '다음 텍스트를 올바른 JSON 하나로만 고쳐서 출력하세요. 숫자 자리에는 숫자만(예: 4/4는 4), 설명·코드펜스 금지.\n\n' + txt }] }], generationConfig: { temperature: 0, maxOutputTokens: maxTokens, responseMimeType: 'application/json' } };
+        const r2 = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify(fix) });
+        const d2 = await r2.json().catch(() => ({})); const t2 = d2.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+        try { return safeJSON(t2); } catch { throw new Error('AI 답을 읽지 못했어요. 한 번 더 눌러보세요.'); }
+      }
     });
   }
   /** Lyria 30초 클립 → { b64, mime, text } */

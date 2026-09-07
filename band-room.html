@@ -363,7 +363,7 @@ async function readSheet(){const key=await EAIMKey.get();const st=$('ocrSt');st.
  st.textContent='악보를 읽는 중…';$('ocrBtn').disabled=true;
  try{st.textContent=(/pdf$/i.test(sheetFile.type)||/\.pdf$/i.test(sheetFile.name))?'PDF 첫 페이지를 그림으로 바꾸는 중…':'악보를 읽는 중…';
   const img=await EAIMKey.fileToImage(sheetFile);if(img.isPdf)$('prev').innerHTML=`<br><img src="${img.dataUrl}">`;st.textContent='악보를 읽는 중…';
-  const d=await EAIMKey.gemini('',{json:true,temperature:.2,maxTokens:600,parts:[{inline_data:{mime_type:img.mime,data:img.b64}},{text:'이 악보의 코드 진행을 마디 순서대로 읽어 주세요. 코드명이 적혀 있으면 그대로, 없으면 멜로디로 추정(추정임을 estimated:true로). 한 마디에 코드가 둘이면 "C-G". JSON만: {"title":"곡 제목 또는 빈칸","bpm":90,"beats":4,"chords":"C G Am F | ...","estimated":false}'}]});
+  const d=await EAIMKey.gemini('',{json:true,temperature:.2,maxTokens:600,parts:[{inline_data:{mime_type:img.mime,data:img.b64}},{text:'이 악보의 코드 진행을 마디 순서대로 읽어 주세요. 코드명이 적혀 있으면 그대로, 없으면 멜로디로 추정(추정임을 estimated:true로). 한 마디에 코드가 둘이면 "C-G". JSON만: {"title":"곡 제목 또는 빈칸","bpm":90,"beats":4,"chords":"C G Am F | ...","estimated":false}  — bpm과 beats는 숫자만(4/4가 아니라 4, 3/4는 3), 제목 안의 따옴표는 빼기'}]});
   if(d.chords)$('chords').value=d.chords;if(d.title)$('songTitle').value=d.title;if(d.bpm)setBpm(d.bpm);if(d.beats)setKeyLock(d.beats);
   st.textContent=(d.estimated?'⚠️ 코드명이 없어서 AI가 추정했어요. 꼭 확인하고 고쳐 쓰세요.':'✅ 읽었어요. 확인 후 "이 곡으로 정하기"')+(img.isPdf?' (PDF 첫 페이지만 읽었어요)':'');
  }catch(e){st.textContent='❌ '+e.message;st.classList.add('err')}finally{$('ocrBtn').disabled=false}}
