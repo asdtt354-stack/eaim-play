@@ -122,10 +122,11 @@
   }
   async function fileToImage(file, { maxSide = 1600, page = 1 } = {}) {
     const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name);
-    let canvas;
+    let canvas, pageCount = 1;
     if (isPdf) {
       const pdfjs = await loadPdfjs();
       const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+      pageCount = doc.numPages;
       const pg = await doc.getPage(Math.min(page, doc.numPages));
       const v0 = pg.getViewport({ scale: 1 }); const scale = Math.min(2, maxSide / Math.max(v0.width, v0.height));
       const vp = pg.getViewport({ scale }); canvas = document.createElement('canvas'); canvas.width = vp.width; canvas.height = vp.height;
@@ -138,8 +139,19 @@
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
     }
     const dataUrl = canvas.toDataURL('image/jpeg', .9);
-    return { mime: 'image/jpeg', b64: dataUrl.split(',')[1], dataUrl, isPdf };
+    return { mime: 'image/jpeg', b64: dataUrl.split(',')[1], dataUrl, isPdf, pageCount };
+  }
+  /** 파일 → 이미지 여러 장 (PDF는 앞에서부터 maxPages 쪽까지). 배열에 pageTotal 을 달아 줍니다. */
+  async function fileToImages(file, { maxSide = 1600, maxPages = 4 } = {}) {
+    const first = await fileToImage(file, { maxSide, page: 1 });
+    const out = [first];
+    const total = first.pageCount || 1;
+    for (let p = 2; p <= Math.min(total, maxPages); p++) {
+      try { out.push(await fileToImage(file, { maxSide, page: p })); } catch { break; }
+    }
+    out.pageTotal = total;
+    return out;
   }
 
-  global.EAIMKey = { fileToImage, get, set, has, link, gemini, lyria, queued, withRetry, teacher, group: P.get('group') || '', ping, NO_KEY_MSG };
+  global.EAIMKey = { fileToImage, fileToImages, get, set, has, link, gemini, lyria, queued, withRetry, teacher, group: P.get('group') || '', ping, NO_KEY_MSG };
 })(window);
