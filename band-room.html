@@ -8,18 +8,41 @@
 <script src="play-sound.js"></script>
 <script src="play-key.js"></script>
 <style>
-:root{--bg:#141021;--panel:#1e1830;--panel2:#2a2240;--line:#3d3358;--text:#f3eefb;--sub:#a99cc4;--gold:#d4a843;--purple:#a78bfa;--green:#4ade80;--red:#f87171;--blue:#60a5fa}
+:root{--bg:#0d1418;--panel:#152128;--panel2:#1d2d36;--line:#2c4450;--text:#eaf4f6;--sub:#8fb0bb;--gold:#f0b429;--purple:#38bdf8;--green:#34d399;--red:#fb7185;--blue:#60a5fa}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;user-select:none;-webkit-user-select:none}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;user-select:none;-webkit-user-select:none;
+  background-image:radial-gradient(ellipse at 12% 0%,rgba(56,189,248,.07),transparent 42%),radial-gradient(ellipse at 92% 100%,rgba(240,180,41,.06),transparent 45%);background-attachment:fixed}
 button,input,textarea,select{font-family:inherit;font-size:inherit}
-header{padding:22px 16px 10px;text-align:center}
-.logo{font-family:'Space Mono',monospace;font-size:1.9rem;font-weight:700;color:var(--gold)}
-.tag{font-size:.78rem;color:var(--sub);letter-spacing:.15em}
-.steps{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;padding:8px 12px 14px}
-.step{padding:7px 12px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--sub);font-size:.82rem;cursor:pointer}
-.step.on{background:var(--gold);color:#1a1200;border-color:var(--gold);font-weight:700}
-.step.done{border-color:var(--green);color:var(--green)}
-main{max-width:900px;margin:0 auto;padding:0 14px 90px}
+/* ── 가로 태블릿 기준 레이아웃: 왼쪽 레일 + 넓은 작업 영역 ── */
+.shell{display:flex;align-items:flex-start;min-height:100vh}
+.rail{flex:0 0 236px;align-self:stretch;position:sticky;top:0;height:100vh;overflow-y:auto;
+  background:linear-gradient(180deg,#17252c,#0d1418);border-right:1px solid var(--line);padding:22px 14px 20px}
+header{padding:0 6px 16px;text-align:left}
+.logo{font-family:'Space Mono',monospace;font-size:1.35rem;font-weight:700;color:var(--gold);line-height:1.1}
+.tag{font-size:.7rem;color:var(--sub);letter-spacing:.14em;margin-top:2px}
+.steps{display:flex;flex-direction:column;gap:6px}
+.step{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;border:1px solid transparent;
+  background:transparent;color:var(--sub);font-size:.92rem;cursor:pointer;transition:background .15s,color .15s}
+.step:hover{background:var(--panel)}
+.step .ic{font-size:1.15rem;width:24px;text-align:center;flex:0 0 24px}
+.step .tx{flex:1;line-height:1.25}
+.step .mk{font-size:.8rem;color:var(--green);opacity:0}
+.step.done .mk{opacity:1}
+.step.on{background:var(--panel2);border-color:var(--gold);color:var(--text);font-weight:700}
+.step.on .ic{filter:drop-shadow(0 0 6px rgba(212,168,67,.7))}
+.railfoot{margin-top:18px;padding:10px 12px;border-top:1px solid var(--line);font-size:.72rem;color:var(--sub);line-height:1.6}
+main{flex:1;min-width:0;max-width:1040px;padding:26px 26px 90px}
+/* 세로로 들거나 좁은 화면이면 위쪽 가로 띠로 접힘 */
+@media(max-width:900px){
+  .shell{display:block}
+  .rail{position:static;height:auto;flex:none;border-right:0;border-bottom:1px solid var(--line);padding:16px 12px 10px}
+  header{text-align:center;padding-bottom:10px}
+  .steps{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:5px}
+  .step{padding:8px 12px;border:1px solid var(--line);background:var(--panel);font-size:.82rem}
+  .step .tx{flex:none}
+  .railfoot{display:none}
+  main{padding:14px 14px 90px}
+}
 .page{display:none}.page.on{display:block}
 .nowsong{background:rgba(212,168,67,.1);border:1px dashed rgba(212,168,67,.45);border-radius:10px;padding:8px 14px;margin-bottom:10px;font-size:.88rem;color:var(--sub)}.nowsong b{color:var(--gold)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
@@ -86,6 +109,21 @@ input[type=range]{accent-color:var(--gold);width:120px}
 .stage .next b{font-family:'Space Mono',monospace;color:#fff;font-size:1.5rem}
 .stage .bar{font-size:.8rem;color:var(--sub);letter-spacing:.2em;margin-top:10px}
 .stage .beat i{width:28px;height:28px}
+.stage{position:relative}
+/* ── 전체화면 합주 (교실 앞 화면용) ── */
+.stage.full{position:fixed;inset:0;z-index:200;border:0;border-radius:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:10px;padding:24px;background:#000}
+.stage.full .now{font-size:min(46vh,34vw)}
+.stage.full .next{font-size:2rem}
+.stage.full .next b{font-size:3rem}
+.stage.full .bar{font-size:1.1rem}
+.stage.full .beat i{width:44px;height:44px}
+#fullBar{position:fixed;left:0;right:0;bottom:0;z-index:201;display:none;justify-content:center;gap:10px;
+  padding:14px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.85) 40%)}
+#fullBar.on{display:flex}
+.fsbtn{position:absolute;top:12px;right:14px;background:var(--panel2);border:1px solid var(--line);color:var(--sub);
+  border-radius:9px;padding:6px 12px;font-size:.8rem;font-weight:700;cursor:pointer;z-index:202}
+.fsbtn:hover{border-color:var(--gold);color:var(--text)}
 .check{list-style:none;margin-top:8px}
 .check li{padding:8px 10px;border-bottom:1px dashed var(--line);cursor:pointer;font-size:.92rem}
 .check li.on{color:var(--green)}
@@ -105,8 +143,12 @@ input[type=range]{accent-color:var(--gold);width:120px}
 </head>
 <body>
 <div class="gate" id="gate"><h1>🎸 밴드실</h1><p>팀을 짜고, 곡을 정하고, 내 악기를 연습한 뒤 다같이 합주해요. 소리를 켜려면 시작을 눌러주세요.</p><button onclick="startApp()">시작하기</button></div>
-<header><div class="logo">BAND ROOM</div><div class="tag">EAIM 연주실 · 밴드실</div></header>
-<div class="steps" id="steps"></div>
+<div class="shell">
+<aside class="rail">
+  <header><div class="logo">BAND<br>ROOM</div><div class="tag">EAIM 연주실</div></header>
+  <div class="steps" id="steps"></div>
+  <div class="railfoot">태블릿은 <b>가로</b>로 두고 쓰세요.<br>헤드폰을 연결하면 서로 방해받지 않아요.</div>
+</aside>
 
 <main>
 <!-- 1 팀 -->
@@ -220,7 +262,8 @@ input[type=range]{accent-color:var(--gold);width:120px}
 <!-- 6 합주 -->
 <section class="page" id="p6"><div class="nowsong" id="ns-p6"></div><div class="card">
   <h2>⑥ 다같이 합주</h2><div class="desc">기기를 앞에 두고 보면서 연주해요. 지휘자 화면처럼 코드와 박자를 크게 보여줘요.</div>
-  <div class="stage">
+  <div class="stage" id="stage6">
+    <button class="fsbtn" onclick="toggleFull()" id="fsBtn">⛶ 전체화면</button>
     <div class="note" id="stageTitle">선정곡 없음</div>
     <div class="now" id="stageNow">—</div>
     <div class="next">다음 <b id="stageNext">—</b></div>
@@ -240,6 +283,8 @@ input[type=range]{accent-color:var(--gold);width:120px}
   </ul>
 </div><div class="nav"><button class="btn" onclick="go(5)">← 음원</button><span></span></div></section>
 </main>
+</div>
+<div id="fullBar"><button class="btn g" id="play6f" onclick="togglePlay('band')">▶ 합주 시작</button><button class="btn" onclick="toggleFull()">✕ 전체화면 끄기</button></div>
 <div id="toast"></div>
 
 <script>
@@ -323,11 +368,19 @@ $('chords').addEventListener('input',()=>{renderStepBox();markDirty()});
 function simplify(){const bars=parseProgression($('chords').value);$('chords').value=bars.map(b=>[b,b.second].filter(Boolean).map(c=>EAIMChord.simplify(c).name.split('/')[0]).join('-')+(b.br?' |':'')).join(' ').replace(/\s*\|\s*$/,'').trim();renderStepBox();markDirty();toast('트라이어드로 단순화했어요 (다시 되돌리려면 예시곡을 눌러요)')}
 
 /* ═════ 단계 ═════ */
-const STEP=['팀 구성','곡 선정','악기 선택','개인 연습','음원 연습','합주'];
+const STEP=[['👥','팀 구성'],['🎼','곡 선정'],['🎸','악기 선택'],['🎧','개인 연습'],['💿','음원 연습'],['🎤','합주']];
 let cur=1;
-function renderSteps(){$('steps').innerHTML=STEP.map((s,i)=>`<div class="step ${i+1===cur?'on':''} ${(i===0&&S.team)||(i===1&&S.song)||(i===2&&S.inst)?'done':''}" onclick="go(${i+1})">${i+1} ${s}</div>`).join('')}
+function renderSteps(){const done=[!!S.team,!!S.song,!!S.inst,false,false,false];
+ $('steps').innerHTML=STEP.map((s,i)=>`<div class="step ${i+1===cur?'on':''} ${done[i]?'done':''}" onclick="go(${i+1})"><span class="ic">${s[0]}</span><span class="tx">${s[1]}</span><span class="mk">✓</span></div>`).join('')}
 function nowSong(){const h=S.song?`현재 선정곡 <b>${S.song.title}</b> · ${S.song.bars.map(b=>disp(b.name)).join(' ')}${S.step>1?` · <b style="color:var(--green)">${S.step}단계${viewShift()?` · 🎸 카포 ${viewShift()} · 🎹 트랜스포즈 +${viewShift()}`:''}</b> → ${viewBars().map(b=>b.name).join(' ')}`:''} · ${S.bpm} BPM · ${STYLES[S.song.style]||''}`:'선정곡 없음 — ② 곡 선정에서 먼저 정해주세요';['p4','p5','p6'].forEach(p=>{const e=$('ns-'+p);if(e)e.innerHTML=h})}
-function go(n){stopAll();cur=n;nowSong();EAIMKey.ping('밴드실',n);document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));$('p'+n).classList.add('on');renderSteps();window.scrollTo(0,0);if(n===3)renderInst();if(n===4)renderPractice();if(n===5)renderMinus();if(n===6)renderStage()}
+function toggleFull(){const st=$('stage6');const on=!st.classList.contains('full');
+ st.classList.toggle('full',on);$('fullBar').classList.toggle('on',on);
+ $('fsBtn').textContent=on?'✕ 닫기':'⛶ 전체화면';
+ if(on){toast('교실 앞 화면에 띄우고 연주하세요 — 되돌리려면 ✕ 또는 Esc');try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()}catch(e){}}
+ else{try{document.fullscreenElement&&document.exitFullscreen()}catch(e){}}}
+function exitFull(){const st=$('stage6');if(st&&st.classList.contains('full'))toggleFull()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')exitFull()});
+function go(n){exitFull();stopAll();cur=n;nowSong();EAIMKey.ping('밴드실',n);document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));$('p'+n).classList.add('on');renderSteps();window.scrollTo(0,0);if(n===3)renderInst();if(n===4)renderPractice();if(n===5)renderMinus();if(n===6)renderStage()}
 
 /* ═════ ① 팀 ═════ */
 function namesIn(){return $('members').value.split('\n').map(s=>s.trim()).filter(Boolean)}
@@ -573,7 +626,7 @@ const DRUMS={
 };
 function beatPattern(nb,t,beat,v=1){const style=S.song?.style||S.style||'beat8';const d=DRUMS[style]||DRUMS.beat8;d.hat.forEach(b=>{if(b<nb)engine.drum('hat',t+b*beat,(b%1===0?.8:.5)*v)});d.kick.forEach(b=>{if(b<nb)engine.drum('kick',t+b*beat,v)});d.snare.forEach(b=>{if(b<nb)engine.drum('snare',t+b*beat,v)});(d.ghost||[]).forEach(b=>{if(b<nb)engine.drum('snare',t+b*beat,.3*v)})}
 function togglePlay(mode){if(playing){stopAll();return}if(!S.song){toast('② 곡 선정에서 곡을 먼저 정해주세요');return}playing=mode;
- const btn={solo:'play4',minus:'play5',band:'play6'}[mode];$(btn).textContent='■ 정지';$(btn).classList.replace('g','r');
+ const btn={solo:'play4',minus:'play5',band:'play6'}[mode];$(btn).textContent='■ 정지';if(mode==='band')$('play6f').textContent='■ 정지';$(btn).classList.replace('g','r');
  const beat=60/S.bpm,nb=S.beats,bars=S.song.bars;let count=(mode==='band'&&$('count6').checked)?1:0;nextBar=ctx.currentTime+.15;barIdx=-count;
  const tick=()=>{while(nextBar<ctx.currentTime+.25){const t=nextBar,i=barIdx;
   if(i<0){for(let b=0;b<nb;b++)engine.click(t+b*beat,b===0);schedDraw(t,()=>{$('stageNow').textContent='준비';$('stageBar').textContent='카운트인';beatAnim(nb,beat)})}
@@ -587,7 +640,7 @@ function togglePlay(mode){if(playing){stopAll();return}if(!S.song){toast('② �
  tick();timer=setInterval(tick,40)}
 function schedDraw(t,fn){drawTimers.push(setTimeout(fn,Math.max(0,(t-ctx.currentTime)*1000)))}
 function beatAnim(nb,beat){document.querySelectorAll('.beat').forEach(el=>{const dots=el.querySelectorAll('i');for(let b=0;b<nb;b++)drawTimers.push(setTimeout(()=>{dots.forEach((d,k)=>d.classList.toggle('on',k===b))},b*beat*1000))})}
-function stopAll(){stopFollow();if(stemSyncTimer)clearInterval(stemSyncTimer);stemSyncTimer=null;if(timer)clearInterval(timer);timer=null;drawTimers.forEach(clearTimeout);drawTimers=[];if(playing){const btn={solo:'play4',minus:'play5',band:'play6'}[playing];const lbl={solo:'▶ 연습 시작',minus:'▶ 자동 반주',band:'▶ 합주 시작'}[playing];$(btn).textContent=lbl;$(btn).classList.replace('r','g')}playing=null;document.querySelectorAll('.cb').forEach(d=>d.classList.remove('now'));document.querySelectorAll('.beat i').forEach(d=>d.classList.remove('on'));if(mp3El&&!mp3El.paused){mp3El.pause();mp3El.currentTime=0;$('mp3play').textContent='▶ 재생'}if(stemsPlaying){Object.values(stems).forEach(s=>{if(s.el){s.el.pause();s.el.currentTime=0}});stemsPlaying=false;$('stemPlay').textContent='▶ 함께 재생'}}
+function stopAll(){stopFollow();if(stemSyncTimer)clearInterval(stemSyncTimer);stemSyncTimer=null;if(timer)clearInterval(timer);timer=null;drawTimers.forEach(clearTimeout);drawTimers=[];if(playing){const btn={solo:'play4',minus:'play5',band:'play6'}[playing];const lbl={solo:'▶ 연습 시작',minus:'▶ 자동 반주',band:'▶ 합주 시작'}[playing];$(btn).textContent=lbl;if(playing==='band')$('play6f').textContent='▶ 합주 시작';$(btn).classList.replace('r','g')}playing=null;document.querySelectorAll('.cb').forEach(d=>d.classList.remove('now'));document.querySelectorAll('.beat i').forEach(d=>d.classList.remove('on'));if(mp3El&&!mp3El.paused){mp3El.pause();mp3El.currentTime=0;$('mp3play').textContent='▶ 재생'}if(stemsPlaying){Object.values(stems).forEach(s=>{if(s.el){s.el.pause();s.el.currentTime=0}});stemsPlaying=false;$('stemPlay').textContent='▶ 함께 재생'}}
 
 /* ═════ 시작 ═════ */
 function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.9;const comp=ctx.createDynamicsCompressor();master.connect(comp);comp.connect(ctx.destination);engine.load();$('gate').style.display='none';if(mp3El)buildMp3Graph();ensureAllStemGraphs();mixStems();toast('🎻 악기 소리 불러오는 중…')}

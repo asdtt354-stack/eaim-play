@@ -156,11 +156,12 @@ textarea.in{width:100%;background:var(--panel2);border:1px solid var(--line);bor
 
 <!-- 4 듣기 -->
 <section class="page" id="p4"><div class="card">
-  <h2>④ 밴드와 함께 듣기</h2><div class="desc">내 멜로디가 밴드 반주 위에서 흘러요. 마음에 안 드는 마디는 ③으로 돌아가 다시 녹음하면 돼요.</div>
+  <h2>④ 밴드와 함께 듣기</h2><div class="desc">내 멜로디가 밴드 반주 위에서 흘러요. 마음에 안 드는 마디는 ③으로 돌아가 다시 녹음하면 돼요. <b>⚡ 리듬 정리</b>는 1·3마디 앞부분을 정박으로 붙잡고 나머지에서 늦게 친 음만 8분음표 자리로 당겨 줍니다.</div>
   <div class="stage"><div class="now" id="stageNow">—</div><div id="stageKo" style="font-size:1.1rem;margin-top:4px"></div><div class="beat" id="beat4"></div><div class="note" id="stageInfo"></div></div>
   <div class="bars" id="bars4"></div>
   <div class="row" style="justify-content:center">
     <button class="btn g" id="playBtn" onclick="togglePlay()">▶ 전체 듣기</button>
+    <button class="btn" id="grooveBtn" onclick="groove()">⚡ 리듬 정리</button>
     <label><input type="checkbox" id="loop" checked> 반복</label>
     <label><input type="checkbox" id="withBand" checked> 밴드 반주</label>
     <label>🐇 재생 빠르기 <input type="range" id="playBpm" min="50" max="160" value="96" oninput="setPlayBpm(this.value)"> <b id="playBpmLbl">96</b> BPM</label>
@@ -416,6 +417,28 @@ function finishBar(){if(!rec.active)return;rec.active=false;tempoMode='play';con
 function clearBar(){S.notes=S.notes.filter(n=>n.bar!==sel);renderAll();toast('지웠어요')}
 function resetAll(){if(S.notes.length&&!confirm('녹음한 멜로디를 모두 지우고 처음부터 할까요? (기분·코드는 그대로)'))return;stopAll();S.notes=[];S.sections=1;sel=0;['j1','j2','j3'].forEach(id=>{const e=$(id);if(e)e.value=''});renderAll();toast('초기화됐어요')}
 function beatDot(el,b){el.querySelectorAll('i').forEach((d,k)=>d.classList.toggle('on',k===b))}
+
+/* ═════ 리듬 정리 (초기 「마스터 합주실」의 applySmartRhythm 을 옮김) ═════ */
+/* 1·3마디의 앞 2박은 정박으로 그대로 두어 안정감을 남기고(straight zone),
+   나머지 자리에서 박 끝에 늦게 걸린 음만 살짝 앞으로 당겨 8분음표 자리에 붙입니다. */
+let grooveBackup=null;
+function groove(){
+ if(!S.notes.length){toast('먼저 ③에서 멜로디를 녹음해 주세요');return}
+ if(grooveBackup){S.notes=grooveBackup.map(n=>({...n}));grooveBackup=null;$('grooveBtn').textContent='⚡ 리듬 정리';renderAll();toast('↩ 정리 전으로 되돌렸어요');return}
+ grooveBackup=S.notes.map(n=>({...n}));
+ const nb=S.bars.length;const out=[];const seen=new Set();
+ S.notes.slice().sort((a,b)=>(a.bar-b.bar)||(a.at-b.at)).forEach(n=>{
+  const inBar=n.bar%nb;
+  const straight=(inBar===0||inBar===2)&&n.at<2;      // 1·3마디 앞 2박은 손대지 않음
+  let at=n.at;
+  if(!straight){const off=at%1;if(off>.6)at-=.15}     // 박 끝에 늦게 걸린 음만 당김
+  at=Math.round(at/.5)*.5;                            // 8분음표 자리로 정리
+  at=Math.max(0,Math.min(3.5,at));
+  const key=n.bar+'|'+at;
+  if(seen.has(key))return;                            // 같은 자리로 겹친 음은 하나만
+  seen.add(key);out.push({...n,at,len:Math.max(.5,n.len||.5)})});
+ S.notes=out;renderAll();$('grooveBtn').textContent='↩ 정리 되돌리기';
+ toast(`⚡ ${out.length}음을 정리했어요 — 다시 누르면 되돌아가요`)}
 
 /* ═════ 듣기 (④ 단계) ═════ */
 let playing=false,loopTimer=null;
