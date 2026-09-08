@@ -17,8 +17,8 @@ button,input,textarea,select{font-family:inherit;font-size:inherit}
 .shell{display:flex;align-items:flex-start;min-height:100vh}
 .rail{flex:0 0 236px;align-self:stretch;position:sticky;top:0;height:100vh;overflow-y:auto;
   background:linear-gradient(180deg,#17252c,#0d1418);border-right:1px solid var(--line);padding:22px 14px 20px}
-header{padding:0 6px 16px;text-align:left}
-.logo{font-family:'Space Mono',monospace;font-size:1.35rem;font-weight:700;color:var(--gold);line-height:1.1}
+header{padding:34px 6px 16px;text-align:left}
+.logo{font-family:'Space Mono',monospace;font-size:1.45rem;font-weight:700;color:var(--gold);line-height:1.2;letter-spacing:0;white-space:nowrap}
 .tag{font-size:.7rem;color:var(--sub);letter-spacing:.14em;margin-top:2px}
 .steps{display:flex;flex-direction:column;gap:6px}
 .step{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;border:1px solid transparent;
@@ -81,11 +81,14 @@ textarea.in{min-height:80px;resize:vertical;line-height:1.6}
 .cb{min-width:56px;padding:8px 10px;border-radius:9px;background:var(--panel2);border:2px solid var(--line);text-align:center;font-family:'Space Mono',monospace;font-weight:700;font-size:1rem;cursor:pointer}
 .cb.now{background:var(--gold);color:#1a1200;border-color:#fff;transform:scale(1.08)}
 .cb.sel{border-color:var(--purple)}
-.fing{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.fing{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;align-items:stretch}
+.tip4{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);font-size:.9rem;line-height:1.75;color:var(--sub)}
+.tip4 h4{color:var(--text);font-size:.9rem;margin-bottom:6px}
 @media(max-width:640px){.fing{grid-template-columns:1fr}}
 .fbox{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:120px}
-.fbox h4{font-size:.85rem;color:var(--sub);margin-bottom:8px}
-.fbox svg{width:100%;max-width:260px;display:block;margin:0 auto}
+.fbox h4+svg,.fbox h4+div>svg{margin-top:0}
+.fbox h4{font-size:.85rem;color:var(--sub);margin-bottom:4px}
+.fbox svg{width:100%;max-width:210px;display:block;margin:0 auto}
 .piano-mini{display:flex;height:70px;position:relative}
 .piano-mini .w{flex:1;background:#fff;border:1px solid #999;border-radius:0 0 4px 4px;position:relative;font-size:.6rem;color:#333;text-align:center;display:flex;align-items:flex-end;justify-content:center}
 .piano-mini .w.on{background:var(--gold)}
@@ -145,7 +148,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
 <div class="gate" id="gate"><h1>🎸 밴드실</h1><p>팀을 짜고, 곡을 정하고, 내 악기를 연습한 뒤 다같이 합주해요. 소리를 켜려면 시작을 눌러주세요.</p><button onclick="startApp()">시작하기</button></div>
 <div class="shell">
 <aside class="rail">
-  <header><div class="logo">BAND<br>ROOM</div><div class="tag">EAIM 연주실</div></header>
+  <header><div class="logo">BAND ROOM</div><div class="tag">EAIM 연주실</div></header>
   <div class="steps" id="steps"></div>
   <div class="railfoot">태블릿은 <b>가로</b>로 두고 쓰세요.<br>헤드폰을 연결하면 서로 방해받지 않아요.</div>
 </aside>
@@ -201,7 +204,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
 <section class="page" id="p4"><div class="nowsong" id="ns-p4"></div><div class="card">
   <h2>④ 개인 연습</h2><div class="desc">코드를 누르면 운지법이 뜨고 소리가 나요. ▶를 누르면 드럼 비트에 맞춰 코드가 넘어가요.</div>
   <div class="chordline" id="cl4"></div>
-  <div class="fing"><div class="fbox" id="fing4"></div><div class="fbox"><h4>이 코드의 음</h4><div id="notes4"></div><div class="piano-mini" id="pm4"></div></div></div>
+  <div class="fing"><div class="fbox" id="fing4"></div><div class="fbox"><h4>이 코드의 음</h4><div id="notes4"></div><div class="piano-mini" id="pm4"></div><div class="tip4" id="tip4"></div></div></div>
   <div class="beat" id="beat4"></div>
   <div class="transport">
     <button class="btn g" id="play4" onclick="togglePlay('solo')">▶ 연습 시작</button>
@@ -461,11 +464,11 @@ async function readSheet(){const key=await EAIMKey.get();const st=$('ocrSt');st.
  }catch(e){st.textContent='❌ '+e.message;st.classList.add('err')}finally{$('ocrBtn').disabled=false}}
 
 /* ═════ ③ 악기 + 운지 ═════ */
+const TIPS={vocal:'코드가 바뀔 때 근음(첫 음)을 허밍해 보세요. 마디 첫 박에 맞춰 숨을 쉬면 박자가 안정돼요.',piano:'왼손은 근음(한 옥타브 아래), 오른손은 3음 한 번에. 코드가 바뀌기 직전에 다음 코드 위치로 손을 옮겨두세요.',guitar:'운지를 잡고 첫 박은 다운 스트로크, 그 다음은 다운-업. 소리가 안 나는 줄이 있으면 손가락을 프렛에 더 가깝게.',eguitar:'처음엔 파워코드(근음+5도, 두 줄)만으로도 충분해요. 오른손을 브릿지에 살짝 얹어(팜 뮤트) 짧게 치면 밴드 소리가 나요. 코드가 어려우면 통기타 운지 대신 파워코드 표를 보세요.',bass:'근음 하나만 박자에 맞춰 또렷하게. 4박이면 1·3박에 근음, 2·4박은 5도음을 넣어도 좋아요.',drum:'하이햇 8분음(치치치치), 킥 1·3박, 스네어 2·4박. 처음엔 하이햇만, 그다음 킥, 그다음 스네어 순서로 쌓아요.'};
 function renderInst(){const me=$('meSel')?.value||S.me||'';S.me=me;if(me&&S.team){const m=S.team.members.find(x=>x.n===me);if(m&&m.inst)S.inst=m.inst}
  const sel=$('meSel');if(sel&&S.team){const cur=sel.value;sel.innerHTML='<option value="">— 나는 누구? —</option>'+S.team.members.map(m=>`<option value="${m.n}" ${m.n===me?'selected':''}>${m.n}${m.inst?' · '+INSTS[m.inst].ic+INSTS[m.inst].n:''}</option>`).join('')}
  $('instGrid').innerHTML=Object.entries(INSTS).map(([k,v])=>`<div class="inst ${S.inst===k?'on':''}" onclick="S.inst='${k}';persist();renderInst()"><div class="ic">${v.ic}</div>${v.n}${S.team?S.team.members.filter(m=>m.inst===k).map(m=>`<div class="note">${m.n}</div>`).join(''):''}</div>`).join('');
- const tips={vocal:'코드가 바뀔 때 근음(첫 음)을 허밍해 보세요. 마디 첫 박에 맞춰 숨을 쉬면 박자가 안정돼요.',piano:'왼손은 근음(한 옥타브 아래), 오른손은 3음 한 번에. 코드가 바뀌기 직전에 다음 코드 위치로 손을 옮겨두세요.',guitar:'운지를 잡고 첫 박은 다운 스트로크, 그 다음은 다운-업. 소리가 안 나는 줄이 있으면 손가락을 프렛에 더 가깝게.',eguitar:'처음엔 파워코드(근음+5도, 두 줄)만으로도 충분해요. 오른손을 브릿지에 살짝 얹어(팜 뮤트) 짧게 치면 밴드 소리가 나요. 코드가 어려우면 통기타 운지 대신 파워코드 표를 보세요.',bass:'근음 하나만 박자에 맞춰 또렷하게. 4박이면 1·3박에 근음, 2·4박은 5도음을 넣어도 좋아요.',drum:'하이햇 8분음(치치치치), 킥 1·3박, 스네어 2·4박. 처음엔 하이햇만, 그다음 킥, 그다음 스네어 순서로 쌓아요.'};
- $('instTip').innerHTML=`<h4>${INSTS[S.inst].ic} ${INSTS[S.inst].n} 연주법</h4><div style="font-size:.92rem;line-height:1.7">${tips[S.inst]}</div>`}
+ $('instTip').innerHTML=`<h4>${INSTS[S.inst].ic} ${INSTS[S.inst].n} 연주법</h4><div style="font-size:.92rem;line-height:1.7">${TIPS[S.inst]}</div>`}
 /* 오른손: 스타일별 스트로크·아르페지오 (숫자 리듬 1 2 3 4 1 2 3 4 위에) */
 const STRUM={
  beat8:{n:'8비트 스트럼',p:['↓','','↓','↑','↓','','↓','↑'],tip:'1·3은 힘 있게, 뒤 ↑은 가볍게'},
@@ -519,7 +522,8 @@ function renderChordLine(el,onPick){if(!el)return;const bars=S.song?viewBars():[
 let sel4=0;
 function renderPractice(){renderChordLine($('cl4'),i=>{sel4=i;showFing4();const c=S.song.bars[i];if(engine.ready)engine.playChord(c,ctx.currentTime,S.beats,S.inst==='drum'?'guitar':S.inst,true)});showFing4();renderBeat($('beat4'))}
 function capoNote(){const sh=S.song&&S.step>1?viewShift():0;if(!sh)return'';const g=['guitar','eguitar'].includes(S.inst),k=S.inst==='piano';return`<div style="background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.5);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:.85rem">${g?`🎸 <b>카포 ${sh}프렛</b>을 끼우고 아래 모양대로 치세요`:k?`🎹 디지털 피아노 <b>트랜스포즈 +${sh}</b>(또는 −${(12-sh)%12})로 두고 아래 코드대로 치세요`:`${S.step}단계 코드예요 · 기타는 카포 ${sh}, 건반은 트랜스포즈 +${sh}`} — 소리는 원키와 같아요 (1단계로 바꾸면 원키 코드)</div>`}
-function showFing4(){const c=S.song?viewBars()[sel4]:null;if(!c){$('fing4').innerHTML='';$('notes4').textContent='';return}document.querySelectorAll('#cl4 .cb').forEach((d,i)=>d.classList.toggle('sel',i===sel4));$('fing4').innerHTML=capoNote()+fingeringHTML(c,S.inst);$('notes4').textContent=chordTones(c).join(' · ');pianoMini($('pm4'),c)}
+function showFing4(){const c=S.song?viewBars()[sel4]:null;if(!c){$('fing4').innerHTML='';$('notes4').textContent='';return}document.querySelectorAll('#cl4 .cb').forEach((d,i)=>d.classList.toggle('sel',i===sel4));$('fing4').innerHTML=capoNote()+fingeringHTML(c,S.inst);$('notes4').textContent=chordTones(c).join(' · ');pianoMini($('pm4'),c);
+ if($('tip4'))$('tip4').innerHTML=S.inst?`<h4>${INSTS[S.inst].ic} ${INSTS[S.inst].n} 연주법</h4>${TIPS[S.inst]}`:''}
 function renderBeat(el){el.innerHTML=Array.from({length:S.beats},(_,i)=>`<i class="${i===0?'one':''}"></i>`).join('')}
 
 /* ═════ ⑤ 음원: mp3 / 간이 분리 / 스템 / 앱 반주 ═════ */
