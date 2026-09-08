@@ -31,6 +31,8 @@ header{padding:34px 6px 16px;text-align:left}
 .step.on{background:var(--panel2);border-color:var(--gold);color:var(--text);font-weight:700}
 .step.on .ic{filter:drop-shadow(0 0 6px rgba(212,168,67,.7))}
 .railfoot{margin-top:18px;padding:10px 12px;border-top:1px solid var(--line);font-size:.72rem;color:var(--sub);line-height:1.6}
+.credit{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:.66rem;line-height:1.7;opacity:.75}
+.credit b{color:var(--gold);font-weight:700}
 main{flex:1;min-width:0;max-width:1040px;padding:26px 26px 90px}
 /* 세로로 들거나 좁은 화면이면 위쪽 가로 띠로 접힘 */
 @media(max-width:900px){
@@ -52,6 +54,7 @@ main{flex:1;min-width:0;max-width:1040px;padding:26px 26px 90px}
 .in{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--text);outline:none;font-size:1rem}
 .in:focus{border-color:var(--purple)}
 textarea.in{min-height:80px;resize:vertical;line-height:1.6}
+#members{min-height:170px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .btn{padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;font-weight:700;font-size:.92rem}
 .btn:hover{border-color:var(--purple)}
@@ -78,6 +81,10 @@ textarea.in{min-height:80px;resize:vertical;line-height:1.6}
 .inst.on{border-color:var(--gold);background:rgba(212,168,67,.12)}
 .chordline{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .chordline .brk{flex-basis:100%;height:0}
+/* 마디가 많을 때는 칸을 좁혀 한 줄에 담습니다 (단락 줄바꿈도 끔) */
+.chordline.dense{flex-wrap:nowrap;gap:4px}
+.chordline.dense .brk{display:none}
+.chordline.dense .cb{min-width:0;flex:1 1 0;padding:8px 4px;font-size:.9rem;letter-spacing:-.02em}
 .cb{min-width:56px;padding:8px 10px;border-radius:9px;background:var(--panel2);border:2px solid var(--line);text-align:center;font-family:'Space Mono',monospace;font-weight:700;font-size:1rem;cursor:pointer}
 .cb.now{background:var(--gold);color:#1a1200;border-color:#fff;transform:scale(1.08)}
 .cb.sel{border-color:var(--purple)}
@@ -102,6 +109,7 @@ textarea.in{min-height:80px;resize:vertical;line-height:1.6}
 .transport label{font-size:.85rem;color:var(--sub);display:flex;align-items:center;gap:6px}
 input[type=range]{accent-color:var(--gold);width:120px}
 .beat{display:flex;gap:8px;justify-content:center;margin:10px 0}
+.transport .beat{margin:0 0 0 4px}
 .beat i{width:18px;height:18px;border-radius:50%;background:var(--line);display:block}
 .beat i.on{background:var(--gold);box-shadow:0 0 12px var(--gold)}
 .beat i.one.on{background:var(--red);box-shadow:0 0 12px var(--red)}
@@ -150,7 +158,10 @@ input[type=range]{accent-color:var(--gold);width:120px}
 <aside class="rail">
   <header><div class="logo">BAND ROOM</div><div class="tag">EAIM 연주실</div></header>
   <div class="steps" id="steps"></div>
-  <div class="railfoot">태블릿은 <b>가로</b>로 두고 쓰세요.<br>헤드폰을 연결하면 서로 방해받지 않아요.</div>
+  <div class="railfoot">태블릿은 <b>가로</b>로 두고 쓰세요.<br>헤드폰을 연결하면 서로 방해받지 않아요.
+    <div class="credit">© 2017–2026 <b>박성애</b> · EAIM 연주실<br>
+    수업 흐름은 <b>손정아</b> 선생님의 「우리 반 밴드 수업」을 바탕으로 재구성했습니다.</div>
+  </div>
 </aside>
 
 <main>
@@ -205,9 +216,9 @@ input[type=range]{accent-color:var(--gold);width:120px}
   <h2>④ 개인 연습</h2><div class="desc">코드를 누르면 운지법이 뜨고 소리가 나요. ▶를 누르면 드럼 비트에 맞춰 코드가 넘어가요.</div>
   <div class="chordline" id="cl4"></div>
   <div class="fing"><div class="fbox" id="fing4"></div><div class="fbox"><h4>이 코드의 음</h4><div id="notes4"></div><div class="piano-mini" id="pm4"></div><div class="tip4" id="tip4"></div></div></div>
-  <div class="beat" id="beat4"></div>
   <div class="transport">
     <button class="btn g" id="play4" onclick="togglePlay('solo')">▶ 연습 시작</button>
+    <div class="beat" id="beat4"></div>
     <label><input type="checkbox" id="drum4" checked> 드럼 비트</label>
     <label><input type="checkbox" id="myinst4" checked> 내 악기 소리 같이</label>
     <label>템포 <input type="range" min="50" max="200" value="90" oninput="setBpm(this.value)" class="bpmSync"> <b class="bpmLblSync">90</b></label>
@@ -257,8 +268,8 @@ input[type=range]{accent-color:var(--gold);width:120px}
   <div id="autobox" style="display:none;margin-top:10px">
     <div class="chips" id="tracks"><div class="chip on" data-t="drum">🥁 드럼</div><div class="chip on" data-t="bass">🎸 베이스</div><div class="chip on" data-t="piano">🎹 피아노</div><div class="chip on" data-t="guitar">🎸 기타</div></div>
     <p class="note" style="margin-top:6px">코드 진행만으로 앱이 반주를 만들어요. 내 악기를 끄면 그 자리를 내가 채우는 연습이 돼요.</p>
-    <div class="chordline" id="cl5"></div><div class="beat" id="beat5"></div>
-    <div class="transport"><button class="btn g" id="play5" onclick="togglePlay('minus')">▶ 자동 반주</button><label>템포 <input type="range" min="50" max="200" value="90" oninput="setBpm(this.value)" class="bpmSync"> <b class="bpmLblSync">90</b></label></div>
+    <div class="chordline" id="cl5"></div>
+    <div class="transport"><button class="btn g" id="play5" onclick="togglePlay('minus')">▶ 자동 반주</button><div class="beat" id="beat5"></div><label>템포 <input type="range" min="50" max="200" value="90" oninput="setBpm(this.value)" class="bpmSync"> <b class="bpmLblSync">90</b></label></div>
   </div>
 </div><div class="nav"><button class="btn" onclick="go(4)">← 개인 연습</button><button class="btn p" onclick="go(6)">합주 →</button></div></section>
 
@@ -296,6 +307,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
     <button class="btn" onclick="downloadReflection()">💾 파일로 저장</button>
     <span class="note" id="refSt"></span>
   </div>
+  <p class="note" id="creditSmall" style="margin-top:16px;padding-top:10px;border-top:1px dashed var(--line);font-size:.72rem;opacity:.8">© 2017–2026 <b style="color:var(--gold)">박성애</b> · EAIM 연주실 &nbsp;|&nbsp; 수업 흐름은 <b style="color:var(--gold)">손정아</b> 선생님의 「우리 반 밴드 수업」을 바탕으로 재구성했습니다.</p>
 </div><div class="nav"><button class="btn" onclick="go(5)">← 음원</button><span></span></div></section>
 </main>
 </div>
@@ -516,7 +528,10 @@ if(inst==='eguitar'){const bn=c.root;const i=NOTES.indexOf(bn);const e=(i-4+12)%
  if(inst==='vocal'){return`<h4>🎤 ${c.name}</h4><div style="font-size:1rem;line-height:1.8">근음 <b style="color:var(--gold)">${c.root}</b>을 허밍해 보세요<br>코드 음: ${chordTones(c).join(' · ')}</div>`}
  return`<h4>🎹 ${c.name} 피아노</h4><div style="font-size:1rem;line-height:1.8">왼손 <b style="color:var(--gold)">${c.bass||c.root}</b> (낮은 옥타브${c.bass?' · 분수코드 베이스':''})<br>오른손 <b>${chordTones(c).join(' · ')}</b>${c.intervals.length>3?'<br><span class="note">텐션(9·7)은 맨 위에 두면 예뻐요</span>':''}</div>`}
 function pianoMini(el,c){const tones=chordTones(c);const whites=['C','D','E','F','G','A','B'];let h='';whites.forEach(w=>h+=`<div class="w ${tones.includes(w)?'on':''}">${w}</div>`);const blacks={ 'C#':1,'D#':2,'F#':4,'G#':5,'A#':6};Object.entries(blacks).forEach(([n,i])=>h+=`<div class="b ${tones.includes(n)?'on':''}" style="left:${i*14.28-3}%"></div>`);el.innerHTML=h}
-function renderChordLine(el,onPick){if(!el)return;const bars=S.song?viewBars():[];el.innerHTML=bars.length?bars.map((b,i)=>`<div class="cb" data-i="${i}">${b.name}</div>`+(b.br&&i<bars.length-1?'<div class="brk"></div>':'')).join(''):'<span class="note">② 곡 선정에서 곡을 먼저 정해주세요</span>';el.querySelectorAll('.cb').forEach(d=>d.onclick=()=>onPick(Number(d.dataset.i)))}
+function renderChordLine(el,onPick){if(!el)return;const bars=S.song?viewBars():[];
+ el.classList.toggle('dense',bars.length>4);   // 5마디 이상이면 한 줄로 눌러 담기
+ el.innerHTML=bars.length?bars.map((b,i)=>`<div class="cb" data-i="${i}">${b.name}</div>`+(b.br&&i<bars.length-1?'<div class="brk"></div>':'')).join(''):'<span class="note">② 곡 선정에서 곡을 먼저 정해주세요</span>';
+ el.querySelectorAll('.cb').forEach(d=>d.onclick=()=>onPick(Number(d.dataset.i)))}
 
 /* ═════ ④ 개인 연습 ═════ */
 let sel4=0;
