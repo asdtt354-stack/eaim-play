@@ -34,12 +34,6 @@ main{max-width:860px;margin:0 auto;padding:0 14px 90px}
 .opt b{display:block;font-size:.95rem}
 .opt span{display:block;font-family:'Space Mono',monospace;font-size:.8rem;color:#fff;margin:3px 0}
 .opt small{display:block;font-size:.7rem;color:var(--sub)}
-.opt .lv{font-style:normal;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:99px;margin-left:6px;vertical-align:middle;white-space:nowrap}
-.opt .lv1{background:rgba(74,222,128,.18);color:var(--green)}
-.opt .lv2{background:rgba(212,168,67,.18);color:var(--gold)}
-.opt .lv3{background:rgba(167,139,250,.22);color:var(--purple)}
-.opt .pv{margin-top:7px;background:var(--panel);border:1px solid var(--line);color:var(--sub);border-radius:8px;padding:5px 11px;font-size:.72rem;cursor:pointer}
-.opt .pv:active{background:var(--gold);color:#1a1200;border-color:var(--gold)}
 .btn{padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;font-weight:700;font-size:.92rem}
 .btn.p{background:var(--gold);color:#1a1200;border-color:var(--gold)}
 .btn.g{background:var(--green);color:#052e16;border-color:var(--green)}
@@ -106,7 +100,7 @@ textarea.in{width:100%;background:var(--panel2);border:1px solid var(--line);bor
 <section class="page on" id="p1"><div class="card">
   <h2>① 기분 고르기</h2><div class="desc">기분을 고르면 요즘 노래 느낌의 코드 4마디가 정해져요. 마음에 드는 스타일도 골라요.</div>
   <div class="chips" id="moods"></div>
-  <div class="lbl">이 기분의 코드 진행 — 다섯 개를 들어보고 골라요 <span class="note">(🔊 들어보기는 녹음을 지우지 않아요 · 초록 기본 → 금색 요즘 소리 → 보라 도전)</span></div>
+  <div class="lbl">이 기분의 코드 진행 — 하나 골라요 <span class="note">(1번이 제일 쉬워요)</span></div>
   <div class="opts" id="opts"></div>
   <div class="lbl">반주 스타일</div><div class="chips" id="styles"></div>
   <div class="lbl">빠르기</div><div class="row"><input type="range" id="bpm" min="60" max="140" value="84" oninput="setBpm(this.value)"><b id="bpmLbl">84</b> BPM</div>
@@ -156,12 +150,11 @@ textarea.in{width:100%;background:var(--panel2);border:1px solid var(--line);bor
 
 <!-- 4 듣기 -->
 <section class="page" id="p4"><div class="card">
-  <h2>④ 밴드와 함께 듣기</h2><div class="desc">내 멜로디가 밴드 반주 위에서 흘러요. 마음에 안 드는 마디는 ③으로 돌아가 다시 녹음하면 돼요. <b>⚡ 리듬 정리</b>는 1·3마디 앞부분을 정박으로 붙잡고 나머지에서 늦게 친 음만 8분음표 자리로 당겨 줍니다.</div>
+  <h2>④ 밴드와 함께 듣기</h2><div class="desc">내 멜로디가 밴드 반주 위에서 흘러요. 마음에 안 드는 마디는 ③으로 돌아가 다시 녹음하면 돼요.</div>
   <div class="stage"><div class="now" id="stageNow">—</div><div id="stageKo" style="font-size:1.1rem;margin-top:4px"></div><div class="beat" id="beat4"></div><div class="note" id="stageInfo"></div></div>
   <div class="bars" id="bars4"></div>
   <div class="row" style="justify-content:center">
     <button class="btn g" id="playBtn" onclick="togglePlay()">▶ 전체 듣기</button>
-    <button class="btn" id="grooveBtn" onclick="groove()">⚡ 리듬 정리</button>
     <label><input type="checkbox" id="loop" checked> 반복</label>
     <label><input type="checkbox" id="withBand" checked> 밴드 반주</label>
     <label>🐇 재생 빠르기 <input type="range" id="playBpm" min="50" max="160" value="96" oninput="setPlayBpm(this.value)"> <b id="playBpmLbl">96</b> BPM</label>
@@ -175,12 +168,6 @@ textarea.in{width:100%;background:var(--panel2);border:1px solid var(--line);bor
     <button class="btn" onclick="exportScorePng()">🖼 악보 이미지 저장</button>
   </div>
   <p class="note" style="text-align:center;margin-top:6px">소리는 webm 파일(폰·PC에서 바로 재생). MIDI는 MuseScore 같은 프로그램에서 열면 정식 악보로 편집·인쇄할 수 있어요.</p>
-</div>
-<div class="card">
-  <h2>➡️ 이 코드는 이렇게 이어갈 수 있어요</h2>
-  <div class="desc">지금 만든 4마디가 <b>A파트</b>예요. 뒤에 성격이 다른 4마디(<b>B파트</b>)를 붙이면 A–B 형식의 8마디 곡이 됩니다. 🔊를 누르면 내 A파트에 이어서 B파트가 흘러요.</div>
-  <div class="opts" id="bparts"></div>
-  <div class="row" id="bpartUndo" style="display:none;margin-top:10px"><button class="btn r" onclick="removeB()">↩ B파트 빼기</button><span class="note" id="bpartNow"></span></div>
 </div>
 <div class="card">
   <h2>🎼 내 멜로디 악보</h2><div class="desc">녹음한 멜로디의 간단 악보예요. 코드는 마디 위에, 빨간 음은 코드 음, <span style="color:#7c3aed">보라 음</span>은 다음 코드를 앞당겨 친 음(이음줄).</div>
@@ -218,101 +205,36 @@ const C=window.EAIMChord, PC=C.PC;
    ★ 선생님이 고치는 곳: prog 의 코드만 바꾸면 됩니다. 4마디, 공백으로 구분. add9·sus4·maj7·m7·G/B 다 됩니다. */
 const MOODS={
  happy:{n:'😄 행복',bpm:96,style:'pop16',opts:[
-   {label:'☀️ 밝고 단순',prog:'C G Am F',lv:1},
-   {label:'🎈 둥실 가벼운',prog:'C Em F G',lv:1},
-   {label:'🌸 요즘 팝',prog:'Cadd9 G/B Am7 Fmaj7',lv:2},
-   {label:'✈️ 시원하게 뻗는',prog:'Fmaj7 G C/E Am7',lv:2},
-   {label:'🌈 살짝 비껴가는',prog:'Cmaj7 C#dim Dm7 G7',lv:3} ]},
+   {label:'☀️ 밝고 단순',prog:'C G Am F'},
+   {label:'🌸 요즘 팝',prog:'Cadd9 G/B Am7 Fmaj7'},
+   {label:'🎈 둥실 가벼운',prog:'C Em F G'} ]},
  excited:{n:'😆 신남',bpm:120,style:'dance',opts:[
-   {label:'🎉 파티',prog:'C G Am F',lv:1},
-   {label:'⚡ 달려가는',prog:'Am F C G',lv:1},
-   {label:'🚀 솟구치는',prog:'F G Am Am',lv:1},
-   {label:'🎆 터지는',prog:'Fmaj7 G Em7 Am',lv:2},
-   {label:'🌪 휘몰아치는',prog:'Am G F E7',lv:3} ]},
+   {label:'🎉 파티',prog:'C G Am F'},
+   {label:'⚡ 달려가는',prog:'Am F C G'},
+   {label:'🚀 솟구치는',prog:'F G Am Am'} ]},
  love:{n:'🥰 설렘',bpm:80,style:'kpop',opts:[
-   {label:'💗 수줍은',prog:'C Am F G',lv:1},
-   {label:'💞 계단 내려오듯',prog:'C G/B Am F',lv:1},
-   {label:'💌 K-pop 발라드',prog:'Fmaj7 G Em7 Am7',lv:2},
-   {label:'🌙 두근두근',prog:'Cmaj7 Dm7 Em7 Fmaj7',lv:2},
-   {label:'🌹 애틋한',prog:'Cmaj7 C7 Fmaj7 Fm7',lv:3} ]},
+   {label:'💗 수줍은',prog:'C Am F G'},
+   {label:'💌 K-pop 발라드',prog:'Fmaj7 G Em7 Am7'},
+   {label:'🌙 두근두근',prog:'Cmaj7 Dm7 Em7 Fmaj7'} ]},
  sad:{n:'😢 슬픔',bpm:72,style:'kpop',opts:[
-   {label:'🌧 담담한',prog:'Am F C G',lv:1},
-   {label:'🕯 깊은',prog:'Am Em F E7',lv:1},
-   {label:'🍂 그리운',prog:'Am7 Fmaj7 Cmaj7 G',lv:2},
-   {label:'💧 흘러내리는',prog:'Am7 Am7/G Fmaj7 G7sus4',lv:2},
-   {label:'🌫 아득한',prog:'Am7 D7 Fmaj7 E7',lv:3} ]},
+   {label:'🌧 담담한',prog:'Am F C G'},
+   {label:'🍂 그리운',prog:'Am7 Fmaj7 Cmaj7 G'},
+   {label:'🕯 깊은',prog:'Am Em F E7'} ]},
  dreamy:{n:'☁️ 몽환',bpm:90,style:'synth',opts:[
-   {label:'🌫 안개 속',prog:'C F C F',lv:1},
-   {label:'✨ 반짝이는',prog:'Csus2 Gsus4 Asus2 Fadd9',lv:2},
-   {label:'🌌 우주',prog:'Fmaj7 Cmaj7 Fmaj7 G',lv:2},
-   {label:'🫧 물속',prog:'Csus2 Fmaj7 Am7 Gsus4',lv:2},
-   {label:'🌠 꿈결',prog:'Cmaj9 Am9 Fmaj7 G7sus4',lv:3} ]},
+   {label:'🌫 안개 속',prog:'C F C F'},
+   {label:'✨ 반짝이는',prog:'Csus2 Gsus4 Asus2 Fadd9'},
+   {label:'🌌 우주',prog:'Fmaj7 Cmaj7 Fmaj7 G' } ]},
  cool:{n:'😎 시크',bpm:84,style:'rnb',opts:[
-   {label:'🕶 담백한',prog:'Dm G C Am',lv:1},
-   {label:'🌃 밤거리',prog:'Am7 Dm7 Em7 Am7',lv:2},
-   {label:'🎷 R&B',prog:'Dm7 G7sus4 Cmaj7 Am7',lv:2},
-   {label:'🍸 재즈 물든',prog:'Cmaj7 A7 Dm7 G7',lv:3},
-   {label:'🎧 네오소울',prog:'Fmaj7 Em7 Dm9 G9',lv:3} ]},
-};
-const LV={1:{t:'기본',c:'lv1'},2:{t:'요즘 소리',c:'lv2'},3:{t:'도전',c:'lv3'}};
-/* 기분별 B파트 후보 — 모두 A파트와 같은 조라 어떤 진행 뒤에 붙여도 어울려요 */
-const BPARTS={
- happy:[
-  {label:'🔼 후렴처럼 밀어 올리기',prog:'F G Em Am',why:'파에서 시작해 한 칸씩 올라가요. 요즘 노래 후렴에서 가장 많이 쓰는 길'},
-  {label:'🏁 정리하고 도착하기',prog:'Dm7 G7 Cmaj7 Cmaj7',why:'레–솔–도 순서로 집에 돌아오는 느낌. 곡을 끝낼 때'},
-  {label:'🌥 잠깐 흐려졌다 밝아지기',prog:'F Fm C G',why:'두 번째 파가 단조로 바뀌어요. 여기서 마음이 한 번 울컥해요'} ],
- excited:[
-  {label:'🔥 더 몰아붙이기',prog:'F G Am Am',why:'라단조로 끝나서 힘이 안 풀려요. 계속 달릴 때'},
-  {label:'⚡ 긴장 최고조',prog:'Dm7 E7 Am Am',why:'미7이 라단조를 세게 잡아당겨요. 클라이맥스 직전'},
-  {label:'🌬 숨 고르고 처음으로',prog:'C G Dm7 G7',why:'끝을 솔7로 열어 두면 자연스럽게 A파트로 되돌아가요'} ],
- love:[
-  {label:'💐 한 단 올라가 고백하기',prog:'Fmaj7 G Em7 Am7',why:'K-pop 후렴의 4–5–3–6. 설렘이 한 계단 올라가요'},
-  {label:'💭 끝에서 다시 설레게',prog:'Dm7 G7sus4 Cmaj7 A7',why:'마지막 라7이 다음을 궁금하게 만들어요. 2절로 이어질 때'},
-  {label:'🥺 울컥하는 반음',prog:'Fmaj7 Fm7 Cmaj7 G7sus4',why:'파장조 → 파단조. 발라드가 눈물 나는 바로 그 자리'} ],
- sad:[
-  {label:'🌊 더 깊어지기',prog:'F G Am Am',why:'밝은 파–솔로 올라갔다가 다시 라단조로 가라앉아요'},
-  {label:'🕯 체념하듯 제자리로',prog:'Dm7 E7 Am Am',why:'미7이 라단조로 강하게 끌어내려요. 가장 슬픈 마무리'},
-  {label:'🌤 잠깐 밝아졌다 돌아오기',prog:'Fmaj7 G Em7 Am7',why:'희망이 비쳤다가 다시 라단조. 슬픔이 더 커 보여요'} ],
- dreamy:[
-  {label:'🌅 안개가 걷히듯',prog:'Fmaj7 G Em7 Am7',why:'흐릿한 코드에서 또렷한 쪽으로 나와요'},
-  {label:'🎈 해결하지 않고 떠 있기',prog:'Csus2 Gsus4 Fmaj7 Fmaj7',why:'끝을 맺지 않아요. 꿈에서 안 깨는 느낌'},
-  {label:'🪶 천천히 내려앉기',prog:'Am7 Fmaj7 G7sus4 Cmaj9',why:'마지막 도9로 부드럽게 착지해요'} ],
- cool:[
-  {label:'🪜 계단으로 내려오기',prog:'Fmaj7 Em7 Dm7 G7',why:'파–미–레로 한 칸씩 내려와 솔7에서 정리돼요'},
-  {label:'🍷 비껴갔다 돌아오기',prog:'Am7 D7 Dm7 G7',why:'레7이 잠깐 다른 조로 새고, 레단조가 제자리로 돌려놔요'},
-  {label:'🔁 다시 처음으로',prog:'Cmaj7 A7 Dm7 G7sus4',why:'재즈 마무리(턴어라운드). A파트로 자연스럽게 되돌아가요'} ],
+   {label:'🕶 담백한',prog:'Dm G C Am'},
+   {label:'🎷 R&B',prog:'Dm7 G7sus4 Cmaj7 Am7'},
+   {label:'🌃 밤거리',prog:'Am7 Dm7 Em7 Am7'} ]},
 };
 const STYLES={kpop:'K-pop 발라드',pop16:'16비트 팝',rnb:'R&B',dance:'댄스',synth:'신스팝',ballad:'발라드 기본'};
-const S={mood:'happy',opt:0,custom:'',style:'pop16',bpm:96,recBpm:66,bars:[],sections:1,notes:[],bPart:''}; // notes: {bar, at(박,0~4), note:'C5', len}
+const S={mood:'happy',opt:0,custom:'',style:'pop16',bpm:96,recBpm:66,bars:[],sections:1,notes:[]}; // notes: {bar, at(박,0~4), note:'C5', len}
 function chordsOf(){return S.bars}
 function setMood(k){if(S.notes.length&&!confirm('기분을 바꾸면 녹음한 멜로디가 지워져요. 바꿀까요?'))return;if(ctx)stopAll();S.mood=k;S.opt=0;S.custom='';applyProg();const m=MOODS[k];S.style=m.style;setBpm(m.bpm);setRecBpm(Math.round(m.bpm*.7));renderAll()}
-function renderBParts(){const el=$('bparts');if(!el)return;const list=BPARTS[S.mood]||[];
- el.innerHTML=list.map((b,i)=>`<div class="opt ${S.bPart===b.label?'on':''}" style="cursor:default"><b>${b.label}</b><span>${b.prog}</span><small>${b.why}</small><div class="row" style="gap:6px"><button class="pv" onclick="previewB(${i},event)">🔊 A→B 들어보기</button><button class="pv" onclick="appendB(${i},event)">➕ 이어 붙이기</button></div></div>`).join('');
- const has=S.bars.length>4;$('bpartUndo').style.display=has?'flex':'none';$('bpartNow').textContent=has?`이어 붙인 B파트: ${S.bPart||'직접'}`:''}
-function previewB(i,e){if(e){e.stopPropagation();e.preventDefault()}
- if(!ctx){toast('먼저 "시작하기"를 눌러 소리를 켜주세요');return}
- const b=BPARTS[S.mood][i];const B=b.prog.split(/\s+/).map(C.parse).filter(Boolean);if(!B.length)return;
- stopAll();const seq=[...S.bars.slice(0,4),...B];const beat=beatSec();const t=ctx.currentTime+.1;
- seq.forEach((c,k)=>bandBar(c,t+k*4*beat));
- timers.push(setTimeout(()=>toast(`여기부터 B파트 — ${b.prog}`),(16*beat)*1000));
- toast(`🔊 내 A파트 4마디 → ${b.label}`)}
-function appendB(i,e){if(e){e.stopPropagation();e.preventDefault()}
- const b=BPARTS[S.mood][i];const B=b.prog.split(/\s+/).map(C.parse).filter(Boolean);if(B.length<4){toast('B파트를 읽지 못했어요');return}
- const willLose=S.sections>1||S.bars.length>4||S.notes.some(n=>n.bar>=4);
- if(willLose&&!confirm('5마디 뒤에 녹음한 멜로디는 지워지고 8마디 A–B 곡이 됩니다. 계속할까요?'))return;
- if(ctx)stopAll();
- S.sections=1;S.notes=S.notes.filter(n=>n.bar<4);S.bars=[...S.bars.slice(0,4),...B.slice(0,4)];S.bPart=b.label;sel=4;renderAll();
- toast(`➕ ${b.label} — 8마디가 됐어요. ③에서 5~8마디를 녹음해요`)}
-function removeB(){if(S.bars.length<=4)return;
- if(!confirm('B파트를 빼면 5~8마디에 녹음한 멜로디도 지워져요. 계속할까요?'))return;
- if(ctx)stopAll();S.bars=S.bars.slice(0,4);S.bPart='';S.notes=S.notes.filter(n=>n.bar<4);sel=0;renderAll();toast('4마디로 되돌렸어요')}
-function previewOpt(i,e){if(e){e.stopPropagation();e.preventDefault()}
- if(!ctx){toast('먼저 "시작하기"를 눌러 소리를 켜주세요');return}
- stopAll();const o=MOODS[S.mood].opts[i];const bars=o.prog.split(/\s+/).map(C.parse).filter(Boolean);if(!bars.length)return;
- const beat=beatSec();let t=ctx.currentTime+.1;bars.forEach((c,k)=>bandBar(c,t+k*4*beat));
- toast(`🔊 ${o.label} — ${o.prog}`)}
 function setOpt(i){if(S.notes.length&&!confirm('코드를 바꾸면 녹음한 멜로디가 지워져요. 바꿀까요?'))return;if(ctx)stopAll();S.opt=i;S.custom='';applyProg();renderAll()}
-function applyProg(){const m=MOODS[S.mood];const prog=S.opt===-1?S.custom:m.opts[S.opt].prog;const bars=prog.split(/\s+/).map(C.parse).filter(Boolean);if(bars.length)S.bars=bars.slice(0,8);S.bPart='';if(S.notes.length){S.notes=[];}}
+function applyProg(){const m=MOODS[S.mood];const prog=S.opt===-1?S.custom:m.opts[S.opt].prog;const bars=prog.split(/\s+/).map(C.parse).filter(Boolean);if(bars.length)S.bars=bars.slice(0,8);if(S.notes.length){S.notes=[];}}
 function customProg(){const v=prompt('코드 4마디를 공백으로 적어주세요 (예: Cadd9 G/B Am7 Fmaj7)',S.custom||S.bars.map(b=>b.name).join(' '));if(v===null)return;const bars=v.trim().split(/\s+/).map(C.parse).filter(Boolean);if(bars.length<2){toast('코드를 2개 이상 읽을 수 있어야 해요');return}if(ctx)stopAll();S.opt=-1;S.custom=bars.map(b=>b.name).join(' ');applyProg();renderAll()}
 function setStyle(k){if(ctx)stopAll();S.style=k;renderAll()}
 function setBpm(v){S.bpm=Number(v);$('bpm').value=v;$('bpmLbl').textContent=v;if($('playBpm')){$('playBpm').value=v;$('playBpmLbl').textContent=v}}
@@ -328,12 +250,11 @@ function koTones(c){const t=C.tones(c);const base=t.slice(0,3).map(x=>KO[x]).joi
 function renderBars(el,click){const total=S.bars.length*S.sections;el.innerHTML=Array.from({length:total},(_,i)=>{const c=S.bars[i%S.bars.length];const has=S.notes.some(n=>n.bar===i);const k=koTones(c);return`<div class="bar ${i===sel?'now':''} ${has?'done':''}" data-i="${i}">${c.name}<span class="ko"><b>${k.base}</b>${k.color?`<i>+${k.color}</i>`:''}</span><small>${Math.floor(i/S.bars.length)+1}절 ${i%S.bars.length+1}마디${has?' ✓':''}</small><div class="fill"></div></div>`}).join('');el.querySelectorAll('.bar').forEach(b=>b.onclick=()=>click(Number(b.dataset.i)))}
 function renderAll(){renderScore();
  $('moods').innerHTML=Object.entries(MOODS).map(([k,v])=>`<div class="chip ${S.mood===k?'on':''}" onclick="setMood('${k}')">${v.n}</div>`).join('');
- const m=MOODS[S.mood];$('opts').innerHTML=m.opts.map((o,i)=>{const L=LV[o.lv||1];return`<div class="opt ${S.opt===i?'on':''}" onclick="setOpt(${i})"><b>${o.label}<i class="lv ${L.c}">${L.t}</i></b><span>${o.prog}</span><small>${o.prog.split(' ').map(t=>{const c=C.parse(t);return c?koTones(c).base:''}).join(' · ')}</small><button class="pv" onclick="previewOpt(${i},event)">🔊 들어보기</button></div>`}).join('')+`<div class="opt ${S.opt===-1?'on':''}" onclick="customProg()"><b>✏️ 직접 입력</b><span>${S.custom||'내 코드로'}</span><small>잘하는 사람은 여기</small></div>`;
+ const m=MOODS[S.mood];$('opts').innerHTML=m.opts.map((o,i)=>`<div class="opt ${S.opt===i?'on':''}" onclick="setOpt(${i})"><b>${o.label}</b><span>${o.prog}</span><small>${o.prog.split(' ').map(t=>{const c=C.parse(t);return c?koTones(c).base:''}).join(' · ')}</small></div>`).join('')+`<div class="opt ${S.opt===-1?'on':''}" onclick="customProg()"><b>✏️ 직접 입력</b><span>${S.custom||'내 코드로'}</span><small>잘하는 사람은 여기</small></div>`;
  $('styles').innerHTML=Object.entries(STYLES).map(([k,v])=>`<div class="chip ${S.style===k?'on':''}" onclick="setStyle('${k}')">${v}</div>`).join('');
  ['bars1','bars2','bars3','bars4'].forEach(id=>renderBars($(id),i=>{sel=i;renderAll();if(cur===2||cur===3)auditionChord(S.bars[i%S.bars.length])}));
  renderBeat($('beat3'));renderBeat($('beat4'));paintGuide();
- $('stageInfo').textContent=`${MOODS[S.mood].n} · ${S.opt===-1?'직접 입력':MOODS[S.mood].opts[S.opt].label} · ${STYLES[S.style]} · ${S.bpm} BPM · ${S.bars.length*S.sections}마디${S.bars.length>4?' · A–B 형식':''}`;
- renderBParts();
+ $('stageInfo').textContent=`${MOODS[S.mood].n} · ${S.opt===-1?'직접 입력':MOODS[S.mood].opts[S.opt].label} · ${STYLES[S.style]} · ${S.bpm} BPM · ${S.bars.length*S.sections}마디`;
 }
 function renderBeat(el){el.innerHTML=Array.from({length:4},(_,i)=>`<i class="${i===0?'one':''}"></i>`).join('')}
 
@@ -392,7 +313,7 @@ S.unit='bar';
 function setUnit(u){S.unit=u;document.querySelectorAll('#unitChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.u===u));$('recBtn').textContent=u==='bar'?'🔴 이 마디 녹음':'🔴 구절 녹음 (4마디)';$('msg3').textContent=u==='bar'?'마디를 골라 🔴을 누르세요':'시작 마디를 골라 🔴을 누르면 4마디를 이어서 녹음해요'}
 function gridSize(){return Number($('grid').value)}
 function recordBar(){if(!ctx)return;if(rec.active||$('recBtn').textContent.startsWith('■')){stopAll();$('msg3').textContent='취소했어요';return}stopAll();$('recBtn').textContent='■ 취소';tempoMode='rec';
- const total=S.bars.length*S.sections;const startBar=S.unit==='bar'?sel:Math.floor(sel/4)*4;const nbars=S.unit==='bar'?1:Math.min(4,total-startBar);
+ const total=S.bars.length*S.sections;const startBar=S.unit==='bar'?sel:Math.floor(sel/S.bars.length)*S.bars.length;const nbars=S.unit==='bar'?1:Math.min(S.bars.length,total-startBar);
  const beat=beatSec();const t0=ctx.currentTime+.1;
  for(let b=0;b<4;b++){click(t0+b*beat,b===0);timers.push(setTimeout(()=>{$('msg3').textContent=['하나','둘','셋','넷'][b]+' …';beatDot($('beat3'),b)},(b*beat+.1)*1000))}
  const tRec=t0+4*beat;
@@ -417,28 +338,6 @@ function finishBar(){if(!rec.active)return;rec.active=false;tempoMode='play';con
 function clearBar(){S.notes=S.notes.filter(n=>n.bar!==sel);renderAll();toast('지웠어요')}
 function resetAll(){if(S.notes.length&&!confirm('녹음한 멜로디를 모두 지우고 처음부터 할까요? (기분·코드는 그대로)'))return;stopAll();S.notes=[];S.sections=1;sel=0;['j1','j2','j3'].forEach(id=>{const e=$(id);if(e)e.value=''});renderAll();toast('초기화됐어요')}
 function beatDot(el,b){el.querySelectorAll('i').forEach((d,k)=>d.classList.toggle('on',k===b))}
-
-/* ═════ 리듬 정리 (초기 「마스터 합주실」의 applySmartRhythm 을 옮김) ═════ */
-/* 1·3마디의 앞 2박은 정박으로 그대로 두어 안정감을 남기고(straight zone),
-   나머지 자리에서 박 끝에 늦게 걸린 음만 살짝 앞으로 당겨 8분음표 자리에 붙입니다. */
-let grooveBackup=null;
-function groove(){
- if(!S.notes.length){toast('먼저 ③에서 멜로디를 녹음해 주세요');return}
- if(grooveBackup){S.notes=grooveBackup.map(n=>({...n}));grooveBackup=null;$('grooveBtn').textContent='⚡ 리듬 정리';renderAll();toast('↩ 정리 전으로 되돌렸어요');return}
- grooveBackup=S.notes.map(n=>({...n}));
- const nb=S.bars.length;const out=[];const seen=new Set();
- S.notes.slice().sort((a,b)=>(a.bar-b.bar)||(a.at-b.at)).forEach(n=>{
-  const inBar=n.bar%nb;
-  const straight=(inBar===0||inBar===2)&&n.at<2;      // 1·3마디 앞 2박은 손대지 않음
-  let at=n.at;
-  if(!straight){const off=at%1;if(off>.6)at-=.15}     // 박 끝에 늦게 걸린 음만 당김
-  at=Math.round(at/.5)*.5;                            // 8분음표 자리로 정리
-  at=Math.max(0,Math.min(3.5,at));
-  const key=n.bar+'|'+at;
-  if(seen.has(key))return;                            // 같은 자리로 겹친 음은 하나만
-  seen.add(key);out.push({...n,at,len:Math.max(.5,n.len||.5)})});
- S.notes=out;renderAll();$('grooveBtn').textContent='↩ 정리 되돌리기';
- toast(`⚡ ${out.length}음을 정리했어요 — 다시 누르면 되돌아가요`)}
 
 /* ═════ 듣기 (④ 단계) ═════ */
 let playing=false,loopTimer=null;

@@ -41,14 +41,12 @@ input[type=range]{accent-color:var(--gold);width:120px}
 .gname{display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:700;padding-left:4px}
 .gname i{width:9px;height:9px;border-radius:50%;display:inline-block}
 .cell{height:40px;border-radius:7px;background:var(--panel2);border:1px solid var(--line);cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--sub)}
-.cell.beat{background:#2c2542}
-.cell.strong{background:#3b3159}
+.cell.strong{background:#322a4a}
 .cell.on{color:#1a1200;font-weight:900;border-color:transparent}
-
+.cell.synco::after{content:'⟶';position:absolute;top:-2px;right:3px;font-size:.6rem;color:var(--synco);opacity:.9}
 .cell.now{outline:2px solid #fff;outline-offset:-2px}
 .cell.chord{font-size:.78rem;font-weight:700}
 .hdr .cell{height:22px;background:transparent;border:0;font-family:'Space Mono',monospace;font-size:.7rem}
-.hdr .cell.beat{color:#cbbdf0;font-weight:700}
 .hdr .cell.strong{color:var(--gold);font-weight:700}
 .legend{font-size:.75rem;color:var(--sub);margin-top:6px}
 .legend b{color:var(--synco)}
@@ -85,7 +83,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
 <main>
 <!-- 만들기 -->
 <section class="pane on" id="pane-make"><div class="card">
-  <h2>🧱 리듬 블록 만들기</h2><div class="desc">위 숫자를 <b>"일 이 삼 사 일 이 삼 사"</b>(16분은 <b>"일점 이점 삼점 사점"</b>)로 세면서 칸을 눌러요. <b style="color:var(--gold)">밝은 칸</b>이 강박(첫 번째 1과 두 번째 1). 음표가 놓이는 자리는 숫자 <b style="color:var(--gold)">1과 3</b>이에요. 거기에 갈 음을 앞의 <b>2나 4</b>에서 미리 치고 1·3을 비워 두면, 그 음이 넘어와 1·3 자리를 덮으면서 그 자리가 <b>빈 네모</b>로 남아요 — 이게 당김음(신코페이션)이에요. 판정은 <b style="color:#20d8c8">베이스 줄</b>에서만 해요 — 드럼은 치고 끝나는 소리라 붙임줄이 없거든요.</div>
+  <h2>🧱 리듬 블록 만들기</h2><div class="desc">위 숫자를 <b>"일 이 삼 사 일 이 삼 사"</b>(16분은 <b>"일점 이점 삼점 사점"</b>)로 세면서 칸을 눌러요. <b style="color:var(--gold)">밝은 칸</b>이 강박(첫 번째 1과 두 번째 1). 강박을 비우고 뒤 숫자에 찍으면 <b style="color:var(--synco)">보라 ⟶ 신코페이션</b> 표시가 붙어요.</div>
   <div class="row">
     <div class="chips"><div class="chip on" data-b="1" onclick="setBars(1)">1마디</div><div class="chip" data-b="2" onclick="setBars(2)">2마디</div></div>
     <div class="chips"><div class="chip on" data-d="2" onclick="setDiv(2)">8분음표 칸</div><div class="chip" data-d="4" onclick="setDiv(4)">16분음표 칸</div></div>
@@ -93,7 +91,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
   </div>
   <div class="row" style="margin-top:8px"><span class="note">보기 리듬</span><div class="chips" id="presets"></div></div>
   <div class="grid" style="margin-top:10px" id="grid"></div>
-  <div class="legend">일 이 삼 사 · 음표 자리는 <b style="color:var(--gold)">1과 3</b>, 사이가 2와 4 · <b>당김음</b> = 음표 자리인 <b style="color:#cbbdf0">1·3</b>이 빈 네모인데 그 앞의 2나 4가 채워져 있는 모양 (♪ ♩ ♪ = 한 칸 · 두 칸 · 한 칸) · 숫자 리듬법(박성애, 2017)<br>드럼은 곧게 두고 <b style="color:#20d8c8">베이스</b>만 바뀝니다 · ① 1,2,4 · ② 1,2,4,2,4 · ③ 2,4,2,4 · ④ 1,4,2,4 &nbsp;— 네 유형을 듣고 나면 자기 당김음을 만들 수 있어요</div>
+  <div class="legend">강박 = 두 개의 "1" 자리 · <b>⟶ 신코페이션</b> = "1"을 비우고 뒤 숫자를 침 · 숫자 리듬법(박성애, 2017)</div>
   <div class="row" style="margin-top:10px"><span class="note">코드 고르기</span><div class="chips" id="chordPick"></div></div>
   <div class="row" style="margin-top:10px"><button class="btn g" id="playMake" onclick="toggleMake()">▶ 재생</button><button class="btn" onclick="clearAll()">🧹 지우기</button><button class="btn" onclick="sendToGame()">🎯 이 리듬으로 맞히기</button><button class="btn" onclick="savePattern()">💾 저장</button><span class="note" id="makeSt"></span></div>
 </div></section>
@@ -149,51 +147,28 @@ function click(t,acc){const o=ctx.createOscillator(),g=ctx.createGain();o.freque
 let timers=[];function stopAll(){timers.forEach(clearTimeout);timers=[];if(ctx)killBus();if(makeTimer){clearInterval(makeTimer);makeTimer=null}if(gameTimer){clearInterval(gameTimer);gameTimer=null}makePlaying=false;gamePlaying=false;$('playMake').textContent='▶ 재생';$('playMake').classList.replace('r','g');$('playGame').textContent='▶ 시작';$('playGame').classList.replace('r','g');document.querySelectorAll('.cell.now,.lane i.now').forEach(e=>e.classList.remove('now'))}
 
 /* ═════ 만들기 ═════ */
-const TR=[{id:'kick',n:'킥 (큰북)',c:'#e84646',s:'쿵'},{id:'snare',n:'스네어 (작은북)',c:'#4a9eff',s:'짝'},{id:'hihat',n:'하이햇 (심벌)',c:'#5dca8a',s:'치'},{id:'clap',n:'클랩 (박수)',c:'#f0a030',s:'쫙'},{id:'bass',n:'베이스 (코드 근음)',c:'#20d8c8',s:'붐'}];
+const TR=[{id:'kick',n:'킥',c:'#e84646',s:'쿵'},{id:'snare',n:'스네어',c:'#4a9eff',s:'짝'},{id:'hihat',n:'하이햇',c:'#5dca8a',s:'치'},{id:'clap',n:'클랩',c:'#f0a030',s:'짝'},{id:'bass',n:'베이스',c:'#20d8c8',s:'붐'}];
 const CH=['C','G','Am','F','Dm','Em','Cadd9','Gsus4','Am7','Fmaj7'];
 const S={bars:1,div:2,bpm:96,state:{},chord:[],sel:'C'};
 const T=()=>S.bars*4*S.div;
 function init(){const n=T();TR.forEach(t=>{const o=S.state[t.id]||[];S.state[t.id]=Array.from({length:n},(_,i)=>!!o[i])});const oc=S.chord||[];S.chord=Array.from({length:S.bars*4},(_,i)=>oc[i]||null)}
 function isStrong(i){return i%(4*S.div)===0||i%(4*S.div)===2*S.div}
-const SYNCO_TRACK='bass';// 당김음은 음이 이어지는 악기(베이스)에서만 판정합니다.
-// 드럼은 치고 끝나는 소리라 붙임줄이 없어서, 줄마다 따로 보면 오히려 헷갈립니다.
-/* 숫자 리듬법(박성애, 2017): 한 마디를 "일 이 삼 사 일 이 삼 사"로 셉니다.
-   음표가 놓이는 자리(정박) = 숫자 1과 3 · 그 사이(약박) = 숫자 2와 4
-   신코페이션 = 1이나 3에 갈 음을 앞의 2나 4에서 미리 치고, 그 1·3을 비워 두는 것 */
-function isBeat(i){return i%S.div===0}                 // 숫자 1·3 자리
-function nextBeat(i){const n=T();for(let d=1;d<=n;d++){const k=(i+d)%n;if(isBeat(k))return k}return -1}
-function synco(tid,i){
- if(!S.state[tid]||!S.state[tid][i])return false;
- if(tid!==SYNCO_TRACK)return false;
- if(isBeat(i))return false;                            // 정박에 친 건 신코페이션이 아님
- const k=nextBeat(i);                                  // 이 음이 넘어가는 1·3 자리
- return k>=0&&!S.state[tid][k]}                        // 거기를 안 쳤으면 = 음이 이어져 넘어간 것
-/* 신코페이션 음이 넘어가 덮는 칸 (점선 + ⌐ 로 표시) */
-function tied(tid,k){
- if(tid!==SYNCO_TRACK||!isBeat(k)||S.state[tid][k])return false;
- const n=T();for(let d=1;d<S.div+1;d++){const i=(k-d+n)%n;if(S.state[tid][i])return synco(tid,i)}
- return false}
+function synco(tid,i){if(!S.state[tid][i])return false;let p=-1;for(let k=i-1;k>=0;k--)if(S.state[tid][k]){p=k;break}if(p<0)return false;for(let k=p+1;k<i;k++)if(isStrong(k))return true;return false}
 function renderGrid(){init();const n=T();// 숫자 리듬(2017): 8분 = 일 이 삼 사 일 이 삼 사 / 16분 = 일점 이점 삼점 사점
  const lab=i=>{const e=Math.floor(i*2/S.div);return (S.div===4&&i%2===1)?'·':String(e%4+1)};
- let h=`<div class="grow hdr" style="--n:${n}"><div class="gname" style="font-size:.7rem;color:var(--sub)">${S.div===4?'일점 이점 삼점 사점':'일 이 삼 사 일 이 삼 사'}</div>${Array.from({length:n},(_,i)=>`<div class="cell ${isBeat(i)?'beat':''} ${isStrong(i)?'strong':''}">${lab(i)}</div>`).join('')}</div>`;
- TR.forEach(t=>{h+=`<div class="grow" style="--n:${n}"><div class="gname"><i style="background:${t.c}"></i>${t.n}</div>${S.state[t.id].map((on,i)=>`<div class="cell ${isBeat(i)?'beat':''} ${isStrong(i)?'strong':''} ${on?'on':''}" style="${on?'background:'+t.c:''}" onclick="tog('${t.id}',${i})">${on?t.s:''}</div>`).join('')}</div>`});
+ let h=`<div class="grow hdr" style="--n:${n}"><div class="gname" style="font-size:.7rem;color:var(--sub)">${S.div===4?'일점 이점 삼점 사점':'일 이 삼 사 일 이 삼 사'}</div>${Array.from({length:n},(_,i)=>`<div class="cell ${isStrong(i)?'strong':''}">${lab(i)}</div>`).join('')}</div>`;
+ TR.forEach(t=>{h+=`<div class="grow" style="--n:${n}"><div class="gname"><i style="background:${t.c}"></i>${t.n}</div>${S.state[t.id].map((on,i)=>`<div class="cell ${isStrong(i)?'strong':''} ${on?'on':''} ${synco(t.id,i)?'synco':''}" style="${on?'background:'+t.c:''}" onclick="tog('${t.id}',${i})">${on?t.s:''}</div>`).join('')}</div>`});
  h+=`<div class="grow" style="--n:${S.bars*4}"><div class="gname"><i style="background:#a78bfa"></i>코드</div>${S.chord.map((c,i)=>`<div class="cell chord ${i%4===0||i%4===2?'strong':''}" style="${c?'background:rgba(167,139,250,.35);color:#fff':''}" onclick="togChord(${i})">${c||'+'}</div>`).join('')}</div>`;
  $('grid').innerHTML=h;$('chordPick').innerHTML=CH.map(c=>`<div class="chip ${S.sel===c?'on':''}" onclick="S.sel='${c}';renderGrid()">${c}</div>`).join('')}
-function tog(t,i){S.state[t][i]=!S.state[t][i];renderGrid();if(ctx&&S.state[t][i]){
- if(t==='bass'){const beat=Math.floor(i/S.div);const nm=S.chord[beat]||S.chord.slice(0,beat+1).reverse().find(Boolean);
-  bassNote(C.parse(nm||'C'),ctx.currentTime,.3);
-  if(!nm)toast('베이스는 아래 코드 줄의 근음을 쳐요 — 코드를 먼저 찍어보세요 (지금은 도)')}
- else drum(t,ctx.currentTime)}}
+function tog(t,i){S.state[t][i]=!S.state[t][i];renderGrid();if(ctx&&S.state[t][i]){if(t==='bass')bassNote(C.parse(S.chord[Math.floor(i/S.div/1)%S.chord.length]||'C'),ctx.currentTime,.3);else drum(t,ctx.currentTime)}}
 function togChord(i){S.chord[i]=S.chord[i]===S.sel?null:S.sel;renderGrid();if(ctx&&S.chord[i])chordHit(C.parse(S.chord[i]),ctx.currentTime,.6)}
 function setBars(b){S.bars=b;document.querySelectorAll('[data-b]').forEach(c=>c.classList.toggle('on',Number(c.dataset.b)===b));renderGrid()}
 function setDiv(d){const old=S.div;const conv=arr=>{const n=S.bars*4*d;return Array.from({length:n},(_,i)=>{const src=Math.round(i*old/d);return i*old%d===0?!!arr[src]:false})};TR.forEach(t=>S.state[t.id]=conv(S.state[t.id]));S.div=d;document.querySelectorAll('[data-d]').forEach(c=>c.classList.toggle('on',Number(c.dataset.d)===d));renderGrid()}
 function setBpm(v){S.bpm=Number(v);$('bpmLbl').textContent=v}
 function clearAll(){stopAll();TR.forEach(t=>S.state[t.id]=S.state[t.id].map(()=>false));S.chord=S.chord.map(()=>null);renderGrid()}
-const PRESETS={'기본 · 당김음 없음':{_bars:1,kick:[0,4],snare:[2,6],hihat:[0,1,2,3,4,5,6,7],bass:[0,2,4,6]},'① ♪♩♪ 짧은 당김음':{_bars:1,kick:[0,4],snare:[2,6],hihat:[0,1,2,3,4,5,6,7],bass:[0,1,3,4,5,7]},'② 마디 전체 밀림':{_bars:1,kick:[0,4],snare:[2,6],hihat:[0,1,2,3,4,5,6,7],bass:[0,1,3,5,7]},'③ 쉼표로 시작':{_bars:1,kick:[0,4],snare:[2,6],hihat:[0,1,2,3,4,5,6,7],bass:[1,3,5,7]},'④ 마디 넘는 붙임줄':{_bars:2,_abs:true,kick:[0,4,8,12],snare:[2,6,10,14],hihat:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],bass:[0,3,5,7,12]}};
+const PRESETS={'8비트 록':{kick:[0,4,5],snare:[2,6],hihat:[0,1,2,3,4,5,6,7]},'K-pop 발라드':{kick:[0,3,5],snare:[2,6],hihat:[0,1,2,3,4,5,6,7],clap:[6]},'댄스':{kick:[0,2,4,6],hihat:[1,3,5,7],clap:[2,6]},'신코페이션 ⟶':{kick:[0,3,6],snare:[2,6],hihat:[0,1,2,3,4,5,6,7],clap:[3,7]},'레게':{kick:[2,6],snare:[2,6],hihat:[1,3,5,7],bass:[2,6]}};
 function renderPresets(){$('presets').innerHTML=Object.keys(PRESETS).map(k=>`<div class="chip" onclick="preset('${k}')">${k}</div>`).join('')}
-function preset(k){const p=PRESETS[k];if(S.div!==2)setDiv(2);if(p._bars&&S.bars!==p._bars)setBars(p._bars);init();
- TR.forEach(t=>S.state[t.id]=S.state[t.id].map((_,i)=>(p[t.id]||[]).includes(p._abs?i:i%8)));
- if(!S.chord.some(Boolean))S.chord=S.chord.map((_,i)=>['C','G','Am','F'][i%4]);renderGrid()}
+function preset(k){if(S.div!==2)setDiv(2);const p=PRESETS[k];TR.forEach(t=>S.state[t.id]=S.state[t.id].map((_,i)=>(p[t.id]||[]).includes(i%8)));if(!S.chord.some(Boolean))S.chord=S.chord.map((_,i)=>['C','G','Am','F'][i%4]);renderGrid()}
 let makePlaying=false,makeTimer=null,makeStep=0,nextT=0;
 function toggleMake(){if(makePlaying){stopAll();return}makePlaying=true;$('playMake').textContent='■ 정지';$('playMake').classList.replace('g','r');makeStep=0;nextT=ctx.currentTime+.1;const step=()=>{while(nextT<ctx.currentTime+.2){const i=makeStep%T();scheduleStep(i,nextT,null);const ii=i,tt=nextT;timers.push(setTimeout(()=>{document.querySelectorAll('.cell.now').forEach(e=>e.classList.remove('now'));document.querySelectorAll('#grid .grow:not(.hdr)').forEach(r=>r.children[ii+1]?.classList.add('now'))},(tt-ctx.currentTime)*1000));nextT+=60/S.bpm/S.div;makeStep++}};step();makeTimer=setInterval(step,50)}
 function scheduleStep(i,t,skipPart){const beat=Math.floor(i/S.div);const c=C.parse(S.chord[beat]||S.chord.slice(0,beat+1).reverse().find(Boolean)||'C');
@@ -222,7 +197,7 @@ function toggleGame(){if(gamePlaying){stopAll();return}if(!TR.some(t=>S.state[t.
 function padHit(){if(!gamePlaying)return;const now=ctx.currentTime;$('pad').classList.add('hit');setTimeout(()=>$('pad').classList.remove('hit'),80);
  if(part==='chord'){const i=dueTimes.filter(d=>!d.hit).map(d=>d.i).find(()=>true);const c=C.parse(S.chord[Math.floor((i||0)/S.div)]||'C');chordHit(c,now,.5,.7)}else if(part==='bass')bassNote(C.parse('C'),now,.3);else drum(part,now,1);
  let best=null,bd=1;dueTimes.forEach(d=>{if(d.hit)return;const diff=Math.abs(d.t-now);if(diff<bd){bd=diff;best=d}});
- if(best&&bd<=.15){best.hit=true;hits++;streak++;$('ln'+best.i)?.classList.add('ok');const sy=synco(part==='chord'?'bass':part,best.i);$('fb').textContent=bd<.06?(sy?'⟶ 신코페이션 퍼펙트!':'퍼펙트!'):(sy?'⟶ 신코페이션!':streak>=6?'🔥 연속 '+streak:'굿');$('fb').style.color=sy?'var(--synco)':'var(--green)';$('pad').classList.add('good');setTimeout(()=>$('pad').classList.remove('good'),150)}
+ if(best&&bd<=.15){best.hit=true;hits++;streak++;$('ln'+best.i)?.classList.add('ok');const sy=synco(part==='chord'?'kick':part,best.i);$('fb').textContent=bd<.06?(sy?'⟶ 신코페이션 퍼펙트!':'퍼펙트!'):(sy?'⟶ 신코페이션!':streak>=6?'🔥 연속 '+streak:'굿');$('fb').style.color=sy?'var(--synco)':'var(--green)';$('pad').classList.add('good');setTimeout(()=>$('pad').classList.remove('good'),150)}
  else{miss++;streak=0;$('fb').textContent=best?'박이 안 맞아요':'여기선 안 쳐요';$('fb').style.color='var(--red)';$('pad').classList.add('bad');setTimeout(()=>$('pad').classList.remove('bad'),150)}updScore()}
 function updScore(){$('sHit').textContent=hits;$('sMiss').textContent=miss;$('sStreak').textContent=streak;const t=hits+miss;$('sAcc').textContent=t?Math.round(hits/t*100)+'%':'-'}
 function finishGame(){stopAll();const t=hits+miss;const acc=t?Math.round(hits/t*100):0;$('fb').textContent=acc>=90?'🏆 대단해요! '+acc+'%':acc>=70?'👍 좋아요 '+acc+'%':'💪 다시 해봐요 '+acc+'%';$('fb').style.color='var(--gold)';EAIMKey.ping('리듬실','맞히기 '+acc+'%',{force:true})}
