@@ -145,12 +145,20 @@ const INSTS=[
  {id:'bass',n:'🎸 베이스',iv:0,low:40,high:60,clef:'F',input:'piano'},
  {id:'drum',n:'🥁 드럼 (리듬만)',iv:0,low:0,high:0,clef:'R',input:'pad'},
 ];
+/* 박 단위 리듬 세포 — b: 차지하는 박, n: 음 길이(rest 는 쉼표) */
+const CELLS=[
+ {lv:1,b:1,n:[1]},                {lv:1,b:2,n:[2]},              {lv:1,b:4,n:[4]},
+ {lv:2,b:1,n:[.5,.5]},            {lv:2,b:2,n:[1.5,.5]},         {lv:2,b:1,n:['r']},
+ {lv:3,b:3,n:[3]},                {lv:3,b:2,n:[1,.5,.5]},        {lv:3,b:2,n:[.5,.5,1]},
+ {lv:4,b:2,n:[.5,1,.5]},          {lv:4,b:1,n:[.25,.25,.5]},     {lv:4,b:1,n:[.5,.25,.25]},
+ {lv:5,b:1,n:[.25,.25,.25,.25]},  {lv:5,b:2,n:[.75,.25,1]},      {lv:5,b:2,n:[1.5,.25,.25]},
+];
 const LEVELS=[
- {n:'1 · 도미솔',deg:[0,2,4],rhy:['1','1','1','1'],leap:2,acc:0},
- {n:'2 · 5음 순차',deg:[0,1,2,3,4],rhy:['1','1','.5','.5','2'],leap:2,acc:0},
- {n:'3 · 한 옥타브',deg:[0,1,2,3,4,5,6,7],rhy:['1','.5','.5','1.5','2'],leap:3,acc:0},
- {n:'4 · 도약·붙점',deg:[0,1,2,3,4,5,6,7,8,9],rhy:['.5','.5','1.5','.25','1','2'],leap:5,acc:0},
- {n:'5 · 임시표·16분',deg:[0,1,2,3,4,5,6,7,8,9],rhy:['.25','.25','.5','1','1.5'],leap:7,acc:.25},
+ {n:'1 · 도미솔',   span:5,  leap:4, acc:0,   rest:.10},
+ {n:'2 · 5음 순차', span:6,  leap:4, acc:0,   rest:.12},
+ {n:'3 · 한 옥타브', span:8,  leap:5, acc:0,   rest:.12},
+ {n:'4 · 도약·붙점', span:10, leap:7, acc:0,   rest:.10},
+ {n:'5 · 임시표·16분',span:12, leap:9, acc:.18, rest:.10},
 ];
 const KEYS=[{n:'다장조 C',root:'C',mode:'major'},{n:'사장조 G',root:'G',mode:'major'},{n:'바장조 F',root:'F',mode:'major'},{n:'라단조 Am',root:'A',mode:'minor'},{n:'마단조 Em',root:'E',mode:'minor'},{n:'라장조 D',root:'D',mode:'major'}];
 const S={mode:'melody',inst:'vocal',lv:0,key:0,meter:4,bars:4,bpm:76,notes:[],ok:0,bad:0,streak:0};
@@ -171,37 +179,70 @@ function setMode(m){S.mode=m;document.querySelectorAll('#modes .chip').forEach(c
 
 /* ═════ 악보 만들기 ═════ */
 const scaleOf=(root,mode)=>{const r=PC.indexOf(root);const iv=mode==='major'?[0,2,4,5,7,9,11]:[0,2,3,5,7,8,10];return iv.map(i=>(r+i)%12)};
+function pickCells(meter,lv,lastBar){
+ // 한 마디를 박 단위 세포로 채운다
+ const pool=CELLS.filter(c=>c.lv<=lv+1&&c.b<=meter);
+ const out=[];let left=meter,guard=0;
+ while(left>0&&guard++<20){
+  let cand=pool.filter(c=>c.b<=left);
+  if(lastBar&&left===meter){const long=cand.filter(c=>c.b>=Math.min(2,meter));if(long.length&&Math.random()<.7)cand=long}
+  if(left===meter&&!lastBar){const c1=cand.filter(c=>!(c.n.length===1&&c.n[0]==='r'));if(c1.length)cand=c1}  // 마디 첫 박은 쉼표로 시작 안 함
+  if(!cand.length){out.push({len:left});left=0;break}
+  const c=cand[Math.floor(Math.random()*cand.length)];
+  c.n.forEach(x=>out.push(x==='r'?{rest:true,len:1}:{len:x}));
+  left-=c.b;
+ }
+ return out}
 function makeSheet(){
  const I=inst(),L=lvl(),K=KEYS[S.key];const meter=Number($('meter').value),bars=Number($('bars').value);
  S.meter=meter;S.bars=bars;
- if(I.input==='pad'){ // 드럼: 리듬만
-  const out=[];for(let b=0;b<bars;b++){let filled=0;let guard=0;while(filled<meter&&guard++<40){let len=Number(L.rhy[Math.floor(Math.random()*L.rhy.length)]);if(filled+len>meter)len=meter-filled;if(len<=0)break;const rest=Math.random()<.12&&filled>0;out.push({rest,len,at:b*meter+filled,note:null});filled+=len}}
-  S.notes=out;return}
- const sc=scaleOf(K.root,K.mode);
- // 기보 음역 → 스케일 음(실음) 후보를 기보로 옮겨 담기
- const pool=[];for(let m=I.low;m<=I.high;m++){const concert=m-I.iv;if(sc.includes(((concert%12)+12)%12))pool.push(m)}
- if(!pool.length){S.notes=[];return}
- let idx=Math.floor(pool.length/2);const out=[];
- for(let b=0;b<bars;b++){let filled=0,guard=0;
-  while(filled<meter&&guard++<40){
-   let len=Number(L.rhy[Math.floor(Math.random()*L.rhy.length)]);if(filled+len>meter)len=meter-filled;if(len<=0)break;
-   const rest=Math.random()<(b===bars-1?.05:.12)&&filled>0;
-   if(rest){out.push({rest:true,len,at:b*meter+filled});filled+=len;continue}
-   const step=Math.round((Math.random()*2-1)*L.leap);idx=Math.max(0,Math.min(pool.length-1,idx+(step||1)));
-   let midi=pool[idx];
-   if(L.acc&&Math.random()<L.acc){const alt=midi+(Math.random()<.5?1:-1);if(alt>=I.low&&alt<=I.high)midi=alt}
-   const nn={note:midi,len,at:b*meter+filled};
-   if(S.mode==='chord'&&Math.random()<.8){ // 대부분의 음에 위 음 하나 더
-     const opts=IV_BY_LV[S.lv].filter(x=>x>=3&&x<=9).concat([3,4,5,7]);const iv=opts[Math.floor(Math.random()*opts.length)]||4;
-     let up=midi+iv;const inScale=(m)=>sc.includes(((m-I.iv)%12+12)%12);
-     if(!inScale(up)){if(inScale(up+1))up+=1;else if(inScale(up-1))up-=1}
-     if(up<=I.high)nn.note2=up;
+ // ── 드럼: 리듬만 ──
+ if(I.input==='pad'){const out=[];for(let b=0;b<bars;b++){let at=0;pickCells(meter,S.lv,b===bars-1).forEach(n=>{out.push({...n,note:null,at:b*meter+at});at+=n.len})}S.notes=out;return}
+ // ── 음높이 후보(기보 음역 ∩ 조표) ──
+ const sc=scaleOf(K.root,K.mode);const tonicPc=(PC.indexOf(K.root)+I.iv)%12;
+ const pool=[],sdeg=[];
+ for(let m=I.low;m<=I.high;m++){const pc=((m-I.iv)%12+12)%12;const d=sc.indexOf(pc);if(d>=0){pool.push(m);sdeg.push(d)}}
+ if(pool.length<3){S.notes=[];return}
+ // 레벨 음역으로 좁히기 (으뜸음에서 시작해 span 만큼)
+ let ti=pool.findIndex((m,i)=>sdeg[i]===0&&m>=I.low+Math.floor((I.high-I.low)/3));if(ti<0)ti=Math.floor(pool.length/2)-2;
+ const lo=Math.max(0,ti-1),hi=Math.min(pool.length-1,ti+L.span-1);
+ const inR=i=>i>=lo&&i<=hi;
+ // ── 화성 진행 ──
+ const PROG={4:[0,3,4,0],3:[0,4,0],2:[0,0],8:[0,3,4,0,0,3,4,0]}[bars]||Array.from({length:bars},(_,i)=>i%4===0?0:i%4===1?3:i%4===2?4:0);
+ const harm=b=>PROG[b%PROG.length];
+ const isChordTone=(i,h)=>[h,(h+2)%7,(h+4)%7].includes(sdeg[i]);
+ // ── 음 붙이기 ──
+ const out=[];let cur=ti;const strong=at=>meter===4?(at%2===0):(at===0);
+ for(let b=0;b<bars;b++){
+  const cells=pickCells(meter,S.lv,b===bars-1);let at=0;
+  cells.forEach(n=>{
+   if(n.rest){out.push({rest:true,len:n.len,at:b*meter+at});at+=n.len;return}
+   const h=harm(b),last=(b===bars-1)&&(at+n.len>=meter-0.01);
+   let idx;
+   if(last){ // 마지막 음은 으뜸음 (되도록 가까운 쪽)
+    let best=cur,d=99;for(let i=lo;i<=hi;i++)if(sdeg[i]===0){const dd=Math.abs(i-cur);if(dd<d){d=dd;best=i}}idx=best;
+   }else if(b===bars-1&&at+n.len>=meter-1.01){ // 끝나기 직전: 으뜸음 바로 옆(2도) 으로
+    let best=cur,d=99;for(let i=lo;i<=hi;i++){if(Math.abs(sdeg[i]-0)!==1&&sdeg[i]!==6)continue;const dd=Math.abs(i-cur);if(dd<=L.leap&&dd<d){d=dd;best=i}}idx=best;
+   }else{
+    const want=strong(at);
+    let cand=[];for(let i=lo;i<=hi;i++){const dist=Math.abs(i-cur);if(dist>L.leap)continue;if(want&&!isChordTone(i,h))continue;cand.push(i)}
+    if(!cand.length)cand=[Math.max(lo,Math.min(hi,cur+(Math.random()<.5?1:-1)))];
+    // 순차 진행을 크게 선호, 같은 음 반복은 억제
+    const w=cand.map(i=>{const d=Math.abs(i-cur);let x=d===0?.18:d===1?3.2:d===2?1.4:1/(d*d);if(want&&isChordTone(i,h))x*=1.6;
+     if(out.length>=2&&out[out.length-1].note===pool[i]&&out[out.length-2].note===pool[i])x*=.15;   // 같은 음 세 번 연속 억제
+     return x});
+    const sum=w.reduce((a,x)=>a+x,0);let r=Math.random()*sum,k=0;while(k<w.length-1&&(r-=w[k])>0)k++;
+    idx=cand[k];
    }
-   out.push(nn);filled+=len;
-  }}
- // 마지막 음은 으뜸음 계열로 (초견 종지감)
- const last=[...out].reverse().find(n=>!n.rest);
- if(last){const tonic=(PC.indexOf(K.root)+I.iv)%12;let best=last.note,d=99;for(let m=I.low;m<=I.high;m++){if(((m%12)+12)%12===tonic){const dd=Math.abs(m-last.note);if(dd<d){d=dd;best=m}}}last.note=best}
+   const nn={note:pool[idx],len:n.len,at:b*meter+at};
+   if(L.acc&&!strong(at)&&!last&&Math.random()<L.acc){const alt=nn.note+(Math.random()<.5?1:-1);if(alt>=I.low&&alt<=I.high)nn.note=alt}
+   if(S.mode==='chord'&&Math.random()<.8){ // 화음: 위에 3·4·5·6도
+    const ups=[2,3,4].map(x=>idx+x).filter(inR);
+    if(ups.length)nn.note2=pool[ups[Math.floor(Math.random()*ups.length)]];
+   }
+   out.push(nn);cur=idx;at+=n.len;
+  });
+ }
  S.notes=out;
 }
 function newSheet(){stopAll();S.bpm=Number($('bpm').value);makeSheet();S.ok=0;S.bad=0;S.streak=0;updScore();cursor=0;render();persist();$('msg').textContent=`${$('bars').value}마디 · ${KEYS[S.key].n} · ${LEVELS[S.lv].n} — ▶ 시작을 누르면 카운트인 뒤 시작해요`}
@@ -247,36 +288,54 @@ function render(el,forPrint){
    const tx=left+ks.list.length*7-18;
    svg+=`<text x="${tx+4}" y="${y0+sp*1.6}" font-size="13" font-weight="700" fill="#222">${meter}</text><text x="${tx+4}" y="${y0+sp*3.6}" font-size="13" font-weight="700" fill="#222">4</text>`}
   for(let b=0;b<=perLine;b++){const x=left+b*barW;svg+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0+(I.clef==='R'?2*sp+6:4*sp)}" stroke="#333" stroke-width="${b===perLine&&L===lines-1?3:1}"/>`}
-  const sigW=(I.clef==='R'?0:keySig().list.length*7);for(let b=0;b<perLine;b++){const bi=L*perLine+b;if(bi>=bars)break;const x0=left+b*barW+18+(b===0?sigW:0),slotW=((barW-26)-(b===0?sigW:0))/meter;
-   S.notes.filter(n=>Math.floor(n.at/meter)===bi).forEach((n,k)=>{const rel=n.at-bi*meter;const x=x0+rel*slotW;
-    const idxAll=S.notes.indexOf(n);const st=n.state;const col=st==='ok'?'#2e7d4f':st==='bad'?'#c0392b':st==='now'?'#7c3aed':'#222';
+  const sigW=(I.clef==='R'?0:keySig().list.length*7);for(let b=0;b<perLine;b++){const bi=L*perLine+b;if(bi>=bars)break;const pad=(b===0?sigW:0)+16;const x0=left+b*barW+pad,slotW=(barW-pad-20)/meter;
+   const barNotes=S.notes.filter(n=>Math.floor(n.at/meter)===bi);
+   const posOf=(n)=>x0+(n.at-bi*meter)*slotW;
+   const yOf=(midi)=>{const nm=nameOf(midi,useFlat?'b':'#');const base=I.clef==='F'?nameOf(43,'#').step:nameOf(64,'#').step;return {y:y0+4*sp-(nm.step-base)*sp/2,nm,deg:nm.step-base}};
+   // 같은 박 안에서 이어지는 8·16분음표는 빔으로 묶는다
+   const groups=[];let gg=[];
+   barNotes.forEach(n=>{const rel=n.at-bi*meter;const ok=!n.rest&&n.len<1&&I.clef!=='R';
+     if(ok&&gg.length&&Math.floor(gg[gg.length-1].at-bi*meter)===Math.floor(rel))gg.push(n);
+     else{if(gg.length>1)groups.push(gg);gg=ok?[n]:[]}});
+   if(gg.length>1)groups.push(gg);
+   const beamed=new Set();groups.forEach(gr=>gr.forEach(n=>beamed.add(n)));
+   barNotes.forEach((n)=>{const rel=n.at-bi*meter;const x=posOf(n);
+    const stt=n.state;const col=stt==='ok'?'#2e7d4f':stt==='bad'?'#c0392b':stt==='now'?'#7c3aed':'#222';
     if(n.rest){let at=rel,len=n.len;while(len>0){const d=len>=1?1:.5;const xr=x0+at*slotW,y=y0+(I.clef==='R'?2*sp-6:2*sp);
       svg+=d===1?`<path d="M${xr-3},${y-8} l6,7 -5,5 5,7 c-3,-3 -6,-2 -5,2" fill="none" stroke="#666" stroke-width="1.6"/>`:`<path d="M${xr-3},${y-4} c2,2 5,2 6,-2 l-3,10" fill="none" stroke="#666" stroke-width="1.6"/>`;at+=d;len-=d}return}
-    let y,sharp=false,flat=false,solName='';
+    let y,nm=null,deg=0;
     if(I.clef==='R'){y=y0+2*sp}
-    else{const nm=nameOf(n.note,useFlat?'b':'#');sharp=nm.sharp;flat=nm.flat;solName=nm.sol;
-     const base=I.clef==='F'?nameOf(50,'#').step:nameOf(64,'#').step; // F: G2(=50) 첫줄 / G: E4(=64) 첫줄
-     const deg=nm.step-base;y=y0+4*sp-deg*sp/2;
+    else{const r2=yOf(n.note);y=r2.y;nm=r2.nm;deg=r2.deg;
      if(deg<=-2)for(let l=-2;l>=deg;l-=2)svg+=`<line x1="${x-8}" y1="${y0+4*sp-l*sp/2}" x2="${x+8}" y2="${y0+4*sp-l*sp/2}" stroke="#333"/>`;
      if(deg>=10)for(let l=10;l<=deg;l+=2)svg+=`<line x1="${x-8}" y1="${y0+4*sp-l*sp/2}" x2="${x+8}" y2="${y0+4*sp-l*sp/2}" stroke="#333"/>`;
      const sg=sigPcs();const letter=nm.en.replace(/[#b]?-?\d+$/,'');
-     const inSig=(sharp&&sg.sharp&&sg.letters.includes(letter))||(flat&&!sg.sharp&&sg.letters.includes(letter));
-     if(sharp&&!inSig)svg+=`<text x="${x-14}" y="${y+4}" font-size="12" fill="${col}">♯</text>`;
-     if(flat&&!inSig)svg+=`<text x="${x-14}" y="${y+4}" font-size="12" fill="${col}">♭</text>`}
+     const inSig=(nm.sharp&&sg.sharp&&sg.letters.includes(letter))||(nm.flat&&!sg.sharp&&sg.letters.includes(letter));
+     if(nm.sharp&&!inSig)svg+=`<text x="${x-14}" y="${y+4}" font-size="12" fill="${col}">♯</text>`;
+     if(nm.flat&&!inSig)svg+=`<text x="${x-14}" y="${y+4}" font-size="12" fill="${col}">♭</text>`}
     const hollow=n.len>=2;
     svg+=I.clef==='R'?`<path d="M${x-4},${y-5} l8,5 -8,5 z" fill="${col}"/>`:`<ellipse cx="${x}" cy="${y}" rx="5.2" ry="3.8" transform="rotate(-20 ${x} ${y})" fill="${hollow?'#fff':col}" stroke="${col}" stroke-width="1.6"/>`;
-    if(n.note2!=null&&I.clef!=='R'){const nm2=nameOf(n.note2,useFlat?'b':'#');const base2=I.clef==='F'?nameOf(50,'#').step:nameOf(64,'#').step;const deg2=nm2.step-base2;const y2=y0+4*sp-deg2*sp/2;
-      if(deg2>=10)for(let l=10;l<=deg2;l+=2)svg+=`<line x1="${x-8}" y1="${y0+4*sp-l*sp/2}" x2="${x+8}" y2="${y0+4*sp-l*sp/2}" stroke="#333"/>`;
+    if(n.note2!=null&&I.clef!=='R'){const r3=yOf(n.note2);const y2=r3.y,nm2=r3.nm;
+      if(r3.deg>=10)for(let l=10;l<=r3.deg;l+=2)svg+=`<line x1="${x-8}" y1="${y0+4*sp-l*sp/2}" x2="${x+8}" y2="${y0+4*sp-l*sp/2}" stroke="#333"/>`;
       const sg2=sigPcs();const l2=nm2.en.replace(/[#b]?-?\d+$/,'');const in2=(nm2.sharp&&sg2.sharp&&sg2.letters.includes(l2))||(nm2.flat&&!sg2.sharp&&sg2.letters.includes(l2));
       if(nm2.sharp&&!in2)svg+=`<text x="${x-14}" y="${y2+4}" font-size="12" fill="${col}">♯</text>`;
       if(nm2.flat&&!in2)svg+=`<text x="${x-14}" y="${y2+4}" font-size="12" fill="${col}">♭</text>`;
       svg+=`<ellipse cx="${x}" cy="${y2}" rx="5.2" ry="3.8" transform="rotate(-20 ${x} ${y2})" fill="${hollow?'#fff':col}" stroke="${col}" stroke-width="1.6"/>`;
       const ivName=(IVAL.find(v=>v.s===Math.abs(n.note2-n.note))||{}).ab;if(ivName&&$('showName').checked)svg+=`<text x="${x+9}" y="${(y+y2)/2+3}" font-size="8" fill="#7c3aed">${ivName}</text>`}
-    if(n.len<4){const up=I.clef==='R'?true:(y>y0+2*sp);const sx=up?x+4.6:x-4.6,sy2=up?y-24:y+24;svg+=`<line x1="${sx}" y1="${y}" x2="${sx}" y2="${sy2}" stroke="${col}" stroke-width="1.4"/>`;
+    if(n.len<4&&!beamed.has(n)){const up=I.clef==='R'?true:(y>=y0+2*sp);const sx=up?x+4.9:x-4.9,sy2=up?Math.min(y-26,y0+2*sp-4):Math.max(y+26,y0+2*sp+4);
+     svg+=`<line x1="${sx}" y1="${y}" x2="${sx}" y2="${sy2}" stroke="${col}" stroke-width="1.4"/>`;
      if(n.len<1){const flags=n.len<=.25?2:1;for(let f=0;f<flags;f++)svg+=`<path d="M${sx},${sy2+(up?f*6:-f*6)} c${up?'8,6 8,13 3,18':'8,-6 8,-13 3,-18'}" fill="none" stroke="${col}" stroke-width="1.5"/>`}}
-    if(n.len===1.5||n.len===3||n.len===.75)svg+=`<circle cx="${x+9}" cy="${y-2}" r="1.6" fill="${col}"/>`;
-    if(solName&&$('showName').checked)svg+=`<text x="${x}" y="${y0+4*sp+30}" font-size="10" text-anchor="middle" fill="#7a5312">${solName}</text>`;
-   })}}
+    if(n.len===1.5||n.len===3||n.len===.75)svg+=`<circle cx="${x+10}" cy="${(Math.round((y-y0)/(sp/2))%2===0)?y-sp/2:y}" r="1.7" fill="${col}"/>`;
+    if(nm&&$('showName').checked)svg+=`<text x="${x}" y="${y0+4*sp+32}" font-size="10" text-anchor="middle" fill="#7a5312">${nm.sol}</text>`;
+   });
+   groups.forEach(gr=>{const ys=gr.map(n=>yOf(n.note).y);
+    const up=(ys.reduce((a,b)=>a+b,0)/ys.length)>=y0+2*sp;
+    const tip=up?Math.min(Math.min(...ys)-26,y0+2*sp-6):Math.max(Math.max(...ys)+26,y0+2*sp+6);
+    gr.forEach((n,i)=>{const x=posOf(n);const sx=up?x+4.9:x-4.9;const stt=n.state;const col=stt==='ok'?'#2e7d4f':stt==='bad'?'#c0392b':stt==='now'?'#7c3aed':'#222';
+     svg+=`<line x1="${sx}" y1="${ys[i]}" x2="${sx}" y2="${tip}" stroke="${col}" stroke-width="1.4"/>`});
+    const bx1=posOf(gr[0])+(up?4.9:-4.9),bx2=posOf(gr[gr.length-1])+(up?4.9:-4.9);
+    svg+=`<line x1="${bx1}" y1="${tip}" x2="${bx2}" y2="${tip}" stroke="#222" stroke-width="3.4" stroke-linecap="round"/>`;
+    if(gr.every(n=>n.len<=.25))svg+=`<line x1="${bx1}" y1="${tip+(up?5:-5)}" x2="${bx2}" y2="${tip+(up?5:-5)}" stroke="#222" stroke-width="3" stroke-linecap="round"/>`;
+   });}}
  svg+='</svg>';host.innerHTML=svg;
  renderBeat();}
 function renderBeat(){$('beat').innerHTML=Array.from({length:S.meter},(_,i)=>`<i class="${i===0?'one':''}"></i>`).join('')}
