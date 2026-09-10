@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>짝꿍 피아노 — EAIM 연주실</title>
+<title>짝꿍 피아노실 — EAIM 연주실</title>
 <script src="play-sound.js"></script>
 <script src="play-key.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -146,7 +146,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
 </head>
 <body>
 <div class="start" id="start">
-  <h1>👫 짝꿍 피아노</h1>
+  <h1>👫 짝꿍 피아노실</h1>
   <p>위 건반은 멜로디, 아래 건반은 화음.<br>둘이 같은 박자선을 보며 한 곡을 함께 쳐요.</p>
   <p id="loadMsg">진짜 피아노 소리를 불러오는 중…</p>
   <button id="startBtn">수업 시작하기</button>
@@ -654,7 +654,7 @@ function play(syncBase){
   ensureAudio();
   syncT0=(typeof syncBase==='number')?syncBase:null;
   song.mel.forEach(e=>{e.hit=false;}); song.cho.forEach(e=>{e.hit=false;e.got=null;});
-  if(window.EAIMKey) EAIMKey.ping('짝꿍 피아노',room?'두 태블릿 합주':state.who.mel==='kid'&&state.who.cho==='kid'?'2중주':'연습');
+  if(window.EAIMKey) EAIMKey.ping('짝꿍 피아노실',room?'두 태블릿 합주':state.who.mel==='kid'&&state.who.cho==='kid'?'2중주':'연습');
   countBeats=song.bars[barAt(startPos)].beats||4;
   pos=startPos-countBeats; waiting=null; state.playing=true; curLine=-1;
   $('playBtn').textContent='■ 멈춤'; $('playBtn').classList.add('on');
@@ -811,7 +811,7 @@ async function sendSong(){
     if(!u) u=(await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())).user;
     await db.collection('teachers').doc(u.uid).collection('duetSongs').doc(docId(src.title))
       .set({title:src.title||'제목 없는 곡',bpm:src.bpm||90,melody:src.melody,chords:src.chords||'',ts:Date.now()});
-    m.className='msg ok'; m.textContent='보냈어요. 학생들이 교사 페이지의 👫 짝꿍 피아노 QR로 들어오면 이 곡이 떠요.';
+    m.className='msg ok'; m.textContent='보냈어요. 학생들이 교사 페이지의 👫 짝꿍 피아노실 QR로 들어오면 이 곡이 떠요.';
     listTeacherSongs();
   }catch(e){ m.className='msg err'; m.textContent=fbErr(e); }
 }
@@ -885,7 +885,7 @@ async function calibrate(){ bestRtt=1e9; for(let i=0;i<3;i++) await heartbeat();
 function dErr(t){ $('dlgErr').textContent=t||''; }
 async function makeRoom(){
   dErr('');
-  if(!TEACHER) return dErr('합주 연결은 교사 페이지의 👫 짝꿍 피아노 QR(초대 링크)로 들어왔을 때 쓸 수 있어요.');
+  if(!TEACHER) return dErr('합주 연결은 교사 페이지의 👫 짝꿍 피아노실 QR(초대 링크)로 들어왔을 때 쓸 수 있어요.');
   $('makeRoom').disabled=true;
   try{
     let code='';
@@ -898,7 +898,7 @@ async function makeRoom(){
 }
 async function joinRoom(){
   dErr('');
-  if(!TEACHER) return dErr('합주 연결은 교사 페이지의 👫 짝꿍 피아노 QR(초대 링크)로 들어왔을 때 쓸 수 있어요.');
+  if(!TEACHER) return dErr('합주 연결은 교사 페이지의 👫 짝꿍 피아노실 QR(초대 링크)로 들어왔을 때 쓸 수 있어요.');
   const code=$('codeIn').value.replace(/\D/g,'');
   if(code.length!==4) return dErr('짝꿍 화면에 보이는 숫자 4자리를 적어 주세요.');
   $('joinRoom').disabled=true;
@@ -925,7 +925,7 @@ function connected(){
   $('linkBtn').textContent='📡 '+room; $('linkBtn').classList.add('on');
   applyPartLayout();
   listen();
-  if(window.EAIMKey) EAIMKey.ping('짝꿍 피아노','두 태블릿 합주',{force:true});
+  if(window.EAIMKey) EAIMKey.ping('짝꿍 피아노실','두 태블릿 합주',{force:true});
 }
 function leaveRoom(){
   if(state.playing) stop();
