@@ -108,7 +108,7 @@ const CFG={apiKey:"AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",authDomain:"eaim-cla
 firebase.initializeApp(CFG);const auth=firebase.auth(),db=firebase.firestore();
 const $=id=>document.getElementById(id);const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2200)};
 const esc=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-const ROOMS={'index.html':'🎹 연주실 대문','jam.html':'🎸 즉흥 작곡실','composer.html':'🎼 이야기 작곡실','band-room.html':'🥁 밴드실','rhythm.html':'🥁 리듬실','sight.html':'🎼 초견실','keyboard.html':'🎹 건반실','wind.html':'🎺 관악실'};
+const ROOMS={'index.html':'🎹 연주실 대문','jam.html':'🎸 즉흥 작곡실','composer.html':'🎼 이야기 작곡실','band-room.html':'🥁 밴드실','rhythm.html':'🥁 리듬실','sight.html':'🎼 초견실','keyboard.html':'🎹 건반실','duet.html':'👫 짝꿍 피아노','wind.html':'🎺 관악실'};
 let uid=null,groups=[],room='index.html',liveTimer=null;
 const BASE=location.origin+location.pathname.replace(/[^/]*$/,'');
 
