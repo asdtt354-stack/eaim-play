@@ -1,100 +1,226 @@
 <!DOCTYPE html>
-<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📘 연주실 교수법 | EAIM</title>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📘 교사 가이드 | 음악과 플랫폼 · EAIM</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
 <style>
-:root{--paper:#fdfbf6;--ink:#170f22;--sub:#5a4f70;--line:rgba(124,58,237,.22);--gold:#7a5312;--gold2:#d4a843;--purple:#7c3aed;--slate:#1f1730}
+:root{--paper:#fdfbf6;--ink:#170f22;--sub:#5a4f70;--line:rgba(124,58,237,.22);--gold:#7a5312;--gold2:#d4a843;--purple:#7c3aed;--pink:#c778dd;--blue:#5DADE2;--green:#2e7d4f;--slate:#1f1730;--red:#c0392b}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Serif KR',serif;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.8}
-header{background:var(--slate);color:#fff;padding:40px 20px 34px;text-align:center}
-.eyebrow{font-family:'Cormorant Garamond',serif;letter-spacing:.35em;color:var(--gold2);font-weight:700}
-h1{font-family:'Cormorant Garamond',serif;font-size:2.6rem;font-weight:700;line-height:1.1;margin:6px 0 8px}
-.lead{color:rgba(255,255,255,.65);font-size:.92rem;max-width:560px;margin:0 auto 14px}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{font-family:'Noto Serif KR',serif;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.85}
+a{color:var(--purple)}
+header{background:var(--slate);color:#fff;padding:38px 20px 32px;text-align:center}
+.eyebrow{font-family:'Cormorant Garamond',serif;letter-spacing:.35em;color:var(--gold2);font-weight:700;font-size:.92rem}
+h1{font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:700;line-height:1.1;margin:6px 0 10px}
+.lead{color:rgba(255,255,255,.66);font-size:.94rem;max-width:600px;margin:0 auto 16px}
 .bar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .bar a{color:#fff;font-size:.82rem;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:6px 12px;text-decoration:none}
 .bar a.p{background:var(--gold2);color:#1a1200;border-color:var(--gold2);font-weight:700}
-main{max-width:860px;margin:0 auto;padding:28px 20px 90px}
-nav.toc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-bottom:24px;font-size:.9rem}
-nav.toc a{color:var(--purple);text-decoration:none;margin-right:14px;white-space:nowrap}
-h2{font-family:'Cormorant Garamond',serif;font-size:1.7rem;color:var(--ink);margin:34px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--gold2)}
-h3{font-size:1.15rem;font-weight:900;color:var(--gold);margin:24px 0 8px}
-h4{font-size:.95rem;font-weight:700;color:var(--sub);margin:14px 0 4px}
+nav.toc{position:sticky;top:0;z-index:10;background:rgba(253,251,246,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px 16px;text-align:center;font-size:.85rem}
+nav.toc a{margin:0 8px;text-decoration:none;white-space:nowrap;display:inline-block}
+main{max-width:860px;margin:0 auto;padding:26px 20px 90px}
+h2{font-family:'Cormorant Garamond',serif;font-size:1.75rem;margin:38px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--gold2)}
+h3{font-size:1.12rem;font-weight:900;color:var(--gold);margin:24px 0 8px}
+h4{font-size:.96rem;font-weight:700;color:var(--sub);margin:16px 0 4px}
 p{margin-bottom:12px}
-ul,ol{margin:0 0 12px 22px}li{margin-bottom:5px}
-table{width:100%;border-collapse:collapse;font-size:.86rem;margin:10px 0 18px;background:#fff}
-th,td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left}
+ul,ol{margin:0 0 14px 22px}li{margin-bottom:6px}
+table{width:100%;border-collapse:collapse;font-size:.88rem;margin:12px 0 18px;background:#fff}
+th,td{border:1px solid var(--line);padding:9px 11px;vertical-align:top;text-align:left}
 th{background:#f3ecff;white-space:nowrap}
-blockquote{border-left:4px solid var(--gold2);padding:8px 16px;color:var(--sub);font-style:italic;margin:16px 0;background:#fff;border-radius:0 10px 10px 0}
-.meta{font-size:.84rem;color:var(--sub);background:#fff;border:1px dashed var(--line);border-radius:10px;padding:8px 12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin:14px 0}
+.card.warn{border-color:rgba(212,168,67,.55);background:#fffdf5}
+.card.stop{border-color:rgba(192,57,43,.35);background:#fff7f6}
+.step{display:grid;grid-template-columns:34px 1fr;gap:12px;margin-bottom:14px}
+.step .n{width:34px;height:34px;border-radius:50%;background:var(--gold2);color:#1a1200;display:flex;align-items:center;justify-content:center;font-weight:900;font-family:'Cormorant Garamond',serif;font-size:1.1rem}
+.pill{display:inline-block;font-size:.76rem;font-weight:700;padding:2px 9px;border-radius:10px;border:1px solid var(--line);background:#faf8ff;color:#3a3050;margin-right:4px}
+code{background:#f3ecff;border-radius:5px;padding:1px 6px;font-size:.86em;font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+.q{font-weight:900;margin-top:16px}
+.a{color:var(--sub);font-size:.94rem}
+footer{text-align:center;padding:24px 20px 34px;font-size:.78rem;color:rgba(45,36,56,.5);line-height:1.8;border-top:1px solid var(--line);margin-top:30px}
 @media print{header .bar,nav.toc{display:none}body{font-size:12px}}
-</style></head><body>
-<header><div class="eyebrow">EAIM · PLAYROOM · TEACHER GUIDE</div><h1>연주실 교수법</h1>
-<p class="lead">감정에서 출발해 몸으로 익히고 형식으로 남기는 중학교 음악 창작·연주 수업 — 여섯 방을 수업에 어떻게 쓰는지</p>
-<div class="bar"><a class="p" href="EAIM_연주실_교수법.docx" download>⬇ Word로 내려받기</a><a href="teacher.html">🎓 교사 페이지</a><a href="index.html">🎹 연주실</a><a href="javascript:print()">🖨 인쇄</a></div></header>
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">EAIM · MUSIC CLASS · TEACHER GUIDE</div>
+  <h1>교사 가이드</h1>
+  <p class="lead">처음 여시는 선생님을 위한 안내입니다. <b>1장(처음 한 번 설정)</b>과 <b>2장(오늘 수업 시작하기)</b>만 읽으셔도 수업이 됩니다.</p>
+  <div class="bar"><a class="p" href="index.html">🏠 플랫폼으로</a><a href="standards/index.html">📋 성취기준·루브릭</a><a href="https://eaim-play.vercel.app/guide.html">🎹 연주실 교수법</a><a href="javascript:print()">🖨 인쇄</a></div>
+</header>
+<nav class="toc"><a href="#s1">1 처음 설정</a><a href="#s2">2 수업 시작</a><a href="#s3">3 프로덕션</a><a href="#s4">4 미디어레터</a><a href="#s5">5 연주실</a><a href="#s6">6 문제 해결</a><a href="#s7">7 수업 예시</a><a href="#s8">8 음원·저작권</a></nav>
+
 <main>
-<nav class="toc"><a href="#s1">1 개요</a><a href="#s2">2 설계 원리</a><a href="#s3">3 독창적 장치</a><a href="#s4">4 방별 흐름</a><a href="#s5">5 수업 운영</a><a href="#s6">6 평가</a><a href="#s7">7 한계</a><a href="#s8">부록</a></nav>
-<h2 id="s1">1. 개요</h2>
-<p>EAIM 연주실은 중학교 음악과의 세 영역(연주·감상·창작) 가운데 연주와 창작을 학생이 스스로 몸으로 익히도록 설계한 웹 기반 학습 공간이다. EAIM 플랫폼 전체가 프로덕션(창작, 작품 제작), 미디어레터(감상·표현), 연주실(연주·창작 기초)의 세 갈래로 이루어져 있으며, 연주실은 그중 &quot;소리를 내는 것에서 만드는 것으로&quot; 이어지는 기초 단계를 맡는다.</p>
-<p>연주실은 여섯 개의 방으로 구성된다. 각 방은 독립된 활동이면서, 함께 놓으면 하나의 학습 경로가 된다.</p>
-<table><tr><th>방</th><th>학생이 하는 일</th><th>핵심 성취기준</th></tr><tr><td>🎹 건반실</td><td>코드 이름을 넣고 켜진 건반을 짚으며 반주 패턴을 익힌다</td><td>9음01-01 주법·표현 기법</td></tr><tr><td>🎸 즉흥 작곡실</td><td>감정에 맞는 코드 위에서 즉흥으로 멜로디를 녹음해 곡으로 남긴다</td><td>9음03-03 간단한 형식의 음악 만들기</td></tr><tr><td>🎼 이야기 작곡실</td><td>이야기를 세 장면으로 나누고, 4박 동기를 변주해 12마디 곡으로 키운다</td><td>9음03-02 악곡 일부 바꾸기 · 9음03-03</td></tr><tr><td>🥁 밴드실</td><td>모둠이 악기를 나눠 맡아 운지를 익히고 합주한다</td><td>9음01-03 매체 활용 함께 표현 · 9음01-04</td></tr><tr><td>🥁 리듬실</td><td>블록으로 리듬을 만들고(신코페이션 시각화), 박에 맞춰 치고, 귀로 맞힌다</td><td>9음01-02 음악 요소 · 9음02-01 요소 분석</td></tr><tr><td>🎺 관악실</td><td>원곡 계이름을 내 악기의 계이름으로 실시간 이조해 부른다</td><td>9음01-01 · 9음01-04 연주 문화</td></tr></table>
-<p>여섯 방은 다음 순서로 읽힌다. 코드를 손으로 짚는다(건반실) → 코드 위에서 내 음을 낸다(즉흥 작곡실) → 내 음을 형식으로 키운다(이야기 작곡실) → 남들과 함께 낸다(밴드실) → 박과 귀를 기른다(리듬실) → 내 악기의 언어로 옮긴다(관악실). 수업에서는 이 순서를 그대로 따를 필요는 없으며, 각 방은 한 차시 단위로 독립적으로 쓸 수 있다.</p>
-<h2 id="s2">2. 설계 원리</h2>
-<p>연주실의 모든 장치는 다음 다섯 원리에서 나왔다. 새 기능을 더하거나 다른 교사가 변형할 때도 이 원리를 기준으로 삼는다.</p>
-<h3>원리 1. 첫 소리를 빨리 내게 한다</h3>
-<p>&quot;음악을 만들 수 없다&quot;고 믿는 학생이 첫 소리를 내기까지의 시간이 짧을수록 그 뒤가 열린다. 그래서 모든 방은 시작 버튼 한 번 뒤에 곧바로 소리가 나고, 아무 건반을 눌러도 대체로 음악이 되도록 코드·색·격자로 울타리를 친다. 잘 못 치는 학생이 4박 동기 하나로 12마디 곡을 갖게 되는 것이 이 원리의 결과다.</p>
-<h3>원리 2. 제약 안의 자유</h3>
-<p>즉흥이 어려운 이유는 자유가 너무 많아서다. 코드 4개, 한 마디, 색이 칠해진 건반이라는 제약을 주면 학생은 그 안에서 실제로 선택하기 시작한다. 제약은 학생이 익숙해지면 풀린다(마디 녹음 → 구절 녹음, 8분음표 격자 → 16분음표 → 끄기, 도깨비 켬 → 끔).</p>
-<h3>원리 3. 감정에서 출발한다</h3>
-<p>학생은 &quot;Am7&quot;을 고를 수 없지만 &quot;그리운 슬픔&quot;은 고를 수 있다. 연주실에서 화성·조성·형식은 항상 감정과 이야기의 뒤에 온다. 감정 → 코드 진행(즉흥 작곡실), 장면의 감정 → 장조·단조와 형식(이야기 작곡실)이 그 예다. 이는 EAIM의 E(Emotion)가 연주실에서 구현되는 방식이다.</p>
-<h3>원리 4. 남기는 창작</h3>
-<p>즉흥은 사라지지만 창작은 남는다. 즉흥과 창작을 가르는 것은 &quot;고칠 수 있느냐, 남길 수 있느냐&quot;이며, 연주실은 마디별 재녹음·악보·MIDI·소리 파일·제출로 즉흥을 창작으로 바꾼다. 남은 것은 곧 평가의 증거가 된다.</p>
-<h3>원리 5. 서로 듣는다</h3>
-<p>혼자 만들고 혼자 듣는 것은 연습이고, 친구 것을 듣고 말할 수 있어야 수업이다. 제출과 &quot;우리 반 듣기&quot;, 교사 페이지의 수업 상황은 이 원리를 위한 장치다. &quot;노랑(분위기 음)을 많이 쓴 친구는 누구인가&quot;와 같은 질문이 여기서 가능해진다.</p>
-<h2 id="s3">3. 연주실의 독창적 장치</h2>
-<p>다음은 연주실에서 새로 고안되었거나 교육용으로 재설계된 장치다. 각 장치는 특정 학습 문제에 대한 답으로 만들어졌다.</p>
-<table><tr><th>장치</th><th>해결하는 문제</th><th>작동 방식</th></tr><tr><td>숫자 리듬 블록과 신코페이션 자동 판별 (리듬실) — 2017년 교실 교수법에서</td><td>학생이 신코페이션을 &quot;듣고&quot; 구별하지 못한다</td><td>한 마디의 8분음표를 1 2 3 4 1 2 3 4로 적고 &quot;일 이 삼 사&quot;로 세며 리듬을 읽게 하고(16분음표는 1 · 2 · 3 · 4 · &quot;일점 이점 삼점 사점&quot;), 숫자를 비우는 것으로 신코페이션을 가르치던 박성애의 교실 교수법(2017)을 격자로 옮겼다. 앱은 이전에 켜진 칸과 현재 칸 사이에 강박(1·3박)이 비어 있으면 그 칸을 신코페이션으로 판정해 보라색으로 표시한다. 요즘 리듬을 귀가 아니라 눈으로 먼저 만난다.</td></tr><tr><td>색 건반 (즉흥·이야기 작곡실)</td><td>어떤 음을 눌러야 화성 안에 있는지 모른다</td><td>빨강 = 코드 음(안정), 노랑 = 분위기 음(add9·7 등 텐션), 파랑 = 지나가는 음(스케일). 색은 코드가 바뀔 때마다 바뀌고, 코드 상자에는 같은 색으로 한글 계이름(도 미 솔 +레)이 붙는다.</td></tr><tr><td>카운트인 마디 녹음 + 녹음/재생 빠르기 분리 (즉흥 작곡실)</td><td>박을 못 느끼고 치거나, 손이 느려 머릿속 멜로디를 못 낸다</td><td>&quot;하나 둘 셋 넷&quot; 카운트인 뒤 반주와 메트로놈이 흐르는 상태에서 녹음한다. 녹음은 느리게(원곡의 70%), 재생은 제 속도로. 음은 박 단위로 저장되므로 빠르기를 바꿔도 위치가 유지된다.</td></tr><tr><td>마디 경계 앞당김 (즉흥 작곡실)</td><td>마디별 녹음은 다음 코드를 먼저 치는 요즘 리듬을 담지 못한다</td><td>마디 끝 반 박에 시작해 마디선을 넘겨 끄는 음은 다음 마디의 코드에 속한 음(−0.5박)으로 저장하고, 악보에는 이음줄로 그린다.</td></tr><tr><td>프로듀서 도깨비 (즉흥 작곡실)</td><td>틀린 음 때문에 첫 경험이 실패로 끝난다</td><td>스케일 밖의 음만 가장 가까운 코드 음으로 옮긴다. 스케일 안의 지나가는 음은 남긴다. 켜고 끌 수 있으며, 끄고 비교하는 활동이 이 장치의 진짜 목적이다.</td></tr><tr><td>감정 → 장면 → 조성·형식 (이야기 작곡실)</td><td>이야기와 음악이 머릿속에서만 이어지고 앱은 아무 말이 없다</td><td>이야기를 처음·가운데·끝으로 나누고 장면마다 감정을 고르면 장조·단조가 정해진다. 장면이 4마디씩이 되어 A–B–A′ 형식이 되고, 가운데 장면이 단조면 5~8마디 반주가 단조 코드로 바뀐다. 마디마다 &quot;이 마디는 이야기의 어떤 순간&quot;을 적어 악보에 남긴다.</td></tr><tr><td>조각으로 하는 변주 (이야기 작곡실)</td><td>리듬 변주·전위·역행은 이름만 배우고 소리를 모른다</td><td>4박 동기 하나에서 A′(리듬 잘게)·A↑(위로)·A↔(거꾸로)·A⤵(뒤집기)·B(대비)를 조각으로 만들어 누르면 소리로 확인되고, 칸에 놓아 형식을 만든다.</td></tr><tr><td>실시간 이조 (관악실)</td><td>B♭·E♭·F 악기 학생이 원곡 계이름을 자기 악기 계이름으로 바꾸지 못한다</td><td>원곡 계이름(또는 악보 사진)을 넣고 악기를 고르면 불어야 할 계이름이 크게 뜨고, 그 악기 소리로 박자에 맞춰 흐른다. 임시표는 원곡 조와 이조 간격으로 계산한다.</td></tr><tr><td>같은 곡, 세 단계 (밴드실)</td><td>한 모둠에 잘 치는 학생과 처음인 학생이 섞여 있어 같은 악보로는 함께 연주하기 어렵다</td><td>같은 곡을 1단계 원키 · 2단계 쉬운 조(개방코드·흰건반 코드가 가장 많아지는 조로 옮기고 기타는 카포 N, 디지털 피아노는 트랜스포즈 +N) · 3단계 쉬운 모양(바레 → 7·maj7, 분수코드 → 원코드)으로 나란히 보여 주고, 학생이 자기 기기에서 단계를 고른다. 화면의 코드·운지만 바뀌고 소리는 항상 원래 조이므로 단계가 다른 학생이 섞여도 합주가 된다.</td></tr><tr><td>마이너스 원·간이 분리·스템 (밴드실)</td><td>합주 전 개인 연습에 반주가 없다</td><td>코드 진행만으로 앱이 스타일별 반주를 만들어 내 악기만 뺀다. 원곡 mp3는 보컬 빼기·베이스 줄이기, 또는 미리 분리한 스템을 파트별로 켜고 끈다.</td></tr></table>
-<h2 id="s4">4. 방별 교수·학습 흐름</h2>
-<p>학습 목표. </p>
-<h4>수업 흐름</h4>
-<h4>지도 유의점</h4>
-<p>평가 증거: </p>
-<p>관련 성취기준: </p>
-<h3>4.1 건반실 — 코드 반주 익히기</h3><p><b>학습 목표.</b> 코드 이름을 보고 건반을 짚을 수 있고, 반주 패턴을 곡의 성격에 맞게 고를 수 있다.</p><h4>수업 흐름</h4><ol><li>코드 하나(C)를 넣고 켜진 건반을 짚는다. Maj·m·7·maj7·add9·sus 종류를 바꿔 소리 차이를 듣는다.</li><li>4코드 진행(C G Am F)을 넣고 ▶ 자동 반주로 마디마다 코드가 넘어가는 것을 보며 따라 짚는다.</li><li>반주 패턴(K-pop 발라드·16비트 팝·R&amp;B·댄스 등)을 바꿔 같은 코드가 다른 곡이 되는 것을 듣는다.</li><li>한 줄로 붙여넣기에 곡 전체 코드를 넣거나, AI에게 분위기·가사로 코드 진행을 부탁해 저장한다.</li></ol><h4>지도 유의점</h4><ul><li>악보 Key를 바꾸면 코드가 옮겨지므로, 학생 노래 음역에 맞춰 조를 바꾸는 활동으로 이조 개념을 미리 만날 수 있다.</li><li>7음(시♭)이 들어간 코드부터 소리가 &quot;요즘 노래&quot;처럼 들리므로 add9·sus4는 일찍 보여줘도 좋다.</li></ul><p class="meta">평가 증거: 자동 반주 위에서 코드 반주 시연(영상), 저장한 코드 진행<br>관련 성취기준: 9음01-01, 9음01-02</p>
-<h3>4.2 즉흥 작곡실 — 즉흥연주를 통한 작곡</h3><p><b>학습 목표.</b> 감정에 맞는 코드 진행 위에서 박에 맞춰 멜로디를 만들고, 마디를 고쳐 가며 한 곡으로 남길 수 있다.</p><h4>수업 흐름</h4><ol><li>기분을 고르고 코드 진행 3개 중 하나를 고른다(1번은 트라이어드, 2·3번은 add9·maj7·분수코드). 미리 듣기로 반주를 익힌다.</li><li>건반 색을 보며 코드마다 빨강·노랑·파랑 음을 눌러본다. 코드 상자의 한글 계이름과 색을 대응시킨다.</li><li>한 마디씩 카운트인 녹음. 녹음 빠르기를 느리게(66 BPM 내외) 두고 도깨비를 켠 채 4마디를 채운다.</li><li>④에서 재생 빠르기를 제 속도로 올려 듣는다. 마음에 안 드는 마디만 다시 녹음한다.</li><li>익숙해지면 구절 녹음(4마디 한 번에)·앞당김 허용·16분음표 격자로 바꿔 요즘 리듬을 담는다.</li><li>악보·MIDI·소리로 저장하고 일지를 쓴다. 제출하고 우리 반 곡을 듣는다.</li></ol><h4>지도 유의점</h4><ul><li>첫 시간은 도깨비를 켜고, 둘째 시간은 끄고 &quot;왜 이 음이 어색한지&quot;를 듣게 한다. 일지 2번 질문이 그 비교를 위한 것이다.</li><li>8분음표 격자는 박을 맞춰 주지만 학생이 넣은 밀고 당김을 지운다. 잘하는 학생에겐 격자를 끄게 한다.</li><li>쉼표를 의도적으로 넣는 경험은 아직 약하다. &quot;이 마디는 두 음만&quot; 같은 제약을 교사가 줄 수 있다.</li><li>헤드폰이 거의 필수다. 30명이 동시에 소리를 내면 서로 박을 잃는다.</li></ul><p class="meta">평가 증거: 녹음된 멜로디(악보·MIDI·소리), 일지, 제출물의 코드·마디별 음 수<br>관련 성취기준: 9음03-03(간단한 형식), 9음03-01(매체 활용 자기주도 창작), 9음01-02(발표·평하기)</p>
-<h3>4.3 이야기 작곡실 — 이야기를 통한 작곡</h3><p><b>학습 목표.</b> 이야기의 흐름을 곡의 조성과 형식으로 옮기고, 4박 동기를 반복·변주해 12마디 곡을 만들 수 있다.</p><h4>수업 흐름</h4><ol><li>이야기를 자유롭게 쓴다(육하원칙은 힌트 버튼). AI 또는 직접 처음·가운데·끝 세 장면으로 나누고, 장면마다 감정과 장조·단조를 정한다.</li><li>A 동기(처음 장면)를 건반·녹음·AI 제안 중 한 방법으로 4박 채운다. 가운데 장면이 대비되면 B 동기도 만든다.</li><li>조각(A A′ A↑ A↔ A⤵ B B′)을 눌러 소리로 확인하고 장면별 4마디 칸에 놓는다. 마디마다 &quot;이 마디는…&quot; 한 줄을 적는다.</li><li>반주 스타일·코드 진행(장조/단조 각 3종)·멜로디 악기를 입힌다. 가운데 장면의 조가 다르면 반주가 바뀌는 것을 듣는다.</li><li>악보(장면 제목·마디 메모 포함)·MIDI·소리로 남기고, AI 맞춤 탐구 질문에 답하고 피드백을 듣는다. 원하면 Lyria로 이야기 노래를 만들어 내 곡과 비교한다.</li></ol><h4>지도 유의점</h4><ul><li>&quot;이야기의 마음이 바뀌는 순간 = 화성이 바뀌는 순간&quot;을 명시적으로 짚어 준다. 가운데 장면을 단조로 바꿔 듣는 것이 가장 효과적인 시연이다.</li><li>조각을 눌러 채우기만 하고 끝나지 않도록, 형식 칸의 &quot;이 마디는…&quot; 메모를 반드시 쓰게 한다. 메모가 악보에 남는다.</li><li>전위·역행은 용어를 먼저 주지 말고 A⤵·A↔ 소리를 듣게 한 뒤 이름을 붙인다.</li></ul><p class="meta">평가 증거: 악보(형식 기호·장면·마디 메모), MIDI, 탐구 답변, 제출물<br>관련 성취기준: 9음03-02(기보법 활용 악곡 일부 바꾸기), 9음03-03, 9음03-01</p>
-<h3>4.4 밴드실 — 모둠 합주</h3><p><b>학습 목표.</b> 팀에서 악기를 맡아 운지를 익히고, 음원·반주에 맞춰 개인 연습한 뒤 지휘자 화면을 보며 합주할 수 있다.</p><h4>수업 흐름</h4><ol><li>팀 이름과 팀원을 넣고 팀원마다 악기를 정한다(피아노를 배운 학생은 피아노처럼 할 수 있는 것으로). 비어 있는 파트는 앱이 채운다.</li><li>곡을 정한다. 예시곡(K-pop 발라드·감성 팝·댄스·R&amp;B·신스팝 등)이나 직접 입력, 또는 악보 사진에서 코드를 읽는다. 어려우면 코드 단순화.</li><li>&quot;같은 곡, 내 단계&quot;에서 각자 1단계(원키)·2단계(쉬운 조: 카포·트랜스포즈)·3단계(쉬운 모양) 중 고른다. 이후 화면의 코드와 운지가 그 단계로 보인다.</li><li>내 이름을 고르면 내 악기가 선택된다. 코드를 누르면 운지(기타 지판·베이스 지판·피아노 양손·드럼 비트표)가 뜬다. 드럼 비트에 맞춰 코드가 넘어가며 개인 연습한다.</li><li>음원 연습: mp3 그대로 / 간이 분리(보컬 빼기·베이스 줄이기) / 스템 트랙(파트별 켜고 끄기) / 앱 반주 마이너스 원 중 고른다.</li><li>합주: 지휘자 화면(현재 코드·다음 코드·박자 점·카운트인)을 앞에 두고 연주하고 체크리스트로 자기 평가한다.</li></ol><h4>지도 유의점</h4><ul><li>악기 배정은 랜덤이 아니라 학생의 경험을 살린다. 랜덤은 정하기 어려울 때의 보조다.</li><li>단계는 실력의 등급이 아니라 &quot;오늘 내가 칠 수 있는 모양&quot;이다. 3단계로 시작해 2단계·1단계로 올라가는 것을 목표로 두되, 합주에서는 단계가 섞여도 같은 조로 울린다는 점을 학생에게 알려 준다.</li><li>체크리스트의 &quot;실수해도 멈추지 않고 이어갔다&quot;가 합주 수업의 핵심 태도다. 잘 치는 것보다 함께 끝까지 가는 것을 평가한다.</li><li>원곡 스템은 교사가 수업 전 PC에서 분리해 두면 학생은 올리기만 하면 된다.</li></ul><p class="meta">평가 증거: 팀 구성표, 개인 연습 녹화, 합주 영상, 체크리스트<br>관련 성취기준: 9음01-03(소리의 상호작용·매체), 9음01-04(생활 속 연주 참여), 9음01-01</p>
-<h3>4.5 리듬실 — 만들기·맞히기·듣기</h3>
-<p>이 방의 뿌리는 2017년부터 교실에서 쓰던 숫자 리듬 교수법이다. 한 마디의 8분음표 여덟 개를 1 2 3 4 1 2 3 4로 적고 &quot;일 이 삼 사 일 이 삼 사&quot;로 세며, 학생이 숫자 위에 소리를 놓거나 비우는 것으로 리듬을 읽고 만들었다. 16분음표는 숫자 사이에 점을 두어 &quot;일점 이점 삼점 사점&quot;으로 센다. &quot;하나 두울 세엣&quot;처럼 음절 길이가 다른 세기는 늘어지지만, 한 글자 숫자와 &quot;점&quot;은 반박씩 균등해 박이 흔들리지 않는다. 강박 자리(첫 번째 1과 두 번째 1)를 비우고 뒷숫자에 소리를 놓으면 신코페이션이 된다는 것을 이 숫자 줄 위에서 가르쳤다. 리듬실의 격자와 보라색 표시는 그 종이 위의 숫자를 화면으로 옮기고, 판정을 자동화한 것이다.</p>
-<p><b>학습 목표.</b> 리듬을 격자로 만들며 신코페이션을 구별하고, 박에 맞춰 칠 수 있으며, 음·조성·코드·리듬을 귀로 구별할 수 있다.</p><h4>수업 흐름</h4><ol><li>만들기: 보기 리듬(8비트 록·K-pop 발라드·댄스·신코페이션·레게)을 눌러 보고, 칸을 바꿔 가며 보라색 ⟶ 표시가 언제 생기는지 관찰한다. 코드 줄을 채워 베이스가 근음을 따라가게 한다.</li><li>맞히기: 내 파트를 고르고 카운트인 뒤 패드를 박에 맞춰 친다. 정확도·연속을 확인하고 신코페이션 자리를 맞혀 본다.</li><li>듣기 퀴즈: 계이름(1→3단계) → 장조·단조 → 코드 종류(Maj·m → sus·add9 → maj7·7) → 리듬 듣고 고르기. 틀리면 정답 소리를 다시 듣고 비교한다.</li></ol><h4>지도 유의점</h4><ul><li>&quot;강박을 비우면 신코페이션&quot;이라는 규칙을 학생이 스스로 말로 정리하게 한다. 그다음 즉흥 작곡실의 앞당김 옵션과 연결한다.</li><li>맞히기의 정확도는 교사 페이지 수업 상황에 올라오므로 개인차를 보고 속도를 조정한다.</li><li>듣기 퀴즈 코드 종류 2단계(sus4·add9)는 즉흥 작곡실 노랑 건반과 이어진다.</li></ul><p class="meta">평가 증거: 만든 리듬 저장, 맞히기 정확도, 듣기 퀴즈 정답률<br>관련 성취기준: 9음01-02(음악 요소), 9음02-01(음악 요소 분석), 9음03-02</p>
-<h3>4.6 관악실 — 실시간 이조</h3><p><b>학습 목표.</b> 원곡의 계이름을 내 악기(B♭·E♭·F)의 계이름으로 바꿀 수 있고, 왜 달라지는지 설명할 수 있다.</p><h4>수업 흐름</h4><ol><li>원곡 계이름을 넣거나(작은 별·학교 종·환희의 송가 예시) 악보 사진을 올린다.</li><li>내 악기를 고르면 불어야 할 계이름이 크게 뜬다. ◀ ▶로 한 음씩 짚으며 원곡 실음과 비교한다.</li><li>▶ 실시간 이조 재생으로 카운트인 뒤 그 악기 소리에 맞춰 부른다. 트럼펫은 밸브가 표시된다.</li><li>전 악기 가이드를 인쇄해 파트별로 나누고, &quot;왜 계이름이 달라지나요&quot; 설명을 읽고 정리한다.</li></ol><h4>지도 유의점</h4><ul><li>C장조 원곡이 B♭ 악기에서는 D장조(파♯·도♯)가 되는 것을 임시표로 확인하게 한다. 이조의 원리(장2도 위)를 여기서 말로 정리한다.</li><li>관악부가 아닌 학생에게는 &quot;같은 노래를 다른 언어로 부르는 것&quot;이라는 비유가 잘 통한다.</li></ul><p class="meta">평가 증거: 이조 계이름 가이드, 연주 영상<br>관련 성취기준: 9음01-01, 9음01-04(전통과 현대 연주 문화 다양성)</p>
-<h2 id="s5">5. 수업 운영</h2>
-<h3>5.1 8차시 예시 (창작 중심)</h3>
-<table><tr><th>차시</th><th>방</th><th>활동</th><th>남는 것</th></tr><tr><td>1</td><td>리듬실</td><td>리듬 블록 만들기 · 신코페이션 찾기 · 듣기 퀴즈 1단계</td><td>리듬 저장, 퀴즈 정답률</td></tr><tr><td>2</td><td>건반실</td><td>4코드 반주 · 패턴 바꿔 듣기 · Key 옮기기</td><td>코드 진행 저장</td></tr><tr><td>3</td><td>즉흥 작곡실</td><td>기분·코드 고르기 · 색 건반 · 한 마디씩 녹음(도깨비 켬)</td><td>4마디 초안</td></tr><tr><td>4</td><td>즉흥 작곡실</td><td>도깨비 끄고 비교 · 구절 녹음 · 악보·MIDI · 제출</td><td>완성곡, 일지</td></tr><tr><td>5</td><td>이야기 작곡실</td><td>이야기 → 세 장면 · A·B 동기</td><td>동기 2개</td></tr><tr><td>6</td><td>이야기 작곡실</td><td>조각으로 12마디 · 입히기 · 악보 · 탐구 질문</td><td>12마디 곡, 답변</td></tr><tr><td>7</td><td>밴드실</td><td>팀·악기 · 곡 선정 · 운지 · 개인 연습</td><td>팀 구성, 연습 영상</td></tr><tr><td>8</td><td>밴드실 · 리듬실</td><td>합주 · 우리 반 곡 듣기 · 서로 평하기</td><td>합주 영상, 체크리스트, 상호 평가</td></tr></table>
-<h3>5.2 교사 관리</h3>
-<ul><li>교사 페이지(구글 로그인)에서 반·모둠별 초대 QR을 만든다. 학생은 QR로 들어와 이름만 적는다.</li>
-<li>수업 상황 화면에서 누가 어느 방 몇 단계인지, 맞히기 정확도가 실시간으로 보인다. 30초마다 갱신.</li>
-<li>즉흥·이야기 작곡실 제출물을 표로 보고 CSV로 내보내 성취기준·루브릭 페이지의 평가 기록과 연결한다.</li>
-<li>AI 기능(코드 진행·악보 읽기·동기 제안·탐구 질문·노래)은 뮤지컬메이커 설정의 Gemini 키와 켜기/끄기를 그대로 따른다. 학생은 키를 다루지 않는다.</li>
-</ul><h3>5.3 기기와 환경</h3>
-<ul><li>헤드폰: 즉흥·이야기 작곡실·리듬실은 헤드폰 없이 어렵다. 밴드실 합주와 관악실은 스피커.</li>
-<li>태블릿: 건반은 화면 폭에 맞춰 늘어나며 가로로 돌리면 커진다. 손가락을 미끄러뜨리는 글리산도가 된다.</li>
-<li>첫 접속 시 악기 샘플이 내려오는 몇 초 동안은 임시 소리가 난다. 방에 들어가자마자 바로 활동하지 않고 화면 안내를 읽는 시간으로 쓴다.</li>
-</ul><h2 id="s6">6. 평가와 성취기준 연결</h2>
-<p>연주실의 결과물은 모두 파일이나 제출 기록으로 남으므로, 성취기준·루브릭 페이지(standards)의 활동 루브릭과 바로 연결된다. 아래는 대표적인 대응이다.</p>
-<table><tr><th>성취기준</th><th>연주실 활동</th><th>루브릭 A 수준의 증거 예</th></tr><tr><td>9음01-01 주법·표현 기법</td><td>건반실 반주 패턴 · 관악실 이조</td><td>반주 패턴을 곡 성격에 맞게 골라 쓰고 이유를 설명함</td></tr><tr><td>9음01-02 발표·평하기</td><td>즉흥 작곡실 우리 반 듣기 · 밴드실 체크리스트</td><td>음악 요소(빠르기·셈여림·화성·음색)를 근거로 자기·동료 연주를 평함</td></tr><tr><td>9음01-03 소리의 상호작용·매체</td><td>밴드실 마이너스 원 · 스템 · 합주 화면</td><td>파트 밸런스를 조정한 이유를 설명하고 팀과 실시간 운용</td></tr><tr><td>9음02-01 음악 요소 분석</td><td>리듬실 듣기 퀴즈 · 신코페이션 관찰</td><td>신코페이션 규칙을 말로 정리하고 코드 종류를 귀로 구별</td></tr><tr><td>9음03-02 악곡 일부 바꾸기</td><td>이야기 작곡실 조각 변주</td><td>동기를 리듬·음높이 두 가지 이상으로 변주하고 악보에서 변화를 설명</td></tr><tr><td>9음03-03 간단한 형식</td><td>즉흥 작곡실 4마디×절 · 이야기 작곡실 12마디</td><td>4마디 단위 2절 이상 또는 A–B–A′ 형식을 코드 진행에 맞게 완성</td></tr><tr><td>9음03-01 매체 활용 자기주도 창작</td><td>두 작곡실 전체</td><td>AI 제안을 비교·수정하며 여러 번 다시 만들고 이유를 일지에 씀</td></tr></table>
-<h2 id="s7">7. 한계와 다음 연구</h2>
-<ul><li>연주 자체를 앱이 듣고 평가하지는 못한다. 리듬실 맞히기가 박 정확도를 재지만, 실제 악기 연주의 음정·타이밍 평가는 마이크 입력과 교실 소음 문제로 남아 있다.</li>
-<li>즉흥 작곡실은 쉼표를 의도적으로 넣는 경험이 약하다. 좋은 멜로디는 쉬는 데서 만들어지므로 후속 설계가 필요하다.</li>
-<li>변주와 도깨비는 너무 쉬워서 학생이 듣지 않고 끝낼 수 있다. 교사가 &quot;끄고 비교&quot;를 수업에 넣어야 한다.</li>
-<li>한 방이 한 차시를 넘는 분량이므로 &quot;오늘은 ③까지&quot; 같은 수업 모드가 앱 안에 있으면 좋겠다.</li>
-<li>AI 생성물(동기 제안·노래)이 학생 창작을 대체하지 않도록, AI 사용 여부를 일지와 제출물에 표기하게 하는 것이 좋다.</li>
-</ul><blockquote>연주실은 &quot;음악을 만들 수 없다&quot;고 믿는 학생을 &quot;만들 수 있는 학생&quot;으로 바꾸는 데 충분하고, &quot;잘 듣는 학생&quot;으로 만드는 일은 리듬실과 교사의 질문이 맡는다.</blockquote>
-<h2 id="s8">부록. 기술 구성</h2>
-<ul><li>배포: 정적 웹(HTML·JS), Vercel. 로그인 없이 열리며 교사 페이지만 구글 로그인.</li>
-<li>소리: FluidR3 GM 사운드폰트(공개) 악기 샘플, FatBoy 타악 샘플. 샘플을 못 받으면 합성음으로 대체.</li>
-<li>공용 모듈: play-sound.js(악기 샘플·코드 이론·반주 패턴), play-key.js(선생님 키·초대 링크·수업 상황 신호), play-shell.js(홈 버튼).</li>
-<li>데이터: 학생 결과물은 기기(브라우저) 저장 + 파일 다운로드, 제출 시 교사 Firestore(teachers/{uid}/jams, stories, presence).</li>
-<li>AI: Gemini(텍스트·이미지 읽기), Lyria 3(노래). 교사 키 1개, 학생 미노출.</li>
-<li>제3자 저작물: Tone.js(MIT, 건반실), FluidR3·FatBoy 사운드폰트, Firebase SDK, Google Fonts. 모두 상업적 이용 허용 라이선스.</li></ul>
-<p class="meta" style="margin-top:30px">박성애 · EAIM 교실 · 2022 개정 교육과정 음악과(중학교) 기준 · 교수법 원형 2017 · 플랫폼 2025–2026</p>
-</main></body></html>
+
+<h2 id="s0">여기가 어떤 곳인가요</h2>
+<p>음악과 플랫폼은 세 갈래입니다. 오늘 무엇을 할지에 따라 한 곳만 들어가시면 됩니다.</p>
+<table>
+<tr><th>갈래</th><th>학생이 하는 일</th><th>이런 수업에</th></tr>
+<tr><td><b>🎬 프로덕션</b><br><span class="pill">MAKE · 창작</span></td><td>이야기 → 대본 → 노래 → 그림 → 음향 → 상영 → 홍보 → 평론. 모둠이 제작사가 되어 한 편을 만듭니다.</td><td>창작 뮤지컬, 음악낭독극, 프로젝트 수업</td></tr>
+<tr><td><b>🎨 미디어레터</b><br><span class="pill">LISTEN · 감상</span></td><td>음악을 듣고 느낀 것을 그림·신문·편지·인터뷰로 남깁니다.</td><td>감상 수업, 서논술형 평가</td></tr>
+<tr><td><b>🎹 연주실</b><br><span class="pill">PLAY · 연주</span></td><td>건반·즉흥작곡·밴드·이야기작곡·리듬·솔페지오·관악, 일곱 개의 방.</td><td>가창·기악, 창작 기초, 시창청음</td></tr>
+</table>
+<div class="card warn"><b>딱 하나만 기억하세요.</b> 선생님은 <b>구글 로그인 → 초대 QR 만들기</b>, 학생은 <b>QR 찍고 이름 적기</b>. 나머지는 화면이 안내합니다.</div>
+
+<h2 id="s1">1. 처음 한 번만 하는 설정</h2>
+<p>학교에서 처음 쓰실 때 한 번만 하면 됩니다. 10분 정도 걸립니다.</p>
+
+<div class="step"><div class="n">1</div><div>
+<h3 style="margin-top:0">구글 계정으로 로그인</h3>
+<p>프로덕션(뮤지컬메이커)이나 연주실 교사 페이지에서 <b>구글 계정으로 로그인</b>합니다. 이 계정 아래에 반·모둠·학생 결과물이 모입니다. 세 갈래 모두 <b>같은 계정</b>을 쓰세요.</p>
+</div></div>
+
+<div class="step"><div class="n">2</div><div>
+<h3 style="margin-top:0">Gemini API 키 넣기</h3>
+<p>AI가 대본·노래·그림·질문을 만들려면 키가 필요합니다. <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a>에서 키를 만들고, 결제(선불 크레딧)를 연결한 뒤 <b>교사 대시보드 설정</b>에 붙여넣습니다.</p>
+<ul>
+<li>키는 <b>선생님만</b> 넣습니다. 학생은 키를 보지도, 넣지도 않습니다.</li>
+<li>같은 설정에서 <b>학생 1인 하루 한도</b>(그림 5 · 노래 2 정도)를 정해 두세요.</li>
+<li>비용은 실제 사용량만큼입니다. 한 반 수업이면 대략 1~2만 원 수준입니다.</li>
+</ul>
+</div></div>
+
+<div class="step"><div class="n">3</div><div>
+<h3 style="margin-top:0">Firebase 설정 두 가지 <span style="font-size:.8rem;font-weight:400;color:var(--sub)">(관리자가 한 번)</span></h3>
+<p>이미 되어 있으면 넘어가셔도 됩니다. 로그인이 안 되거나 "권한 없음" 오류가 날 때만 확인하세요.</p>
+<ul>
+<li><b>Authentication → Settings → 승인된 도메인</b>에 쓰는 주소를 추가:
+<br><code>eaim-music.vercel.app</code> <code>eaim-musical-maker.vercel.app</code> <code>eaim-play.vercel.app</code> <code>eaimmusic-midia-letter.vercel.app</code></li>
+<li><b>Firestore → 규칙</b>에 학생(로그인 없이 들어옴)이 제출할 수 있도록 허용하는 블록이 필요합니다. 자세한 규칙은 각 앱의 README에 있습니다.</li>
+</ul>
+</div></div>
+
+<div class="step"><div class="n">4</div><div>
+<h3 style="margin-top:0">반·모둠 만들고 QR 뽑기</h3>
+<p>교사 페이지에서 반·모둠 이름을 넣으면 <b>모둠별 QR</b>이 만들어집니다. 인쇄해서 모둠 책상에 두세요. 이 QR 하나로 선생님 키·제출·수업 상황이 모두 연결됩니다.</p>
+</div></div>
+
+<h2 id="s2">2. 오늘 수업 시작하기</h2>
+<h3>선생님</h3>
+<ol>
+<li>교사 페이지 열기 → 오늘 쓸 <b>방</b>을 고르고 QR 인쇄(또는 화면에 띄우기)</li>
+<li>수업 중에는 <b>수업 상황</b> 화면을 열어 두면 누가 어느 단계에 있는지 보입니다</li>
+<li>수업 끝에 <b>제출물</b> 탭에서 결과를 확인하고, 필요하면 CSV로 내려받습니다</li>
+</ol>
+<h3>학생</h3>
+<ol>
+<li>QR을 찍는다 → <b>이름</b>을 적는다 → 방으로 들어간다</li>
+<li>소리가 나야 하므로 <b>시작하기</b> 버튼을 꼭 누른다 (브라우저 규칙입니다)</li>
+<li>헤드폰을 쓴다 (합주·상영은 스피커)</li>
+</ol>
+<div class="card"><b>QR 없이도 되나요?</b> 연주실의 연주·작곡은 QR 없이도 다 됩니다. 다만 <b>AI 기능·제출·우리 반 듣기</b>는 QR로 들어와야 열립니다.</div>
+
+<h2 id="s3">3. 프로덕션 <span style="font-size:.9rem;font-weight:400;color:var(--sub)">— 한 편을 만드는 곳</span></h2>
+<p>모둠이 제작사가 되어 7단계를 지나갑니다. 한 차시에 한두 단계면 충분합니다.</p>
+<table>
+<tr><th>단계</th><th>팀</th><th>하는 일 · 남는 것</th></tr>
+<tr><td>1 대본</td><td>대본팀</td><td>주제·장르·인물을 정하면 막별 대본·가사·프롬프트가 만들어집니다 → <b>대본·가사</b></td></tr>
+<tr><td>2 노래</td><td>음악팀</td><td><b>같은 화면</b>에서 넘버마다 "30초 들어보기 / 전체 곡" → <b>넘버 MP3</b>. 🎤 MR 만들기로 반주만 뽑고, 🎻 배경음악으로 대사 밑에 깔 연주곡도 만듭니다</td></tr>
+<tr><td>3 그림</td><td>미술팀</td><td><b>같은 화면</b>에서 막별 배경 프롬프트 아래 "그림 만들기" → <b>배경 이미지</b></td></tr>
+<tr><td>4 음향</td><td>음향팀</td><td>오디오 믹서에서 BGM·MR·효과음 채널 조절, 막마다 큐 저장 → <b>큐 리스트·믹싱 WAV</b></td></tr>
+<tr><td>5 상영</td><td>상영관</td><td>슬라이드쇼로 공연하고 화면 녹화 → <b>공연 영상</b></td></tr>
+<tr><td>6 홍보</td><td>홍보팀</td><td>포스터·티저 이미지와 홍보 문구 → <b>포스터</b></td></tr>
+<tr><td>7 평론</td><td>평론실</td><td>감상 전·후 비교, 감상문 쓰고 AI 첨삭 → <b>감상문</b></td></tr>
+</table>
+<div class="card warn">
+<b>2·3번은 왜 1번과 같은 화면인가요?</b> 노래와 그림은 대본이 있어야 만들 수 있어서, 대본 화면 안의 버튼으로 붙어 있습니다. 대본이 아직 없으면 <b>"1번 대본부터 →"</b>로 안내됩니다.<br>
+<b>대본이 사라진 것처럼 보이면?</b> 뮤지컬메이커를 다시 열었을 때 맨 위에 <b>"📝 이전에 만든 대본 … [이어서 하기]"</b> 띠가 뜹니다. 그걸 누르면 그대로 이어집니다.
+</div>
+<h3>슬라이드쇼(상영관) 사용법</h3>
+<ul>
+<li><b>🎭 대본대로 전체 구성</b> — 모든 막이 "대사 화면 → 노래" 순서가 됩니다. 대사 화면에는 말풍선과 배경음악만 흐릅니다.</li>
+<li><b>🖼 배경만 화면</b> — 노래·가사·말풍선 없이 그림과 음악만. "3년 뒤", "막간" 같은 큰 글씨를 넣을 수 있습니다.</li>
+<li><b>🧹 대사 화면 모두 지우기</b> — 말풍선 없이 노래·그림만 보고 싶은 모둠은 이걸 누르면 원래대로 돌아갑니다.</li>
+<li><b>⏱ 자동 진행</b> — 곡 길이에 맞춰 장면이 넘어갑니다(2분 ÷ 4장면 = 30초씩). 배경음악 켜기/볼륨도 여기 있습니다.</li>
+<li><b>⏺ 녹화</b> — 버튼과 커서가 모두 숨겨진 깨끗한 영상이 만들어집니다. 공유 창에서 <b>"이 탭"</b>과 <b>탭 오디오 공유</b>를 켜 주세요. 끝낼 땐 <b>R</b> 또는 <b>Esc</b>.</li>
+</ul>
+
+<h2 id="s4">4. 미디어레터 <span style="font-size:.9rem;font-weight:400;color:var(--sub)">— 듣고 남기는 곳</span></h2>
+<ul>
+<li>음악을 듣고 떠오른 장면을 <b>그림</b>으로 만들고, 감상 장면을 모아 <b>슬라이드쇼</b>로 봅니다</li>
+<li><b>음악 신문 · 음악 편지 · 음악 인터뷰</b>로 기록하면 서논술형 평가 자료가 됩니다</li>
+<li>교사 화면에서 학생별 활동을 열어 볼 수 있습니다</li>
+</ul>
+
+<h2 id="s5">5. 연주실 <span style="font-size:.9rem;font-weight:400;color:var(--sub)">— 몸으로 익히는 곳</span></h2>
+<table>
+<tr><th>방</th><th>하는 일</th></tr>
+<tr><td>🎹 건반실</td><td>코드를 넣으면 눌러야 할 건반이 켜지고, 자동 반주가 마디마다 넘어갑니다</td></tr>
+<tr><td>🎸 즉흥 작곡실</td><td>기분에 맞는 코드 위에서 마디·구절 단위로 멜로디를 녹음 → 악보·MIDI로 남깁니다. <b>녹음은 느리게, 재생은 제 속도로</b></td></tr>
+<tr><td>🥁 밴드실</td><td>팀원마다 악기를 정하고 운지·오른손 패턴을 보며 연습 → 지휘자 화면으로 합주. <b>같은 곡, 세 단계</b>로 실력이 달라도 함께 칩니다</td></tr>
+<tr><td>🎼 이야기 작곡실</td><td>이야기를 세 장면으로 나누고 4박 동기를 변주해 12마디 곡으로 키웁니다</td></tr>
+<tr><td>🥁 리듬실</td><td>숫자 리듬(일 이 삼 사) 격자로 리듬을 만들면 <b>신코페이션이 보라색</b>으로 보입니다. 맞혀 치기·듣기 퀴즈</td></tr>
+<tr><td>🎼 솔페지오실</td><td><b>시창 · 청음 · 초견 · 건반화성</b> 네 모드. 시창은 기준음(으뜸화음)을 듣고 계이름으로 부르기(채점 없음), 청음은 음정 듣고 맞히기, 초견은 악기별 정식 기보(기타·베이스 TAB, 드럼보)로 박에 맞춰 연주, 건반화성은 코드 기호·로마 숫자를 보고 건반에서 화음 만들기</td></tr>
+<tr><td>🎺 관악실</td><td>원곡 계이름을 B♭·E♭·F 악기 계이름으로 실시간 이조</td></tr>
+</table>
+<p>수업 설계와 성취기준 연결은 <a href="https://eaim-play.vercel.app/guide.html" target="_blank">연주실 교수법</a>에 자세히 있습니다.</p>
+
+<h2 id="s6">6. 이럴 땐 이렇게 <span style="font-size:.9rem;font-weight:400;color:var(--sub)">— 자주 묻는 것</span></h2>
+
+<div class="q">소리가 안 나요</div>
+<div class="a">첫 화면의 <b>시작하기</b>를 눌렀는지 확인하세요. 브라우저는 사용자가 뭔가 누르기 전엔 소리를 못 냅니다. 악기 샘플을 받는 데 몇 초 걸리므로 그동안은 임시 소리가 납니다.</div>
+
+<div class="q">화면이 예전 모습이에요 / 버튼이 안 보여요</div>
+<div class="a">브라우저가 옛 파일을 기억하고 있는 겁니다. <b>시크릿 창</b>으로 열거나 새로고침을 두어 번 하세요.</div>
+
+<div class="q">구글 로그인 창이 안 떠요</div>
+<div class="a">팝업 차단입니다. 주소창 오른쪽 끝의 차단 아이콘을 눌러 <b>허용</b>하세요. "이 도메인은 승인되지 않았습니다"가 뜨면 1장 3번(승인된 도메인)을 확인하세요.</div>
+
+<div class="q">"권한이 없습니다"(Missing or insufficient permissions)</div>
+<div class="a">Firestore 규칙이 그 경로를 막고 있습니다. 관리자에게 1장 3번을 확인해 달라고 하세요.</div>
+
+<div class="q">AI가 "요청이 몰려서 기다렸다 다시 보내요"라고 해요</div>
+<div class="a">정상입니다. 30명이 같은 순간에 누르면 순서대로 처리됩니다. 잠시 뒤 결과가 나옵니다. 모둠 대표부터 차례로 누르게 하면 더 부드럽습니다.</div>
+
+<div class="q">그림·노래가 안 만들어져요</div>
+<div class="a">교사 대시보드에서 <b>미디어 생성이 켜져</b> 있는지, <b>학생 하루 한도</b>가 남았는지, Gemini 크레딧 잔액이 있는지 확인하세요.</div>
+
+<div class="q">모둠끼리 공유가 안 돼요 (밴드실)</div>
+<div class="a">모둠 QR(<code>?teacher=…&group=…</code>)로 들어와야 하고, 코드를 넣은 뒤 <b>"🎯 이 곡으로 정하기"</b>를 눌러야 모둠에 올라갑니다. 다른 기기는 20초 안에 자동으로 받습니다.</div>
+
+<div class="q">악보 사진을 올렸는데 오류가 나요</div>
+<div class="a">PDF는 첫 페이지만 읽습니다. 코드가 2쪽부터 있으면 그 쪽을 사진으로 찍어 올리세요. 코드명이 없는 악보는 AI가 추정하므로 반드시 확인·수정이 필요합니다.</div>
+
+<div class="q">학생 태블릿에서 건반이 작아요</div>
+<div class="a">기기를 <b>가로로</b> 돌리면 건반이 커집니다. 화면에도 안내가 뜹니다.</div>
+
+<h2 id="s7">7. 수업 예시</h2>
+<h3>창작 8차시 (프로덕션 중심)</h3>
+<table>
+<tr><th>차시</th><th>활동</th></tr>
+<tr><td>1</td><td>모둠 만들기 · 제작사 이름 정하기 · 주제와 장르 정해 대본 만들기</td></tr>
+<tr><td>2</td><td>대본 다듬기 · 가사 고쳐 쓰기</td></tr>
+<tr><td>3</td><td>넘버 노래 만들기(30초 → 전체 곡) · MR 만들기</td></tr>
+<tr><td>4</td><td>막별 배경 그림 · 배경음악 만들기</td></tr>
+<tr><td>5</td><td>오디오 믹서에서 큐 만들기</td></tr>
+<tr><td>6</td><td>슬라이드쇼 구성(대사 화면·배경만 화면) · 리허설</td></tr>
+<tr><td>7</td><td>공연 녹화 · 포스터 만들기</td></tr>
+<tr><td>8</td><td>서로 보고 평론 쓰기 · 제출</td></tr>
+</table>
+<h3>연주 4차시 (연주실 중심)</h3>
+<ol>
+<li>리듬실 — 숫자 리듬으로 신코페이션 찾기, 맞혀 치기</li>
+<li>건반실 — 4코드 반주, 자동 반주에 맞춰 짚기</li>
+<li>즉흥 작곡실 — 감정 코드 위에서 4마디 만들기(도깨비 켜고)</li>
+<li>즉흥 작곡실 — 도깨비 끄고 비교, 악보로 남기고 우리 반 듣기</li>
+</ol>
+<h3>시창·청음 4차시 (솔페지오실 중심)</h3>
+<ol>
+<li>청음 — 음정 듣고 맞히기 1~2단계(완전1·장3·완전4·완전5·완전8도)</li>
+<li>시창 — 기준음 듣고 계이름으로 부르기, 순차 진행부터. 🔊 정답 들어보기로 스스로 확인</li>
+<li>초견 — 내 악기로(보컬·기타·베이스·드럼) 4마디 읽고 연주, 정확도 확인</li>
+<li>건반화성 — I–IV–V⁷–I을 여러 조로 옮겨 짚기, 정답 큰보표로 확인</li>
+</ol>
+
+<h2 id="s8">8. 음원과 저작권</h2>
+<div class="card stop">
+<p><b>가장 안전하고 교육적인 음원은 아이들이 만든 곡입니다.</b> 프로덕션에서 만든 넘버를 밴드실·믹서로 가져오면 저작권 걱정 없이 "우리가 만든 노래를 우리가 연주"할 수 있습니다.</p>
+<p>가요를 쓰실 때는 <b>수업 목적 범위</b>를 지켜 주세요. 파일은 수업용 기기에만 두고, 클라우드·게시판·외부 공개는 하지 않으며, 단원이 끝나면 지웁니다. 앱은 음원을 서버로 보내지 않고 브라우저 안에서만 재생하도록 만들어져 있습니다.</p>
+<p>밖으로 내보내는 발표 영상은 <b>저작권 없는 우리 곡</b>으로 만드시길 권합니다.</p>
+</div>
+
+</main>
+<footer>© 2017–2026 <b style="color:#7a5312">박성애</b> · EAIM 교실 (Emotion · Artscape · Interactive · Musicalization)<br>설계·교수법·콘텐츠: 박성애 &nbsp;|&nbsp; 이 플랫폼의 구조와 교수법은 저작권의 보호를 받습니다</footer>
+</body>
+</html>
