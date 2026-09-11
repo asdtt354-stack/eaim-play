@@ -740,8 +740,9 @@ function listenAll(){
 function setSong(sg){
   if(state.playing) stop();
   song=sg; calcBPL(); $('songTitle').textContent=sg.title;
-  buildKb('mel',Math.min(60,12*Math.floor(sg.minMidi/12)),Math.max(79,sg.maxMidi));
-  buildKb('cho',48,Math.max(67,sg.choMax));
+  // 두 옥타브: 멜로디 낮은솔~높은솔(G3~G5), 화음 한 옥타브 아래 솔~솔(G2~G4). 곡이 더 넓으면 알아서 늘어나요
+  buildKb('mel',Math.min(55,sg.minMidi),Math.max(79,sg.maxMidi));
+  buildKb('cho',43,Math.max(67,sg.choMax));
   startPos=Math.min(startPos,sg.bars[sg.bars.length-1].start);
   if(!sg.barStarts.has(startPos)) startPos=0;
   curLine=-1; render();
