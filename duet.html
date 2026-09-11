@@ -151,6 +151,15 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
 .bigbtn{width:100%;background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600;min-height:50px}
 #dlgOff,#dlgOn{display:grid;gap:10px}
 #dlgOff[hidden],#dlgOn[hidden]{display:none}
+.cb .tn{display:none}
+.app.chord-only{grid-template-rows:auto 1fr auto}
+.app.chord-only .part.mel,.app.chord-only #mLane{display:none}
+.app.chord-only .track{grid-template-rows:34px minmax(0,1fr)}
+.app.chord-only .cb{font-size:clamp(26px,4vw,46px)}
+.app.chord-only .cb .lb{flex-direction:column;align-items:center;line-height:1.15}
+.app.chord-only .cb .tn{display:block;font-family:var(--ui);font-size:15px;opacity:.85;white-space:nowrap}
+.app.chord-only .cb.small .tn,.app.chord-only .cb.tiny .tn{font-size:12px}
+.app.chord-only .part.cho .kb{height:clamp(140px,32vh,300px)}
 @media (prefers-reduced-motion:reduce){.blk.wait{animation:none;box-shadow:0 0 0 5px rgba(240,165,0,.4)}.sheet{transition:none}}
 @media (max-width:700px){.title{font-size:20px;max-width:100%;width:100%}.seg button{padding:6px 8px}}
 </style>
@@ -235,6 +244,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
       <dt>도/레/미</dt><dd>셋잇단음표</dd>
       <dt>?</dt><dd>확인이 필요한 곳 표시</dd>
       <dt>C Dm G7</dt><dd>화음은 치는 박에 코드 이름, 나머지는 x 또는 -</dd>
+      <dt>멜로디 비우기</dt><dd>화음만 크게 띄워서 코드 연습을 해요</dd>
     </dl>
   </details>
   <label>멜로디
@@ -318,7 +328,7 @@ function parseChord(s){
     const c=window.EAIMChord.parse(s); if(!c) return null;
     const root=48+window.EAIMChord.PC.indexOf(c.root);
     const tones=[...new Set(c.intervals.map(i=>{let x=root+i; while(x>67) x-=12; return x;}))].sort((a,b)=>a-b);
-    return {name:c.name,root,tones};
+    return {name:s.replace('♯','#').replace('♭','b'),root,tones};
   }
   s=s.split('/')[0];
   const m=s.match(/^([A-G])([#♯b♭]?)(maj7|M7|m7|m|7|dim|aug|sus4)?$/);
@@ -333,10 +343,10 @@ function parseChord(s){
 function parseSong(title,bpm,melText,choText){
   const errors=[],warnings=[],unsure=[];
   const mb=barsOf(melText);
-  if(!mb.length){errors.push('멜로디를 한 마디 이상 적어 주세요.');return {errors,warnings,unsure,info:[],song:null};}
+  const cbRaw=barsOf(choText).map(tokens);
+  if(!mb.length&&!cbRaw.length){errors.push('멜로디나 화음을 한 마디 이상 적어 주세요.');return {errors,warnings,unsure,info:[],song:null};}
   const bars=[],mel=[],mrest=[],info=[];
   let t=0,last=null,minSub=1;
-  const cbRaw=barsOf(choText).map(tokens);
   const counts=mb.map(b=>tokens(b).length).filter(c=>c>1);
   const mode=(()=>{ const m={}; let best=4,n=0; counts.forEach(c=>m[c]=(m[c]||0)+1); for(const k in m){ if(m[k]>n){ n=m[k]; best=+k; } } return best; })();
   const NAME={1:'4분음표',2:'8분음표',3:'셋잇단음표',4:'16분음표'};
@@ -366,6 +376,7 @@ function parseSong(title,bpm,melText,choText){
       t=c0+1;
     });
   });
+  if(!mb.length) cbRaw.forEach(tk=>{ bars.push({start:t,beats:tk.length}); t+=tk.length; });   // 화음만 연습
   const cho=[],crest=[];
   const cb=barsOf(choText);
   if(cb.length>bars.length) warnings.push(`화음이 멜로디보다 ${cb.length-bars.length}마디 더 많아요. 넘치는 마디는 빼고 연주해요.`);
@@ -386,7 +397,7 @@ function parseSong(title,bpm,melText,choText){
   });
   mel.forEach(ev=>{ if(ev.unsure){ const b=Math.floor(ev.start-bars[ev.bar].start+1e-6)+1; unsure.unshift(`${ev.bar+1}마디 ${b}박 ${ev.oct>0?'높은':ev.oct<0?'낮은':''}${ev.name}${ev.acc>0?'#':ev.acc<0?'b':''}`);} });
   const steps=mel.map(e=>e.step), midis=mel.map(e=>e.midi), ct=cho.flatMap(c=>c.tones);
-  const song={title:title||'제목 없는 곡',bpm:Math.max(30,Math.min(220,bpm||90)),bars,mel,mrest,cho,crest,total:t,minSub,
+  const song={title:title||'제목 없는 곡',bpm:Math.max(30,Math.min(220,bpm||90)),bars,mel,mrest,cho,crest,total:t,minSub,chordOnly:!mb.length,
     minStep:steps.length?Math.min(...steps):0,maxStep:steps.length?Math.max(...steps):7,
     minMidi:midis.length?Math.min(...midis):60,maxMidi:midis.length?Math.max(...midis):72,
     choMax:ct.length?Math.max(...ct):60,barStarts:new Set(bars.map(b=>b.start))};
@@ -544,6 +555,11 @@ function judge(part,m){
 
 /* ---------- 가운데 블록 띠 ---------- */
 function barAt(p){let i=0; song.bars.forEach((b,j)=>{if(b.start<=p+1e-6) i=j;}); return i;}
+const TN_SH=['도','도#','레','레#','미','파','파#','솔','솔#','라','라#','시'], TN_FL=['도','레b','레','미b','미','파','솔b','솔','라b','라','시b','시'];
+function chordHTML(ev){
+  const L=/^[A-G]b/.test(ev.name)?TN_FL:TN_SH;
+  return `<span>${ev.name}</span><span class="tn">${ev.tones.map(t=>L[((t%12)+12)%12]).join('·')}</span>`;
+}
 function labelHTML(ev){
   const oc=ev.oct>0?'hi':ev.oct<0?'lo':'';
   return `<span class="nm ${oc}">${ev.name}</span>${ev.acc?`<sup>${ev.acc>0?'#':'♭'}</sup>`:''}`;
@@ -607,7 +623,7 @@ function buildLine(li){
     if(r.start>=s&&r.start<e){const x=document.createElement('div');x.className='rx';x.textContent='✗';
       x.style.left=X(r.start+0.5)+'%'; x.style.top='50%'; cL.appendChild(x);}
   });
-  song.cho.forEach(ev=>addBlock(ev,cL,'cb',ev.name));
+  song.cho.forEach(ev=>addBlock(ev,cL,'cb',chordHTML(ev)));
   $('pageInfo').textContent=`${song.title} · ${li+1} / ${Math.ceil(song.bars.length/BPL)}줄`;
 }
 
@@ -702,6 +718,7 @@ function frame(now){
     const g=findGate(pos,next);
     if(g){ next=g.start; waiting=g; }
   }
+  if(waiting&&next>=startPos-1e-6) $('count').textContent='';   // 세기가 끝나고 기다리는 중이면 숫자 지우기
   if(next>pos) cross(pos,next,spb);
   pos=next;
   if(pos>=song.total+0.4){ stop('끝!'); return; }
@@ -740,6 +757,8 @@ function listenAll(){
 function setSong(sg){
   if(state.playing) stop();
   song=sg; calcBPL(); $('songTitle').textContent=sg.title;
+  document.querySelector('.app').classList.toggle('chord-only',!!sg.chordOnly);
+  if(sg.chordOnly&&!room&&state.who.cho==='app'){ state.who.cho='kid'; syncWhoUI(); }
   // 두 옥타브: 멜로디 낮은솔~높은솔(G3~G5), 화음 한 옥타브 아래 솔~솔(G2~G4). 곡이 더 넓으면 알아서 늘어나요
   buildKb('mel',Math.min(55,sg.minMidi),Math.max(79,sg.maxMidi));
   buildKb('cho',43,Math.max(67,sg.choMax));
@@ -874,7 +893,7 @@ function fbErr(e){
 }
 async function sendSong(){
   const m=$('tMsg'); applyInputs();
-  if(!src.melody.trim()){ m.className='msg err'; m.textContent='멜로디를 먼저 적어 주세요.'; return; }
+  if(!src.melody.trim()&&!src.chords.trim()){ m.className='msg err'; m.textContent='멜로디나 화음을 먼저 적어 주세요.'; return; }
   m.className='msg'; m.textContent='보내는 중…';
   try{
     const {auth,db}=await getFB();
@@ -977,7 +996,7 @@ async function joinRoom(){
     const d=await roomGet(code);
     if(!d) throw new Error('그 코드의 합주방이 없어요. 짝꿍 화면의 숫자를 다시 확인해 주세요.');
     room=code; lastCmd=(d.cmd&&d.cmd.id)||''; lastSv=d.sv||'';
-    if(d.song&&d.song.melody) applySongObj(d.song);
+    if(d.song&&(d.song.melody||d.song.chords)) applySongObj(d.song);
     await calibrate(); connected();
   }catch(e){ room=null; dErr(e.message); }
   finally{ $('joinRoom').disabled=false; }
@@ -998,6 +1017,7 @@ function connected(){
   listen();
   if(window.EAIMKey) EAIMKey.ping('짝꿍 피아노실','두 태블릿 합주',{force:true});
 }
+function syncWhoUI(){ document.querySelectorAll('.who').forEach(seg=>seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.w===state.who[seg.dataset.part]))); }
 function leaveRoom(){
   if(state.playing) stop();
   const was=room;
@@ -1033,7 +1053,7 @@ async function poll(){
   finally{ polling=false; }
 }
 function onRoom(d){
-  if(d.sv&&d.sv!==lastSv&&d.song&&d.song.melody){ lastSv=d.sv; if(!state.playing) applySongObj(d.song); }
+  if(d.sv&&d.sv!==lastSv&&d.song&&(d.song.melody||d.song.chords)){ lastSv=d.sv; if(!state.playing) applySongObj(d.song); }
   if(d.cmd&&d.cmd.id&&d.cmd.id!==lastCmd) handleCmd(d.cmd);
   const mates=Object.entries(d.devs||{}).filter(([k,v])=>k!==DEV&&v&&v.part).map(([,v])=>v.part);
   const nm={mel:'멜로디',cho:'화음'};
@@ -1044,7 +1064,7 @@ function onRoom(d){
 function handleCmd(c){
   lastCmd=c.id;
   if(c.type==='start'){
-    if(c.song&&c.song.melody&&!sameSong(c.song,src)) applySongObj(c.song);
+    if(c.song&&(c.song.melody||c.song.chords)&&!sameSong(c.song,src)) applySongObj(c.song);
     if(c.speed) setSpeed(c.speed);
     startPos=song.barStarts.has(c.startPos)?c.startPos:0;
     const delay=c.startAt-serverNow();
@@ -1141,12 +1161,15 @@ $('photoBtn').onclick=()=>$('photoIn').click();
 $('photoIn').onchange=e=>{ const f=e.target.files[0]; if(f) readPhoto(f); };
 addEventListener('resize',()=>{ calcBPL(); curLine=-1; render(); });
 bindKb('mel'); bindKb('cho');
-try{ const last=JSON.parse(localStorage.getItem(LAST_KEY)||'null'); if(last&&last.melody) src=last; }catch(e){}
+try{ const last=JSON.parse(localStorage.getItem(LAST_KEY)||'null'); if(last&&(last.melody||last.chords)) src=last; }catch(e){}
+let imported=false;   // 건반실 "이 코드로 연습하기"에서 넘어온 코드 진행
+try{ const im=JSON.parse(localStorage.getItem('eaim_duet_import')||'null'); localStorage.removeItem('eaim_duet_import');
+  if(im&&im.chords&&Date.now()-(im.ts||0)<10*60e3){ src={title:im.title||'코드 연습',bpm:im.bpm||90,melody:im.melody||'',chords:im.chords}; imported=true; localStorage.setItem(LAST_KEY,JSON.stringify(src)); } }catch(e){}
 if(new URLSearchParams(location.search).get('embed')==='1') document.body.classList.add('embed');
 setSong(parseSong(src.title,src.bpm,src.melody,src.chords).song);
 renderSongs();
 initAudio();
-if(TEACHER){ $('tHead').textContent='선생님이 보낸 곡'; $('sendSong').hidden=true; loadNewTeacherSong(); }
+if(TEACHER){ $('tHead').textContent='선생님이 보낸 곡'; $('sendSong').hidden=true; if(imported) listTeacherSongs(); else loadNewTeacherSong(); }
 $('startBtn').onclick=()=>{ ensureAudio(); $('start').classList.add('hide'); };
 </script>
 <script src="play-shell.js"></script>

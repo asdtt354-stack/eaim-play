@@ -211,6 +211,9 @@
             <label class="auto-opt"><input type="checkbox" id="metro" checked> 메트로놈</label>
             <label class="auto-opt"><input type="checkbox" id="loopChk" checked> 반복</label>
         </div>
+        <div style="text-align:center;margin:8px 0 4px">
+            <button onclick="goDuetPractice()" style="background:#0E9F87;color:#fff;border:2px solid rgba(255,255,255,.85);border-radius:22px;padding:9px 20px;font:inherit;font-size:1.05rem;cursor:pointer;box-shadow:0 3px 0 #07695A">👫 이 코드로 짝꿍 피아노실에서 박자 맞춰 연습하기 ▶</button>
+        </div>
         
         <div class="piano-wrap" id="piano"></div>
         <div style="margin-top:5px; color:#aaa; font-size:0.8rem;">반주를 고르고 ▶ 자동 반주를 누르면 마디마다 코드가 넘어가요. 그 위에서 노란 건반을 짚어 보세요!</div>
@@ -398,11 +401,29 @@
         // ══ 자동 반주: 마디마다 코드가 넘어가며 반주 패턴이 흐름 ══
         let autoPlaying = false, autoLoop = null, autoIdx = 0;
         let metro = null;
-        function transposed(c) {   // 악보 Key 만큼 옮긴 코드 객체
-            const sh = (r) => keys[((keys.indexOf(r) - songKey) + 12) % 12];
+        const SHARPS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        const pcIdx = (r) => { const i = SHARPS.indexOf(r); return i >= 0 ? i : keys.indexOf(r); };
+        function transposed(c) {   // 악보 Key 만큼 옮긴 코드 객체 (음이름은 공용 코드 모듈과 같은 샵 표기)
+            const sh = (r) => SHARPS[((pcIdx(r) - songKey) + 12) % 12];
             return { ...c, root: sh(c.root), bass: c.bass ? sh(c.bass) : null, intervals: c.intervals || (c.type === 'm' ? [0,3,7] : c.type === '7' ? [0,4,7,10] : [0,4,7]) };
         }
         function chordNotesOf(c) { return EAIMChord.voicing(transposed(c), 4); }
+        function goDuetPractice() {   // 건반실에서 확인한 코드 진행을 짝꿍 피아노실(화음 연습 화면)로 넘기기
+            if (!chordList.length) { alert('먼저 코드를 넣어주세요 (예: C · Dm · G · C)'); return; }
+            const beats = ((EAIMChord.PATTERNS[currentRhythm] || {}).beats === 3) ? 3 : 4;
+            const FL = { 'A#':'Bb', 'D#':'Eb', 'G#':'Ab' };   // 흔히 쓰는 표기로
+            const nm = (c) => { const t = transposed(c); const suf = String(c.name || '').split(' - ')[0].replace(/^[A-G][#b]?/, '').replace(/\/[A-G][#b]?$/, ''); return (FL[t.root] || t.root) + suf + (t.bass ? '/' + (FL[t.bass] || t.bass) : ''); };
+            const bars = chordList.map(c => {   // 마디 첫 박에 잡고 마디 끝까지 누르기
+                const a = nm(c);
+                if (c.second) { const b = nm(c.second); return beats === 3 ? `${a} ${b} -` : `${a} - ${b} -`; }
+                return beats === 3 ? `${a} - -` : `${a} - - -`;
+            });
+            const lines = []; for (let i = 0; i < bars.length; i += 4) lines.push(bars.slice(i, i + 4).join(' | ') + ' |');
+            const title = (document.getElementById('songName').value.trim() || '건반실 코드 연습') + (songKey ? ' (쉬운 자리로 옮김)' : '');
+            try { localStorage.setItem('eaim_duet_import', JSON.stringify({ title, bpm: +document.getElementById('bpm').value || 90, melody: '', chords: lines.join('\n'), ts: Date.now() })); } catch (e) {}
+            if (autoPlaying) stopAuto();
+            location.href = window.EAIMKey ? EAIMKey.link('duet.html') : 'duet.html';
+        }
         function setBpm(v) { Tone.Transport.bpm.value = Number(v); document.getElementById('bpmLbl').textContent = v; }
         function toggleAuto() {
             if (autoPlaying) { stopAuto(); return; }
@@ -616,12 +637,9 @@ ${(n.lyrics || '').trim()}`, { json: true, temperature: .6, maxTokens: 400 });
             document.querySelectorAll('.key').forEach(k=>k.classList.remove('guide-on'));
             if(currentIdx === -1 || !chordList[currentIdx]) return;
             let target = chordList[currentIdx];
-            let rootIdx = keys.indexOf(target.root);
-            let guideIdx = rootIdx - songKey;
-            if(guideIdx < 0) guideIdx += 12;
-            let guideRoot = keys[guideIdx];
+            let guideIdx = (pcIdx(target.root) - songKey + 12) % 12;
             let iv = target.intervals || (target.type === 'm' ? [0,3,7] : target.type === '7' ? [0,4,7,10] : [0,4,7]);
-            let notes = iv.map(i => keys[(keys.indexOf(guideRoot)+i)%12]);
+            let notes = iv.map(i => SHARPS[(guideIdx + i) % 12]);
             notes.forEach(n => {
                 let map = n + "4";
                 if(keyElements[map]) keyElements[map].classList.add('guide-on');
