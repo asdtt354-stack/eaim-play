@@ -226,8 +226,8 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
   </div>
   <div class="photo">
     <button id="photoBtn">📷 악보 사진·PDF로 멜로디 읽기</button>
-    <input type="file" id="photoIn" accept="image/*,application/pdf" multiple hidden>
-    <p class="msg" id="photoMsg">여러 쪽 PDF나 사진 여러 장도 한 번에 골라요(쪽 순서대로). 읽은 결과가 아래 칸에 채워지면 확인하고 고쳐 주세요. ?가 붙은 곳은 AI가 자신 없는 곳이에요.</p>
+    <input type="file" id="photoIn" accept="image/*,application/pdf" hidden>
+    <p class="msg" id="photoMsg">읽은 결과가 아래 칸에 채워지면, 확인하고 고쳐 주세요. ?가 붙은 곳은 AI가 자신 없는 곳이에요.</p>
   </div>
   <details class="rules" id="rules">
     <summary>📖 적는 규칙 보기</summary>
@@ -792,12 +792,6 @@ let deb=0;
 
 /* ---------- 악보 사진 읽기 ---------- */
 const READ_PROMPT=`이 악보 사진의 멜로디(가사가 붙은 가장 위 선율)를 아래 규칙대로 옮겨 적어.
-- 사진에 보이는 모든 줄, 모든 마디를 첫 마디부터 마지막 마디까지 빠짐없이 적는다. 중간에 멈추거나 줄이지 않는다.
-- 피아노 악보처럼 높은음자리표 줄과 낮은음자리표 줄이 한 묶음(큰보표)이면, 멜로디는 위 줄에서만 읽는다. 아래 줄(반주)의 음은 멜로디에 넣지 않는다. 위 줄에 음이 여러 개 쌓여 있으면 가장 높은 음만 적는다.
-- 두 사람이 치는 연탄곡 악보(한 묶음에 줄이 4개)면 맨 위 줄만 멜로디로 읽는다.
-- 한 묶음 안의 위·아래 줄은 같은 마디이므로 마디 수를 한 번만 센다.
-- 코드 기호가 없고 아래 줄에 반주가 있으면, 반주 음을 보고 마디마다 코드를 짐작해 chords에 적는다. 짐작이 자신 없는 코드 뒤에는 ? 를 붙인다.
-- 도돌이표나 D.S. 같은 반복 기호는 펼치지 말고 악보에 적힌 순서대로 한 번씩만 적는다.
 - 한 칸 = 한 박(4분음표). 칸은 띄어쓰기, 마디는 | 로 나눈다. 네 마디마다 줄을 바꾼다.
 - 계이름은 고정도(C=도): 도 레 미 파 솔 라 시. 가온 도(C4)부터 시(B4)까지는 아무것도 붙이지 않고 그대로 쓴다('중간'을 붙이지 않는다). 그 위 옥타브(C5~B5)는 '높은'을 붙이고(높은도), 아래 옥타브(C3~B3)는 '낮은'을 붙인다(낮은솔). 두 옥타브 위·아래는 '높은높은', '낮은낮은'.
 - 조표와 임시표를 반영해 실제로 치는 음으로 적는다. 올림은 #, 내림은 b (파#, 시b).
@@ -807,52 +801,26 @@ const READ_PROMPT=`이 악보 사진의 멜로디(가사가 붙은 가장 위 �
 - 못갖춘마디로 시작하면 앞을 x로 채워 온마디로 만든다.
 - 한 칸은 / 로 2칸·3칸·4칸까지 나눌 수 있다. 16분음표 네 개 = "도/레/미/파", 8분음표+16분음표 두 개 = "도/-/레/미", 16분음표 두 개+8분음표 = "도/레/미/-", 점8분음표+16분음표 = "도/-/-/레", 16분음표+점8분음표 = "도/레/-/-", 셋잇단음표 = "도/레/미".
 - 32분음표처럼 이 규칙으로 정확히 못 적는 리듬은 가장 가까운 모양으로 적고 뒤에 ? 를 붙인다. 음 높이가 확실하지 않은 곳도 뒤에 ? 를 붙인다.
-- 악보 위에 코드 기호(C, G7, Am 등)가 있으면 chords에 멜로디와 같은 칸 수로 적는다: 코드가 바뀌는 박에 코드 이름, 나머지 칸은 x. 코드 기호도 반주 줄도 없으면 빈 문자열.
+- 악보 위에 코드 기호(C, G7, Am 등)가 있으면 chords에 멜로디와 같은 칸 수로 적는다: 코드가 바뀌는 박에 코드 이름, 나머지 칸은 x. 코드 기호가 없으면 빈 문자열.
 - 빠르기 표시가 있으면 bpm 숫자로, 없으면 90.
-bars에는 이 사진의 마디 수를 적는다.
-JSON만 출력해: {\"title\":\"곡 제목\",\"bars\":16,\"bpm\":90,\"melody\":\"...\",\"chords\":\"...\"}`;
-const READ_NEXT=`
-이 사진은 앞 쪽에 이어지는 다음 쪽이다. title은 빈 문자열로 두고, 첫 마디는 적힌 그대로 적는다(x로 채우지 않는다).`;
-/* 여러 쪽 PDF·여러 장 사진을 한 쪽씩 읽어서 이어 붙임 (한 번에 읽으면 답이 잘려서 앞 몇 마디만 남기 쉬움) */
-async function readPhoto(fileList){
+JSON만 출력해: {\"title\":\"곡 제목\",\"bpm\":90,\"melody\":\"...\",\"chords\":\"...\"}`;
+async function readPhoto(file){
   const msg=$('photoMsg'), btn=$('photoBtn');
-  btn.disabled=true; msg.className='msg'; msg.textContent='악보를 여는 중이에요…';
+  btn.disabled=true; msg.className='msg'; msg.textContent='악보를 읽는 중이에요. 20~40초쯤 걸려요.';
   try{
     if(!window.EAIMKey) throw new Error('play-key.js를 불러오지 못했어요. 저장소에 함께 올라가 있는지 확인해 주세요.');
-    const pages=[];
-    for(const f of [...fileList]){
-      const isPdf=/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name);
-      if(isPdf){
-        const first=await EAIMKey.fileToImage(f,{page:1,maxSide:2400});   // PDF 도구도 여기서 준비돼요
-        let n=1; try{ n=(await window.pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise).numPages; }catch(e){}
-        pages.push({img:first}); for(let pg=2;pg<=n;pg++) pages.push({file:f,page:pg});
-      } else pages.push({file:f,page:1});
-    }
-    const total=Math.min(pages.length,8), got=[];
-    for(let i=0;i<total;i++){
-      msg.textContent=total>1?`악보를 읽는 중이에요… ${i+1} / ${total}쪽 (한 쪽에 20~40초)`:'악보를 읽는 중이에요. 20~40초쯤 걸려요.';
-      const img=pages[i].img||await EAIMKey.fileToImage(pages[i].file,{page:pages[i].page,maxSide:2400});
-      const j=await EAIMKey.gemini('',{json:true,temperature:.2,maxTokens:8192,
-        parts:[{inline_data:{mime_type:img.mime,data:img.b64}},{text:READ_PROMPT+(i>0?READ_NEXT:'')}]});
-      got.push(j);
-    }
-    const endBar=t=>t&&!/\|\s*$/.test(t)?t+' |':t;
-    const mel=got.map(j=>endBar(String(j.melody||'').trim()));
-    const hasCho=got.some(j=>String(j.chords||'').trim());
-    const cho=hasCho?got.map((j,i)=>{ const c=String(j.chords||'').trim(); if(c) return endBar(c);
-      return mel[i]?barsOf(mel[i]).map(b=>tokens(b).map(()=>'x').join(' ')).join(' | ')+' |':''; }):[];   // 코드가 없는 쪽은 x로 자리 맞춤
-    if(got[0].title) $('inTitle').value=got[0].title;
-    if(got[0].bpm) $('inBpm').value=got[0].bpm;
-    $('inMel').value=mel.filter(Boolean).join('\n');
-    $('inCho').value=cho.filter(Boolean).join('\n');
+    const img=await EAIMKey.fileToImage(file);
+    // 답 길이 넉넉하게: Gemini가 속으로 생각하는 분량까지 이 한도에 포함돼서, 작으면 답이 중간에 잘려요
+    const j=await EAIMKey.gemini('',{json:true,temperature:.2,maxTokens:16384,
+      parts:[{inline_data:{mime_type:img.mime,data:img.b64}},{text:READ_PROMPT}]});
+    if(j.title) $('inTitle').value=j.title;
+    if(j.bpm) $('inBpm').value=j.bpm;
+    $('inMel').value=j.melody||'';
+    $('inCho').value=j.chords||'';
     applyInputs();
-    const want=got.reduce((a,j)=>a+(+j.bars||0),0), have=barsOf($('inMel').value).length;
-    const q=($('inMel').value+$('inCho').value).split('?').length-1;
-    const more=pages.length>8?' (앞 8쪽만 읽었어요)':'';
-    const short=want&&have<want;
-    msg.className=short?'msg warn':'msg ok';
-    msg.textContent=(short?`악보는 ${want}마디로 보이는데 ${have}마디만 읽혔어요. 빠진 곳은 직접 채워 주세요.`
-      :q?`${have}마디를 다 읽었어요. ?가 붙은 ${q}곳을 먼저 확인해 주세요.`:`${have}마디를 다 읽었어요. 블록을 보면서 한 번 확인해 주세요.`)+more;
+    const q=((j.melody||'')+(j.chords||'')).split('?').length-1;
+    msg.className='msg ok';
+    msg.textContent=q?`다 읽었어요. ?가 붙은 ${q}곳을 먼저 확인해 주세요.`:'다 읽었어요. 블록을 보면서 한 번 확인해 주세요.';
   }catch(e){
     msg.className='msg err';
     msg.textContent=(e&&e.message&&/[가-힣]/.test(e.message))?e.message:'악보를 읽지 못했어요. 밝은 곳에서 악보가 화면에 꽉 차게 다시 찍어 주세요.';
@@ -1195,7 +1163,7 @@ $('mySeg').addEventListener('click',e=>{
   if(room){ applyPartLayout(); heartbeat().catch(()=>{}); }
 });
 $('photoBtn').onclick=()=>$('photoIn').click();
-$('photoIn').onchange=e=>{ const fs=e.target.files; if(fs&&fs.length) readPhoto(fs); };
+$('photoIn').onchange=e=>{ const f=e.target.files[0]; if(f) readPhoto(f); };
 addEventListener('resize',()=>{ calcBPL(); curLine=-1; render(); });
 bindKb('mel'); bindKb('cho');
 try{ const last=JSON.parse(localStorage.getItem(LAST_KEY)||'null'); if(last&&(last.melody||last.chords)) src=last; }catch(e){}
