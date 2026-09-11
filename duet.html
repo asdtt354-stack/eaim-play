@@ -100,6 +100,8 @@ button:focus-visible{outline:3px solid var(--head);outline-offset:2px}
 .count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--fun);font-size:min(20vh,150px);color:var(--head);pointer-events:none;z-index:6}
 .nav{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:4px;font-size:13px;color:var(--muted)}
 .nav button{min-height:30px;padding:0 14px;font-size:16px}
+.nav .listen{margin-left:12px;font-size:14px;background:var(--mel-soft);border-color:var(--mel);color:var(--mel-ink);font-weight:600}
+.app.solo-mel .listen,.app.solo-cho .listen{display:none}
 
 .sheet{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);background:var(--paper);box-shadow:-10px 0 34px rgba(28,35,48,.2);transform:translateX(105%);transition:transform .25s ease;z-index:20;display:flex;flex-direction:column;gap:12px;padding:16px 18px 24px;overflow:auto;-webkit-user-select:text;user-select:text}
 .sheet.open{transform:none}
@@ -110,12 +112,17 @@ button:focus-visible{outline:3px solid var(--head);outline-offset:2px}
 input,textarea{font:16px/1.6 var(--ui);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--ink);background:#FAFBFC;-webkit-user-select:text;user-select:text;width:100%}
 textarea{font-family:var(--fun);font-size:19px;line-height:1.7;resize:vertical}
 input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--mel)}
+.quick{display:flex;flex-wrap:wrap;gap:6px;font-weight:400}
+.quick button{min-height:36px;padding:3px 12px;font-size:14px;color:var(--ink);background:#F4F6F9}
+.quick button b{font-family:var(--fun);font-size:19px;margin-right:3px;color:var(--mel-ink)}
+.quick button:active{background:var(--mel-soft)}
 .photo button{width:100%;background:var(--mel-soft);border-color:var(--mel);color:var(--mel-ink);font-weight:600}
 .msg{font-size:14px;line-height:1.6;margin-top:6px;color:var(--muted)}
 .check{display:grid;gap:4px;font-size:14px;line-height:1.6}
 .err{color:#B4232B} .warn{color:#8A5A00} .ok{color:var(--mel-ink)} .info{color:#2F5E9E}
-.rules{font-size:14px;line-height:1.8;color:var(--muted);border-top:1.5px solid var(--faint);padding-top:10px}
-.rules summary{cursor:pointer;font-weight:600;color:var(--ink)}
+.rules{font-size:14px;line-height:1.8;color:var(--muted);background:#F7F8FB;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px}
+.rules summary{cursor:pointer;font-weight:600;color:var(--ink);list-style-position:inside}
+.rules[open]{background:#FFFDF5;border-color:var(--head)}
 .rules dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin-top:8px}
 .rules dt{font-family:var(--fun);font-size:17px;color:var(--ink)}
 .start{position:fixed;inset:0;z-index:30;background:rgba(238,241,245,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px}
@@ -172,7 +179,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
   <section class="part mel">
     <div class="plabel">
       <span class="pname">멜로디</span>
-      <div class="seg small who" data-part="mel" role="group" aria-label="멜로디 연주자"><button data-w="kid" class="on">🙋 학생</button><button data-w="app">🤖 앱</button></div>
+      <div class="seg small who" data-part="mel" role="group" aria-label="멜로디 연주자"><button data-w="kid" class="on">🙋 학생이 쳐요</button><button data-w="app">🤖 앱이 쳐요</button></div>
     </div>
     <div class="kb" id="kbMel"></div>
   </section>
@@ -184,7 +191,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
       <div class="lane" id="cLane"></div>
       <div class="head" id="playhead"></div>
     </div>
-    <div class="nav"><button id="prevLine" aria-label="앞 줄">‹</button><span id="pageInfo"></span><button id="nextLine" aria-label="다음 줄">›</button></div>
+    <div class="nav"><button id="prevLine" aria-label="앞 줄">‹</button><span id="pageInfo"></span><button id="nextLine" aria-label="다음 줄">›</button><button id="listenBtn" class="listen">🎧 두 파트 다 들어보기</button></div>
     <div class="count" id="count"></div>
   </main>
 
@@ -192,7 +199,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
     <div class="kb" id="kbCho"></div>
     <div class="plabel">
       <span class="pname">화음</span>
-      <div class="seg small who" data-part="cho" role="group" aria-label="화음 연주자"><button data-w="kid">🙋 학생</button><button data-w="app" class="on">🤖 앱</button></div>
+      <div class="seg small who" data-part="cho" role="group" aria-label="화음 연주자"><button data-w="kid">🙋 학생이 쳐요</button><button data-w="app" class="on">🤖 앱이 쳐요</button></div>
       <div class="seg small" id="levelSeg" role="group" aria-label="화음 단계"><button data-l="1" class="on">① 아무 건반</button><button data-l="2">② 근음</button><button data-l="3">③ 세 음 모두</button></div>
     </div>
   </section>
@@ -209,8 +216,33 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
     <input type="file" id="photoIn" accept="image/*,application/pdf" hidden>
     <p class="msg" id="photoMsg">읽은 결과가 아래 칸에 채워지면, 확인하고 고쳐 주세요. ?가 붙은 곳은 AI가 자신 없는 곳이에요.</p>
   </div>
-  <label>멜로디<textarea id="inMel" rows="6" spellcheck="false"></textarea></label>
-  <label>화음 (코드)<textarea id="inCho" rows="4" spellcheck="false"></textarea></label>
+  <details class="rules" id="rules">
+    <summary>📖 적는 규칙 보기</summary>
+    <dl>
+      <dt>도 레 미</dt><dd>한 칸이 한 박, 칸은 띄어쓰기로 나눠요</dd>
+      <dt>|</dt><dd>마디 나누기 (줄을 바꿔도 마디가 나뉘어요)</dd>
+      <dt>높은도</dt><dd>한 옥타브 위, 낮은솔은 한 옥타브 아래</dd>
+      <dt>파# 시b</dt><dd>올림·내림</dd>
+      <dt>-</dt><dd>앞 음을 이어서 누르기 (붙임줄도 이렇게)</dd>
+      <dt>x</dt><dd>치지 않는 자리</dd>
+      <dt>도레</dt><dd>붙여 쓰면 한 박 안에서 나눠요 (도레 = 도/레)</dd>
+      <dt>도/레</dt><dd>8분음표 두 개 (한 박을 반씩)</dd>
+      <dt>x미</dt><dd>8분쉼표 + 8분음표 (= x/미)</dd>
+      <dt>도/레/미/파</dt><dd>16분음표 네 개</dd>
+      <dt>도/-/레/미</dt><dd>8분음표 + 16분음표 두 개</dd>
+      <dt>도/레/미/-</dt><dd>16분음표 두 개 + 8분음표</dd>
+      <dt>도/-/-/레</dt><dd>점8분음표 + 16분음표</dd>
+      <dt>도/레/미</dt><dd>셋잇단음표</dd>
+      <dt>?</dt><dd>확인이 필요한 곳 표시</dd>
+      <dt>C Dm G7</dt><dd>화음은 치는 박에 코드 이름, 나머지는 x 또는 -</dd>
+    </dl>
+  </details>
+  <label>멜로디
+    <div class="quick" data-for="inMel"><button type="button" data-ins="x"><b>x</b> 쉼표</button><button type="button" data-ins="-"><b>-</b> 이어 누르기</button><button type="button" data-ins="/"><b>/</b> 박 나누기</button><button type="button" data-ins="|"><b>|</b> 마디</button></div>
+    <textarea id="inMel" rows="6" spellcheck="false" placeholder="예) 도 레 미 - | 도레 미파 솔 x |"></textarea></label>
+  <label>화음 (코드)
+    <div class="quick" data-for="inCho"><button type="button" data-ins="x"><b>x</b> 안 치기</button><button type="button" data-ins="-"><b>-</b> 이어 누르기</button><button type="button" data-ins="|"><b>|</b> 마디</button></div>
+    <textarea id="inCho" rows="4" spellcheck="false" placeholder="예) C x x x | G x C x |"></textarea></label>
   <div class="check" id="checkMsg"></div>
   <div class="saved" id="tBox">
     <div class="saved-head"><span id="tHead">학생 태블릿으로 보낸 곡</span><button id="sendSong">📤 학생에게 보내기</button></div>
@@ -221,26 +253,6 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
     <div class="saved-head"><span>이 기기에 저장한 곡</span><button id="saveSong">💾 지금 곡 저장</button></div>
     <div class="songs" id="songList"></div>
   </div>
-  <details class="rules" open>
-    <summary>적는 규칙</summary>
-    <dl>
-      <dt>도 레 미</dt><dd>한 칸이 한 박, 칸은 띄어쓰기로 나눠요</dd>
-      <dt>|</dt><dd>마디 나누기 (줄을 바꿔도 마디가 나뉘어요)</dd>
-      <dt>높은도</dt><dd>한 옥타브 위, 낮은솔은 한 옥타브 아래</dd>
-      <dt>파# 시b</dt><dd>올림·내림</dd>
-      <dt>-</dt><dd>앞 음을 이어서 누르기 (붙임줄도 이렇게)</dd>
-      <dt>x</dt><dd>치지 않는 자리</dd>
-      <dt>도레</dt><dd>붙여 쓰면 한 박 안에서 나눠요 (도레 = 도/레)</dd>
-      <dt>도/레</dt><dd>8분음표 두 개 (한 박을 반씩)</dd>
-      <dt>도/레/미/파</dt><dd>16분음표 네 개</dd>
-      <dt>도/-/레/미</dt><dd>8분음표 + 16분음표 두 개</dd>
-      <dt>도/레/미/-</dt><dd>16분음표 두 개 + 8분음표</dd>
-      <dt>도/-/-/레</dt><dd>점8분음표 + 16분음표</dd>
-      <dt>도/레/미</dt><dd>셋잇단음표</dd>
-      <dt>?</dt><dd>확인이 필요한 곳 표시</dd>
-      <dt>C Dm G7</dt><dd>화음은 치는 박에 코드 이름, 나머지는 x 또는 -</dd>
-    </dl>
-  </details>
 </aside>
 
 <div class="dlg" id="dlg" hidden>
@@ -360,7 +372,7 @@ function parseSong(title,bpm,melText,choText){
   let lastC=null;
   cb.slice(0,bars.length).forEach((bar,bi)=>{
     const tk=tokens(bar); const B=bars[bi];
-    if(tk.length!==B.beats) warnings.push(`${bi+1}마디: 멜로디는 ${B.beats}칸, 화음은 ${tk.length}칸이에요.`+(B.beats>tk.length?' 한 박에 음이 둘 이상이면 도레처럼 붙여 써 주세요.':''));
+    if(tk.length!==B.beats) warnings.push(`${bi+1}마디: 멜로디는 ${B.beats}칸, 화음은 ${tk.length}칸이에요.`+(B.beats>tk.length?' 한 박에 음이 둘 이상이면 도레처럼 붙여 써 주세요.':' 모자란 박은 이어 누르면 -, 쉬면 x를 넣어 주세요.'));
     tk.slice(0,B.beats).forEach((raw,ci)=>{
       const q=raw.includes('?'); const s=raw.replace(/\?/g,''); const st=B.start+ci;
       if(isHold(s)){ if(lastC) lastC.dur+=1; }
@@ -708,10 +720,20 @@ function play(syncBase){
 }
 function stop(msg){
   state.playing=false; cancelAnimationFrame(raf); waiting=null; syncT0=null;
+  if(listenSaved){ state.who=listenSaved; listenSaved=null; $('listenBtn').textContent='🎧 두 파트 다 들어보기'; }
   $('playBtn').textContent='▶ 연주'; $('playBtn').classList.remove('on');
   $('count').textContent=msg||'';
   if(msg) setTimeout(()=>{ if(!state.playing) $('count').textContent=''; },1500);
   curLine=-1; render();
+}
+
+let listenSaved=null;
+function listenAll(){
+  if(room) return;
+  if(listenSaved){ stop(); return; }
+  if(state.playing) stop();
+  listenSaved={...state.who}; state.who.mel='app'; state.who.cho='app';
+  play(); $('listenBtn').textContent='■ 그만 듣기';
 }
 
 /* ---------- 곡 적용 ---------- */
@@ -1085,6 +1107,23 @@ $('editBtn').onclick=()=>{
 };
 $('closeSheet').onclick=()=>$('sheet').classList.remove('open');
 $('sendSong').onclick=sendSong;
+$('listenBtn').onclick=listenAll;
+/* 키보드에 없는 기호(x, -, /, |) 넣기 버튼 — 입력 칸의 커서 자리에 들어가요 */
+function insertTok(ta,t){
+  const a=ta.selectionStart!=null?ta.selectionStart:ta.value.length, z=ta.selectionEnd!=null?ta.selectionEnd:a;
+  const prev=ta.value.slice(0,a).slice(-1);
+  const sp=(t==='-'||t==='|'||t==='x')&&prev&&!/[\s\/]/.test(prev);
+  const ins=(sp?' ':'')+t+((t==='-'||t==='|')?' ':'');
+  if(ta.setRangeText) ta.setRangeText(ins,a,z,'end');
+  else { ta.value=ta.value.slice(0,a)+ins+ta.value.slice(z); ta.selectionStart=ta.selectionEnd=a+ins.length; }
+  ta.focus();
+  ta.dispatchEvent(new Event('input',{bubbles:true}));
+}
+document.querySelectorAll('.quick').forEach(q=>{
+  q.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) e.preventDefault(); });
+  q.addEventListener('mousedown',e=>e.preventDefault());
+  q.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; e.preventDefault(); insertTok($(q.dataset.for),b.dataset.ins); });
+});
 $('linkBtn').onclick=()=>{ $('dlg').hidden=false; if(!room) setTimeout(()=>$('codeIn').focus(),50); };
 $('dlgClose').onclick=()=>{ $('dlg').hidden=true; };
 $('dlg').addEventListener('click',e=>{ if(e.target.id==='dlg') $('dlg').hidden=true; });
