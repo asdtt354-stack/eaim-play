@@ -113,7 +113,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
 .photo button{width:100%;background:var(--mel-soft);border-color:var(--mel);color:var(--mel-ink);font-weight:600}
 .msg{font-size:14px;line-height:1.6;margin-top:6px;color:var(--muted)}
 .check{display:grid;gap:4px;font-size:14px;line-height:1.6}
-.err{color:#B4232B} .warn{color:#8A5A00} .ok{color:var(--mel-ink)}
+.err{color:#B4232B} .warn{color:#8A5A00} .ok{color:var(--mel-ink)} .info{color:#2F5E9E}
 .rules{font-size:14px;line-height:1.8;color:var(--muted);border-top:1.5px solid var(--faint);padding-top:10px}
 .rules summary{cursor:pointer;font-weight:600;color:var(--ink)}
 .rules dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin-top:8px}
@@ -230,6 +230,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
       <dt>파# 시b</dt><dd>올림·내림</dd>
       <dt>-</dt><dd>앞 음을 이어서 누르기 (붙임줄도 이렇게)</dd>
       <dt>x</dt><dd>치지 않는 자리</dd>
+      <dt>도레</dt><dd>붙여 쓰면 한 박 안에서 나눠요 (도레 = 도/레)</dd>
       <dt>도/레</dt><dd>8분음표 두 개 (한 박을 반씩)</dd>
       <dt>도/레/미/파</dt><dd>16분음표 네 개</dd>
       <dt>도/-/레/미</dt><dd>8분음표 + 16분음표 두 개</dd>
@@ -270,6 +271,27 @@ const isRest=s=>/^[xX✗×]$/.test(s);
 const r6=v=>Math.round(v*1e6)/1e6;
 function barsOf(text){return (text||'').replace(/\r?\n/g,'|').split('|').map(s=>s.trim()).filter(s=>s.length);}
 function tokens(bar){return bar.replace(/(높은|낮은)\s+/g,'$1').split(/\s+/).filter(Boolean);}
+const UNIT_RE=/(?:높은|낮은)?(?:도|레|미|파|솔|라|시)[#♯b♭]?['’,]*\??|[-–—~]\??|[xX✗×]\??/y;
+function splitUnits(tok){
+  if(tok.includes('/')) return null;
+  const out=[]; UNIT_RE.lastIndex=0;
+  while(UNIT_RE.lastIndex<tok.length){ const m=UNIT_RE.exec(tok); if(!m) return null; out.push(m[0]); }
+  return out.length>1?out:null;
+}
+/* 붙여 쓴 계이름 풀기: "도레" → "도/레"(한 박 안에서 나눔),
+   마디를 통째로 붙여 쓰면(예: 도레미도도레미도) 그 마디의 박 수에 맞춰 고르게 나눔 */
+function expandBar(tk,B){
+  const units=tk.map(splitUnits);
+  if(tk.length<B&&B%tk.length===0&&units.every(u=>u)){
+    const per=B/tk.length;
+    if(units.every(u=>u.length%per===0&&u.length/per<=4)){
+      const out=[]; units.forEach(u=>{ const n=u.length/per; for(let i=0;i<per;i++) out.push(u.slice(i*n,(i+1)*n).join('/')); });
+      return {tk:out,spread:units.reduce((a,u)=>a+u.length,0)/B};
+    }
+  }
+  const tooMany=units.some(u=>u&&u.length>4);
+  return {tk:tk.map((t,i)=>units[i]?(units[i].length>4?'x':units[i].join('/')):t),spread:0,tooMany};
+}
 function parseNote(s){
   const m=s.match(/^(높은|낮은)?(도|레|미|파|솔|라|시)([#♯b♭]?)(['’,]*)$/);
   if(!m) return null;
@@ -299,11 +321,18 @@ function parseChord(s){
 function parseSong(title,bpm,melText,choText){
   const errors=[],warnings=[],unsure=[];
   const mb=barsOf(melText);
-  if(!mb.length){errors.push('멜로디를 한 마디 이상 적어 주세요.');return {errors,warnings,unsure,song:null};}
-  const bars=[],mel=[],mrest=[];
+  if(!mb.length){errors.push('멜로디를 한 마디 이상 적어 주세요.');return {errors,warnings,unsure,info:[],song:null};}
+  const bars=[],mel=[],mrest=[],info=[];
   let t=0,last=null,minSub=1;
+  const cbRaw=barsOf(choText).map(tokens);
+  const counts=mb.map(b=>tokens(b).length).filter(c=>c>1);
+  const mode=(()=>{ const m={}; let best=4,n=0; counts.forEach(c=>m[c]=(m[c]||0)+1); for(const k in m){ if(m[k]>n){ n=m[k]; best=+k; } } return best; })();
+  const NAME={1:'4분음표',2:'8분음표',3:'셋잇단음표',4:'16분음표'};
   mb.forEach((bar,bi)=>{
-    const tk=tokens(bar);
+    const B=cbRaw[bi]&&cbRaw[bi].length?cbRaw[bi].length:mode;
+    const ex=expandBar(tokens(bar),B), tk=ex.tk;
+    if(ex.tooMany) errors.push(`${bi+1}마디: 붙여 쓴 음이 너무 많아서 박을 나눌 수 없어요. 박마다 띄어 써 주세요. (예: 도레 미파 솔라 시도)`);
+    if(ex.spread) info.push(`${bi+1}마디: 붙여 쓴 계이름을 한 박에 ${ex.spread}개씩${NAME[ex.spread]?`(${NAME[ex.spread]})`:''} 나눴어요.`);
     bars.push({start:t,beats:tk.length});
     tk.forEach((tok,ci)=>{
       const subs=tok.split('/'); const d=1/subs.length; if(d<minSub) minSub=d;
@@ -331,7 +360,7 @@ function parseSong(title,bpm,melText,choText){
   let lastC=null;
   cb.slice(0,bars.length).forEach((bar,bi)=>{
     const tk=tokens(bar); const B=bars[bi];
-    if(tk.length!==B.beats) warnings.push(`${bi+1}마디: 멜로디는 ${B.beats}칸, 화음은 ${tk.length}칸이에요.`);
+    if(tk.length!==B.beats) warnings.push(`${bi+1}마디: 멜로디는 ${B.beats}칸, 화음은 ${tk.length}칸이에요.`+(B.beats>tk.length?' 한 박에 음이 둘 이상이면 도레처럼 붙여 써 주세요.':''));
     tk.slice(0,B.beats).forEach((raw,ci)=>{
       const q=raw.includes('?'); const s=raw.replace(/\?/g,''); const st=B.start+ci;
       if(isHold(s)){ if(lastC) lastC.dur+=1; }
@@ -349,7 +378,7 @@ function parseSong(title,bpm,melText,choText){
     minStep:steps.length?Math.min(...steps):0,maxStep:steps.length?Math.max(...steps):7,
     minMidi:midis.length?Math.min(...midis):60,maxMidi:midis.length?Math.max(...midis):72,
     choMax:ct.length?Math.max(...ct):60,barStarts:new Set(bars.map(b=>b.start))};
-  return {errors,warnings,unsure,song};
+  return {errors,warnings,unsure,info,song};
 }
 // ===== PARSE-END =====
 
@@ -699,6 +728,7 @@ function showCheck(r){
   const out=[];
   r.errors.forEach(t=>out.push(`<p class="err">${t}</p>`));
   r.warnings.forEach(t=>out.push(`<p class="warn">${t}</p>`));
+  (r.info||[]).forEach(t=>out.push(`<p class="info">${t}</p>`));
   if(r.unsure.length) out.push(`<p class="warn">확인할 곳 ${r.unsure.length}곳: ${r.unsure.join(', ')}</p>`);
   if(r.song) out.push(`<p class="ok">${r.song.bars.length}마디, 멜로디 ${r.song.mel.length}음, 화음 ${r.song.cho.length}번</p>`);
   $('checkMsg').innerHTML=out.join('');
