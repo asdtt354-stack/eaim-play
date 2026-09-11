@@ -22,12 +22,13 @@ html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--ui);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .app{height:100vh;height:100dvh;display:grid;grid-template-rows:auto auto 1fr auto;gap:8px;padding:8px 10px 10px}
 
-.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-left:112px;min-height:44px}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding-left:104px;min-height:44px}
+.bar>button,.bar .seg button{padding:7px 10px;font-size:14.5px}
 body.embed .bar{padding-left:0}
-.title{font-family:var(--fun);font-size:26px;margin-right:auto;padding-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
+.title{font-family:var(--fun);font-size:26px;margin-right:auto;padding-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 60px;min-width:0}
 button{font-family:var(--ui);font-size:15px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer;min-height:42px;touch-action:manipulation}
 button:focus-visible{outline:3px solid var(--head);outline-offset:2px}
-.play{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600;min-width:108px}
+.play{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600;min-width:90px}
 .play.on{background:#C2413B;border-color:#C2413B}
 .seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper)}
 .seg button{border:0;border-radius:0;min-height:40px;padding:6px 10px}
@@ -66,6 +67,7 @@ button:focus-visible{outline:3px solid var(--head);outline-offset:2px}
 .lane{position:relative;overflow:hidden}
 .bl{position:absolute;top:0;bottom:0;border-left:1.5px solid var(--line)}
 .bt{position:absolute;top:0;bottom:0;border-left:1px dashed var(--faint)}
+.bs{position:absolute;top:0;bottom:0;border-left:1px dotted #EEF1F5}
 .staff{position:absolute;left:0;right:0;border-top:1.5px solid #B7C0CC}
 .ledger{position:absolute;border-top:1.5px solid #B7C0CC}
 .blk{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:9px;font-family:var(--fun);font-size:clamp(16px,2.2vw,24px);overflow:hidden;transform:translateY(-50%);z-index:2}
@@ -78,6 +80,8 @@ button:focus-visible{outline:3px solid var(--head);outline-offset:2px}
 .cb{background:var(--cho-soft);border:2px solid var(--cho);color:var(--cho-ink);top:5px;bottom:5px;transform:none}
 .cb .fill{background:var(--cho)}
 .blk.small{font-size:clamp(13px,1.6vw,18px);border-radius:7px}
+.blk.tiny{font-size:13px;border-radius:5px;border-width:1.5px}
+.blk.tiny.unsure::after,.blk.tiny.hit::before{font-size:10px;right:1px;left:auto}
 .blk.cont{border-left-style:dotted;border-top-left-radius:0;border-bottom-left-radius:0}
 .blk.now{border-width:3px}
 .mb.now{border-color:var(--mel-ink)} .cb.now{border-color:var(--cho-ink)}
@@ -226,7 +230,12 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
       <dt>파# 시b</dt><dd>올림·내림</dd>
       <dt>-</dt><dd>앞 음을 이어서 누르기 (붙임줄도 이렇게)</dd>
       <dt>x</dt><dd>치지 않는 자리</dd>
-      <dt>도/레</dt><dd>한 박을 반씩 (8분음표 두 개)</dd>
+      <dt>도/레</dt><dd>8분음표 두 개 (한 박을 반씩)</dd>
+      <dt>도/레/미/파</dt><dd>16분음표 네 개</dd>
+      <dt>도/-/레/미</dt><dd>8분음표 + 16분음표 두 개</dd>
+      <dt>도/레/미/-</dt><dd>16분음표 두 개 + 8분음표</dd>
+      <dt>도/-/-/레</dt><dd>점8분음표 + 16분음표</dd>
+      <dt>도/레/미</dt><dd>셋잇단음표</dd>
       <dt>?</dt><dd>확인이 필요한 곳 표시</dd>
       <dt>C Dm G7</dt><dd>화음은 치는 박에 코드 이름, 나머지는 x 또는 -</dd>
     </dl>
@@ -292,13 +301,15 @@ function parseSong(title,bpm,melText,choText){
   const mb=barsOf(melText);
   if(!mb.length){errors.push('멜로디를 한 마디 이상 적어 주세요.');return {errors,warnings,unsure,song:null};}
   const bars=[],mel=[],mrest=[];
-  let t=0,last=null;
+  let t=0,last=null,minSub=1;
   mb.forEach((bar,bi)=>{
     const tk=tokens(bar);
     bars.push({start:t,beats:tk.length});
     tk.forEach((tok,ci)=>{
-      const subs=tok.split('/'); const d=1/subs.length;
-      subs.forEach(raw=>{
+      const subs=tok.split('/'); const d=1/subs.length; if(d<minSub) minSub=d;
+      const c0=t;
+      subs.forEach((raw,j)=>{
+        t=r6(c0+j/subs.length);
         const q=raw.includes('?'); const s=raw.replace(/\?/g,'');
         if(isHold(s)||s===''){
           if(last) last.dur=r6(last.dur+d); else {last={start:t,dur:d};mrest.push(last);}
@@ -310,8 +321,8 @@ function parseSong(title,bpm,melText,choText){
           if(!n){errors.push(`${bi+1}마디 ${ci+1}박: "${s}"는 계이름으로 읽을 수 없어요.`);last={start:t,dur:d};mrest.push(last);}
           else {last={...n,start:t,dur:d,bar:bi,unsure:q,part:'mel'};mel.push(last);}
         }
-        t=r6(t+d);
       });
+      t=c0+1;
     });
   });
   const cho=[],crest=[];
@@ -334,7 +345,7 @@ function parseSong(title,bpm,melText,choText){
   });
   mel.forEach(ev=>{ if(ev.unsure){ const b=Math.floor(ev.start-bars[ev.bar].start+1e-6)+1; unsure.unshift(`${ev.bar+1}마디 ${b}박 ${ev.oct>0?'높은':ev.oct<0?'낮은':''}${ev.name}${ev.acc>0?'#':ev.acc<0?'b':''}`);} });
   const steps=mel.map(e=>e.step), midis=mel.map(e=>e.midi), ct=cho.flatMap(c=>c.tones);
-  const song={title:title||'제목 없는 곡',bpm:Math.max(30,Math.min(220,bpm||90)),bars,mel,mrest,cho,crest,total:t,
+  const song={title:title||'제목 없는 곡',bpm:Math.max(30,Math.min(220,bpm||90)),bars,mel,mrest,cho,crest,total:t,minSub,
     minStep:steps.length?Math.min(...steps):0,maxStep:steps.length?Math.max(...steps):7,
     minMidi:midis.length?Math.min(...midis):60,maxMidi:midis.length?Math.max(...midis):72,
     choMax:ct.length?Math.max(...ct):60,barStarts:new Set(bars.map(b=>b.start))};
@@ -362,6 +373,7 @@ const $=id=>document.getElementById(id);
 const state={playing:false,speed:0.75,wait:false,staff:false,click:false,who:{mel:'kid',cho:'app'},level:1};
 let song=null,src={...DEFAULT},pos=0,startPos=0,lastNow=0,waiting=null,curLine=-1,line=null,countBeats=4,raf=0,curCell=null;
 let BPL=innerWidth<760?2:4;
+function calcBPL(){ const base=innerWidth<760?2:4; BPL=(song&&song.minSub<0.5)?Math.max(1,base/2):base; }
 const keyEls={mel:{},cho:{}}, down={mel:{},cho:{}}, ptr={};
 
 /* ---------- 소리: 연주실 공용 피아노 샘플(play-sound.js), 못 받으면 합성음 ---------- */
@@ -511,6 +523,8 @@ function buildLine(li){
       c.className='bc'+(k===0?' one':''); c.style.left=X(x)+'%'; c.style.width=(X(x+1)-X(x))+'%';
       c.textContent=k+1; c.dataset.bar=bi; c.dataset.beat=x; bR.appendChild(c);
       [mL,cL].forEach(L=>{const g=document.createElement('div');g.className=k===0?'bl':'bt';g.style.left=X(x)+'%';L.appendChild(g);});
+      if(song.minSub<1){ const stp=Math.max(0.25,song.minSub), n=Math.round(1/stp);
+        for(let j=1;j<n;j++){ const g=document.createElement('div'); g.className='bs'; g.style.left=X(x+j/n)+'%'; mL.appendChild(g); } }
     }
   }
   [mL,cL].forEach(L=>{const g=document.createElement('div');g.className='bl';g.style.left='calc(100% - 1.5px)';L.appendChild(g);});
@@ -531,7 +545,8 @@ function buildLine(li){
     if(ee<=s||es>=e) return null;
     const vs=Math.max(es,s), ve=Math.min(ee,e);
     const b=document.createElement('div');
-    b.className='blk '+cls+(es<s?' cont':'')+(ev.unsure?' unsure':'')+(ev.dur<1?' small':'');
+    const px=(mL.clientWidth||800)*(ve-vs)/(e-s);
+    b.className='blk '+cls+(es<s?' cont':'')+(ev.unsure?' unsure':'')+(px<38?' tiny':ev.dur<1?' small':'');
     b.style.left=`calc(${X(vs)}% + 2px)`; b.style.width=`calc(${X(ve)-X(vs)}% - 4px)`;
     const f=document.createElement('div'); f.className='fill'; b.appendChild(f);
     const l=document.createElement('span'); l.className='lb'; l.innerHTML=html; b.appendChild(l);
@@ -552,7 +567,7 @@ function buildLine(li){
       x.style.left=X(r.start+0.5)+'%'; x.style.top='50%'; cL.appendChild(x);}
   });
   song.cho.forEach(ev=>addBlock(ev,cL,'cb',ev.name));
-  $('pageInfo').textContent=`${li+1} / ${Math.ceil(song.bars.length/BPL)}줄`;
+  $('pageInfo').textContent=`${song.title} · ${li+1} / ${Math.ceil(song.bars.length/BPL)}줄`;
 }
 
 function render(){
@@ -582,12 +597,14 @@ function render(){
 }
 function updateKeys(part,p){
   const st={};
+  let nextStart=null;
+  for(const ev of song[part]){ if(ev.start>p+1e-6){ if(ev.start-p<=1.0001) nextStart=ev.start; break; } }
   for(const ev of song[part]){
     if(ev.start>p+1.0001) break;
     const ks=part==='mel'?[ev.midi]:reqKeys(ev);
     let s=null;
     if(p>=ev.start-1e-6&&p<ev.start+ev.dur) s=state.playing?'now':'soon';
-    else if(ev.start>p&&ev.start-p<=1.0001) s='soon';
+    else if(nextStart!==null&&Math.abs(ev.start-nextStart)<1e-6) s='soon';
     if(s) ks.forEach(k=>{if(st[k]!=='now') st[k]=s;});
   }
   for(const m in keyEls[part]){
@@ -671,7 +688,7 @@ function stop(msg){
 /* ---------- 곡 적용 ---------- */
 function setSong(sg){
   if(state.playing) stop();
-  song=sg; $('songTitle').textContent=sg.title;
+  song=sg; calcBPL(); $('songTitle').textContent=sg.title;
   buildKb('mel',Math.min(60,12*Math.floor(sg.minMidi/12)),Math.max(79,sg.maxMidi));
   buildKb('cho',48,Math.max(67,sg.choMax));
   startPos=Math.min(startPos,sg.bars[sg.bars.length-1].start);
@@ -706,7 +723,8 @@ const READ_PROMPT=`이 악보 사진의 멜로디(가사가 붙은 가장 위 �
 - 쉼표는 x (4분쉼표 한 칸 = x, 8분쉼표는 "x/도"처럼).
 - 붙임줄(같은 높이의 음을 잇는 곡선)은 - 로 이어 적는다. 이음줄(다른 높이의 음을 잇는 곡선)은 무시한다.
 - 못갖춘마디로 시작하면 앞을 x로 채워 온마디로 만든다.
-- 16분음표처럼 이 규칙으로 정확히 못 적는 리듬은 가장 가까운 모양으로 적고 뒤에 ? 를 붙인다. 음 높이가 확실하지 않은 곳도 뒤에 ? 를 붙인다.
+- 한 칸은 / 로 2칸·3칸·4칸까지 나눌 수 있다. 16분음표 네 개 = "도/레/미/파", 8분음표+16분음표 두 개 = "도/-/레/미", 16분음표 두 개+8분음표 = "도/레/미/-", 점8분음표+16분음표 = "도/-/-/레", 16분음표+점8분음표 = "도/레/-/-", 셋잇단음표 = "도/레/미".
+- 32분음표처럼 이 규칙으로 정확히 못 적는 리듬은 가장 가까운 모양으로 적고 뒤에 ? 를 붙인다. 음 높이가 확실하지 않은 곳도 뒤에 ? 를 붙인다.
 - 악보 위에 코드 기호(C, G7, Am 등)가 있으면 chords에 멜로디와 같은 칸 수로 적는다: 코드가 바뀌는 박에 코드 이름, 나머지 칸은 x. 코드 기호가 없으면 빈 문자열.
 - 빠르기 표시가 있으면 bpm 숫자로, 없으면 90.
 JSON만 출력해: {"title":"곡 제목","bpm":90,"melody":"...","chords":"..."}`;
@@ -1051,7 +1069,7 @@ $('mySeg').addEventListener('click',e=>{
 });
 $('photoBtn').onclick=()=>$('photoIn').click();
 $('photoIn').onchange=e=>{ const f=e.target.files[0]; if(f) readPhoto(f); };
-addEventListener('resize',()=>{ BPL=innerWidth<760?2:4; curLine=-1; render(); });
+addEventListener('resize',()=>{ calcBPL(); curLine=-1; render(); });
 bindKb('mel'); bindKb('cho');
 try{ const last=JSON.parse(localStorage.getItem(LAST_KEY)||'null'); if(last&&last.melody) src=last; }catch(e){}
 if(new URLSearchParams(location.search).get('embed')==='1') document.body.classList.add('embed');
