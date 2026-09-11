@@ -72,7 +72,11 @@ button:focus-visible{outline:3px solid var(--head);outline-offset:2px}
 .ledger{position:absolute;border-top:1.5px solid #B7C0CC}
 .blk{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:9px;font-family:var(--fun);font-size:clamp(16px,2.2vw,24px);overflow:hidden;transform:translateY(-50%);z-index:2}
 .blk .fill{position:absolute;left:0;top:0;bottom:0;width:0;opacity:.45}
-.blk .lb{position:relative;display:inline-flex;align-items:flex-start}
+.blk .lb{position:relative;display:inline-flex;align-items:flex-start;line-height:1}
+.blk .nm.hi::before{top:-4.5px;width:4px;height:4px}
+.blk .nm.lo::after{bottom:-4.5px;width:4px;height:4px}
+.mb{font-size:min(clamp(16px,2.2vw,24px),calc(var(--bh,40px) - 14px))}
+.mb.small{font-size:min(clamp(13px,1.6vw,18px),calc(var(--bh,40px) - 14px))}
 .blk .lb sup{font-size:.6em;margin-left:1px}
 .nm{position:relative}
 .mb{background:var(--mel-soft);border:2px solid var(--mel);color:var(--mel-ink)}
@@ -230,7 +234,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
     <dl>
       <dt>도 레 미</dt><dd>한 칸이 한 박, 칸은 띄어쓰기로 나눠요</dd>
       <dt>|</dt><dd>마디 나누기 (줄을 바꿔도 마디가 나뉘어요)</dd>
-      <dt>높은도</dt><dd>한 옥타브 위, 낮은솔은 한 옥타브 아래</dd>
+      <dt>낮은도·도·높은도</dt><dd>세 옥타브: 낮은(점 아래) · 가운데(그냥, 중간도라고 써도 돼요) · 높은(점 위)</dd>
       <dt>파# 시b</dt><dd>올림·내림</dd>
       <dt>-</dt><dd>앞 음을 이어서 누르기 (붙임줄도 이렇게)</dd>
       <dt>x</dt><dd>치지 않는 자리</dd>
@@ -292,8 +296,8 @@ const isHold=s=>/^[-–—~]$/.test(s);
 const isRest=s=>/^[xX✗×]$/.test(s);
 const r6=v=>Math.round(v*1e6)/1e6;
 function barsOf(text){return (text||'').replace(/\r?\n/g,'|').split('|').map(s=>s.trim()).filter(s=>s.length);}
-function tokens(bar){return bar.replace(/(높은|낮은)\s+/g,'$1').split(/\s+/).filter(Boolean);}
-const UNIT_RE=/(?:높은|낮은)?(?:도|레|미|파|솔|라|시)[#♯b♭]?['’,]*\??|[-–—~]\??|[xX✗×]\??/y;
+function tokens(bar){return bar.replace(/(높은|낮은|중간|가온)\s+/g,'$1').split(/\s+/).filter(Boolean);}
+const UNIT_RE=/(?:높은|낮은|중간|가온)*(?:도|레|미|파|솔|라|시)[#♯b♭]?['’,]*\??|[-–—~]\??|[xX✗×]\??/y;
 function splitUnits(tok){
   if(tok.includes('/')) return null;
   const out=[]; UNIT_RE.lastIndex=0;
@@ -315,9 +319,9 @@ function expandBar(tk,B){
   return {tk:tk.map((t,i)=>units[i]?(units[i].length>4?'x':units[i].join('/')):t),spread:0,tooMany};
 }
 function parseNote(s){
-  const m=s.match(/^(높은|낮은)?(도|레|미|파|솔|라|시)([#♯b♭]?)(['’,]*)$/);
+  const m=s.match(/^((?:높은|낮은|중간|가온)*)(도|레|미|파|솔|라|시)([#♯b♭]?)(['’,]*)$/);
   if(!m) return null;
-  let oct=m[1]==='높은'?1:m[1]==='낮은'?-1:0;
+  let oct=(m[1].match(/높은/g)||[]).length-(m[1].match(/낮은/g)||[]).length;   // 중간·가온은 0
   for(const c of m[4]) oct+=(c===','?-1:1);
   const d=NAMES.indexOf(m[2]);
   const acc=/[#♯]/.test(m[3])?1:/[b♭]/.test(m[3])?-1:0;
@@ -395,7 +399,7 @@ function parseSong(title,bpm,melText,choText){
       }
     });
   });
-  mel.forEach(ev=>{ if(ev.unsure){ const b=Math.floor(ev.start-bars[ev.bar].start+1e-6)+1; unsure.unshift(`${ev.bar+1}마디 ${b}박 ${ev.oct>0?'높은':ev.oct<0?'낮은':''}${ev.name}${ev.acc>0?'#':ev.acc<0?'b':''}`);} });
+  mel.forEach(ev=>{ if(ev.unsure){ const b=Math.floor(ev.start-bars[ev.bar].start+1e-6)+1; unsure.unshift(`${ev.bar+1}마디 ${b}박 ${ev.oct>0?'높은'.repeat(ev.oct):ev.oct<0?'낮은'.repeat(-ev.oct):''}${ev.name}${ev.acc>0?'#':ev.acc<0?'b':''}`);} });
   const steps=mel.map(e=>e.step), midis=mel.map(e=>e.midi), ct=cho.flatMap(c=>c.tones);
   const song={title:title||'제목 없는 곡',bpm:Math.max(30,Math.min(220,bpm||90)),bars,mel,mrest,cho,crest,total:t,minSub,chordOnly:!mb.length,
     minStep:steps.length?Math.min(...steps):0,maxStep:steps.length?Math.max(...steps):7,
@@ -589,7 +593,7 @@ function buildLine(li){
   const H=mL.clientHeight||200, pad=22;
   const lo=Math.min(-1,song.minStep-1), hi=Math.max(11,song.maxStep+1);
   const sh=(H-2*pad)/(hi-lo), Y=st=>pad+(hi-st)*sh;
-  const bh=Math.max(24,Math.min(40,sh*2.1));
+  const bh=Math.max(30,Math.min(44,sh*2.8)); mL.style.setProperty('--bh',bh+'px');
   if(state.staff){
     [2,4,6,8,10].forEach(st=>{const l=document.createElement('div');l.className='staff';l.style.top=Y(st)+'px';mL.appendChild(l);});
   }
@@ -789,7 +793,7 @@ let deb=0;
 /* ---------- 악보 사진 읽기 ---------- */
 const READ_PROMPT=`이 악보 사진의 멜로디(가사가 붙은 가장 위 선율)를 아래 규칙대로 옮겨 적어.
 - 한 칸 = 한 박(4분음표). 칸은 띄어쓰기, 마디는 | 로 나눈다. 네 마디마다 줄을 바꾼다.
-- 계이름은 고정도(C=도): 도 레 미 파 솔 라 시. 가온 도(C4)부터 시(B4)까지는 그대로, 그 위 옥타브는 '높은'을 붙이고(높은도), 아래 옥타브는 '낮은'을 붙인다(낮은솔).
+- 계이름은 고정도(C=도): 도 레 미 파 솔 라 시. 가온 도(C4)부터 시(B4)까지는 아무것도 붙이지 않고 그대로 쓴다('중간'을 붙이지 않는다). 그 위 옥타브(C5~B5)는 '높은'을 붙이고(높은도), 아래 옥타브(C3~B3)는 '낮은'을 붙인다(낮은솔). 두 옥타브 위·아래는 '높은높은', '낮은낮은'.
 - 조표와 임시표를 반영해 실제로 치는 음으로 적는다. 올림은 #, 내림은 b (파#, 시b).
 - 2분음표 = "솔 -", 점2분음표 = "솔 - -", 온음표 = "도 - - -", 점4분음표+8분음표 = "솔 -/라", 8분음표 두 개 = "도/레".
 - 쉼표는 x (4분쉼표 한 칸 = x, 8분쉼표는 "x/도"처럼).
