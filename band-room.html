@@ -299,7 +299,7 @@ function transposeName(name,n){const c=EAIMChord.parse(name);if(!c)return name;r
 function easyShape(name){const c=EAIMChord.parse(name);if(!c)return name;if(OPEN.has(name))return name;if(EASY[c.root+c.quality])return EASY[c.root+c.quality];if(c.bass&&OPEN.has(c.root+c.quality))return c.root+c.quality;const base=c.root+(c.type==='m'?'m':'');if(OPEN.has(base))return base;return name}
 function bestShift(names){let best={shift:0,score:-1};for(let sh=0;sh<12;sh++){const shapes=names.map(n=>transposeName(n,-sh));const score=shapes.filter(x=>WHITE.has(x)||OPEN.has(x)).length-Math.min(sh,12-sh)*.08;if(score>best.score)best={shift:sh,score}}return best.shift}
 S.step=S.step||1;
-function stepBars(step){const bars=S.song?S.song.bars:parseProgression($('chords').value);if(!bars.length)return[];const names=[...new Set(bars.flatMap(b=>[b,b.second].filter(Boolean).map(c=>c.name)))];const sh=step>=2?bestShift(names):0;
+function stepBars(step,srcBars){const bars=srcBars||(S.song?S.song.bars:parseProgression($('chords').value));if(!bars.length)return[];const names=[...new Set(bars.flatMap(b=>[b,b.second].filter(Boolean).map(c=>c.name)))];const sh=step>=2?bestShift(names):0;
  const conv=c=>{let n=transposeName(c.name,-sh);if(step>=3)n=easyShape(n);const p=EAIMChord.parse(n);return p?{...p,name:disp(n)}:c};
  return{shift:sh,bars:bars.map(b=>{const a=conv(b);if(b.second){const s2=conv(b.second);return{...a,name:a.name+' - '+s2.name,second:s2}}return a})}}
 function viewBars(){return stepBars(S.step).bars}
@@ -308,7 +308,7 @@ function setStep(n){S.step=n;document.querySelectorAll('#stepChips .chip').forEa
 function renderStepBox(){const box=$('stepBox');const bars=parseProgression($('chords').value);if(!bars.length){box.innerHTML='<span class="note">코드를 넣으면 단계별 코드가 여기 보여요</span>';return}
  const names=[...new Set(bars.flatMap(b=>[b,b.second].filter(Boolean).map(c=>c.name)))];const sh=bestShift(names);const up=(12-sh)%12;
  const line=(bs)=>bs.map(b=>b.name).join('  ');
- const s1=stepBars(1).bars,s2=stepBars(2).bars,s3=stepBars(3).bars;
+ const s1=stepBars(1,bars).bars,s2=stepBars(2,bars).bars,s3=stepBars(3,bars).bars;   // 지금 칸에 적힌 코드로 (정해 둔 곡이 아니라)
  const hard1=names.filter(n=>!OPEN.has(n)).map(disp);
  box.innerHTML=`<div style="margin-bottom:6px">1단계 원키 &nbsp;<span style="font-family:'Space Mono',monospace">${line(s1)}</span>${hard1.length?` <span class="note">(바레·어려움: ${hard1.join(' ')})</span>`:' <span class="note">이미 쉬워요</span>'}</div>
   <div style="margin-bottom:6px">2단계 쉬운 조 &nbsp;<span style="font-family:'Space Mono',monospace">${line(s2)}</span>${sh?` <span class="note">🎸 카포 ${sh} · 🎹 트랜스포즈 +${sh} (또는 −${up})</span>`:' <span class="note">옮길 필요 없음</span>'}</div>
@@ -316,8 +316,15 @@ function renderStepBox(){const box=$('stepBox');const bars=parseProgression($('c
   <div class="note" style="margin-top:6px">잘 치는 학생은 1단계, 처음이면 3단계. 합주 때 다른 단계끼리 섞여도 소리는 같은 조예요.</div>`;
  // 현재 선택 단계와 무관하게 S.capo 는 쓰지 않음
  S.capo=0}
-$('chords').addEventListener('input',renderStepBox);
-function simplify(){const bars=parseProgression($('chords').value);$('chords').value=bars.map(b=>[b,b.second].filter(Boolean).map(c=>EAIMChord.simplify(c).name.split('/')[0]).join('-')).join(' ');toast('트라이어드로 단순화했어요 (다시 되돌리려면 예시곡을 눌러요)')}
+$('chords').addEventListener('input',()=>{renderStepBox();markSongDirty()});
+function markSongDirty(){
+  const st=$('songSt'); if(!st) return;
+  const now=$('chords').value.replace(/\s+/g,' ').trim();
+  const chosen=S.song?S.song.bars.map(b=>b.name).join(' ').replace(/\s+/g,' ').trim():'';
+  if(S.song&&now&&now!==chosen){ st.textContent='⚠️ 코드를 고쳤어요 — "🎯 이 곡으로 정하기"를 눌러야 연습·합주에 반영돼요'; st.classList.add('err'); }
+  else if(S.song){ st.textContent=`✅ "${S.song.title}" 선정됨`; st.classList.remove('err'); }
+}
+function simplify(){const bars=parseProgression($('chords').value);$('chords').value=bars.map(b=>[b,b.second].filter(Boolean).map(c=>EAIMChord.simplify(c).name.split('/')[0]).join('-')).join(' ');renderStepBox();toast('트라이어드로 단순화했어요 (다시 되돌리려면 예시곡을 눌러요)')}
 
 /* ═════ 단계 ═════ */
 const STEP=['팀 구성','곡 선정','악기 선택','개인 연습','음원 연습','합주'];
@@ -355,7 +362,7 @@ async function pullGroup(silent){if(!shared()){toast('모둠 QR(teacher+group)�
  try{const r=await fetch(`${FS_BASE}/teachers/${EAIMKey.teacher}/bands/${groupId()}?key=${FS_KEY}`);if(r.status===404){lastTs=Math.max(lastTs,1);const m='아직 우리 모둠 팀이 없어요 — 첫 사람이 "팀 저장"이나 "이 곡으로 정하기"를 하면 모두에게 보여요';showShare(m);if(!silent)toast(m);return}if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error((e?.error?.message)||('오류 '+r.status))}const d=await r.json();const doc=Object.fromEntries(Object.entries(d.fields||{}).map(([k,v])=>[k,fsRead(v)]));
  if(!doc.team&&!doc.song){showShare('모둠 문서는 있는데 팀·곡이 비어 있어요');if(!silent)toast('모둠에 저장된 팀·곡이 아직 없어요');return}
   if(doc.team){S.team=doc.team;$('teamName').value=doc.team.name;$('members').value=doc.team.members.map(m=>m.n).join('\n');renderTeam()}
-  if(doc.song){$('songTitle').value=doc.song.title;$('chords').value=doc.song.chords;setBpm(doc.song.bpm||90);setKeyLock(doc.song.beats||4);setStyle(doc.song.style||'beat8');const bars=parseProgression(doc.song.chords);if(bars.length){S.song={title:doc.song.title,bars,bpm:S.bpm,beats:S.beats,style:S.style};$('songSt').textContent=`✅ "${S.song.title}" (모둠 공유)`;renderStepBox()}}
+  if(doc.song){$('songTitle').value=doc.song.title;$('chords').value=doc.song.chords;renderStepBox();setBpm(doc.song.bpm||90);setKeyLock(doc.song.beats||4);setStyle(doc.song.style||'beat8');const bars=parseProgression(doc.song.chords);if(bars.length){S.song={title:doc.song.title,bars,bpm:S.bpm,beats:S.beats,style:S.style};$('songSt').textContent=`✅ "${S.song.title}" (모둠 공유)`;renderStepBox()}}
   persist();renderSteps();if(doc.ts)lastTs=Math.max(lastTs,doc.ts);const ok=`✅ 우리 모둠(${EAIMKey.group}) 팀·곡을 받았어요${doc.ts?' · '+new Date(doc.ts).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 저장본':''}`;showShare(ok);if(!silent)toast(doc.team?`✅ 팀 "${doc.team.name}"과 곡을 받았어요`:'✅ 곡을 받았어요')}
  catch(e){showShare('❌ 불러오기 실패: '+e.message);if(!silent)toast('❌ 불러오기 실패: '+e.message)}finally{const b=document.getElementById('pullBtn');if(b){b.textContent='모둠 것 다시 받기';b.disabled=false}}}
 let lastTs=0,pollTimer=null;
@@ -382,7 +389,7 @@ async function readSheet(){const key=await EAIMKey.get();const st=$('ocrSt');st.
  try{st.textContent=(/pdf$/i.test(sheetFile.type)||/\.pdf$/i.test(sheetFile.name))?'PDF 첫 페이지를 그림으로 바꾸는 중…':'악보를 읽는 중…';
   const img=await EAIMKey.fileToImage(sheetFile);if(img.isPdf)$('prev').innerHTML=`<br><img src="${img.dataUrl}">`;st.textContent='악보를 읽는 중…';
   const d=await EAIMKey.gemini('',{json:true,temperature:.2,maxTokens:600,parts:[{inline_data:{mime_type:img.mime,data:img.b64}},{text:'이 악보의 코드 진행을 마디 순서대로 읽어 주세요. 코드명이 적혀 있으면 그대로, 없으면 멜로디로 추정(추정임을 estimated:true로). 한 마디에 코드가 둘이면 "C-G". JSON만: {"title":"곡 제목 또는 빈칸","bpm":90,"beats":4,"chords":"C G Am F | ...","estimated":false}  — bpm과 beats는 숫자만(4/4가 아니라 4, 3/4는 3), 제목 안의 따옴표는 빼기'}]});
-  if(d.chords)$('chords').value=d.chords;if(d.title)$('songTitle').value=d.title;if(d.bpm)setBpm(d.bpm);if(d.beats)setKeyLock(d.beats);
+  if(d.chords){$('chords').value=d.chords;renderStepBox()}if(d.title)$('songTitle').value=d.title;if(d.bpm)setBpm(d.bpm);if(d.beats)setKeyLock(d.beats);
   st.textContent=(d.estimated?'⚠️ 코드명이 없어서 AI가 추정했어요. 꼭 확인하고 고쳐 쓰세요.':'✅ 읽었어요. 확인 후 "이 곡으로 정하기"')+(img.isPdf?' (PDF 첫 페이지만 읽었어요)':'');
  }catch(e){st.textContent='❌ '+e.message;st.classList.add('err')}finally{$('ocrBtn').disabled=false}}
 
@@ -596,7 +603,7 @@ function stopAll(){if(timer)clearInterval(timer);timer=null;drawTimers.forEach(c
 function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.9;const comp=ctx.createDynamicsCompressor();master.connect(comp);comp.connect(ctx.destination);engine.load();$('gate').style.display='none';if(mp3El)buildMp3Graph();toast('🎻 악기 소리 불러오는 중…')}
 if(!S.style)S.style='kpop';renderSongs();renderStyles();setTimeout(()=>{document.querySelectorAll('#stepChips .chip').forEach(c=>c.classList.toggle('on',Number(c.dataset.s)===S.step));renderStepBox()},0);renderTeamList();renderSteps();setBpm(S.bpm);setKeyLock(S.beats||4);
 if(S.team){$('teamName').value=S.team.name;$('members').value=S.team.members.map(m=>m.n).join('\n');renderTeam()}
-if(S.song){$('songTitle').value=S.song.title;$('chords').value=S.song.bars.map(b=>b.name).join(' ');$('songSt').textContent=`✅ "${S.song.title}" 선정됨`}
+if(S.song){$('songTitle').value=S.song.title;$('chords').value=S.song.bars.map(b=>b.name).join(' ');renderStepBox();$('songSt').textContent=`✅ "${S.song.title}" 선정됨`}
 showShare('');if(shared()){pullGroup(true);startPoll();const h=$('shareHint');if(h)h.style.display='block'}
 </script>
 <script src="play-shell.js"></script>
