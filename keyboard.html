@@ -138,6 +138,9 @@
         }
         @media (min-width: 1250px) { .container { max-width: 1400px; } }
 
+        .duet-rhythm { display:flex; gap:6px; align-items:center; justify-content:center; flex-wrap:wrap; margin-bottom:6px; }
+        .duet-opt.active { background:#0E9F87; border-color:#fff; color:#fff; font-weight:bold; }
+
         .guide-on { background: #f1c40f !important; box-shadow: 0 0 15px #f1c40f inset; }
         .key-pressed { transform: translateY(3px); background: #e74c3c !important; }
 
@@ -259,7 +262,13 @@
             <label class="auto-opt"><input type="checkbox" id="loopChk" checked> 반복</label>
         </div>
         <div style="text-align:center;margin:8px 0 4px">
-            <button onclick="goDuetPractice()" style="background:#0E9F87;color:#fff;border:2px solid rgba(255,255,255,.85);border-radius:22px;padding:9px 20px;font:inherit;font-size:1.05rem;cursor:pointer;box-shadow:0 3px 0 #07695A">👫 이 코드로 짝꿍 피아노실에서 박자 맞춰 연습하기 ▶</button>
+            <div class="duet-rhythm">
+                <span class="control-label" style="min-width:auto">코드 짚는 박자</span>
+                <button class="opt-btn duet-opt active" data-hit="bar" onclick="setDuetHit('bar')">한 마디에 한 번</button>
+                <button class="opt-btn duet-opt" data-hit="half" onclick="setDuetHit('half')">2박마다</button>
+                <button class="opt-btn duet-opt" data-hit="beat" onclick="setDuetHit('beat')">4비트 (매 박)</button>
+            </div>
+            <button onclick="goDuetPractice()" style="background:#0E9F87;color:#fff;border:2px solid rgba(255,255,255,.85);border-radius:22px;padding:9px 20px;font:inherit;font-size:1.05rem;cursor:pointer;box-shadow:0 3px 0 #07695A">🎹 이 코드 진행 박자 맞춰 연습하기 ▶</button>
         </div>
         
         <div class="piano-wrap" id="piano"></div>
@@ -455,17 +464,26 @@
             return { ...c, root: sh(c.root), bass: c.bass ? sh(c.bass) : null, intervals: c.intervals || (c.type === 'm' ? [0,3,7] : c.type === '7' ? [0,4,7,10] : [0,4,7]) };
         }
         function chordNotesOf(c) { return EAIMChord.voicing(transposed(c), 4); }
+        let duetHit = 'bar';
+        function setDuetHit(v) { duetHit = v; document.querySelectorAll('.duet-opt').forEach(b => b.classList.toggle('active', b.dataset.hit === v)); }
         function goDuetPractice() {   // 건반실에서 확인한 코드 진행을 짝꿍 피아노실(화음 연습 화면)로 넘기기
             if (!chordList.length) { alert('먼저 코드를 넣어주세요 (예: C · Dm · G · C)'); return; }
             const beats = ((EAIMChord.PATTERNS[currentRhythm] || {}).beats === 3) ? 3 : 4;
             const nm = (c) => { const t = transposed(c), f = wantFlat(c); const suf = String(c.name || '').split(' - ')[0].replace(/^[A-G][#b]?/, '').replace(/\/[A-G][#b]?$/, ''); return spellRoot(t.root, f) + suf + (t.bass ? '/' + spellRoot(t.bass, f) : ''); };
-            const bars = chordList.map(c => {   // 마디 첫 박에 잡고 마디 끝까지 누르기
+            /* 고른 리듬대로 박 칸 채우기: -는 이어 누르기, 코드 이름은 그 박에 새로 잡기 */
+            const cells = (a, n) => {
+                if (duetHit === 'beat') return Array(n).fill(a);                       // 4비트: 매 박마다
+                if (duetHit === 'half') { const out = []; for (let i = 0; i < n; i++) out.push(i % 2 === 0 ? a : '-'); return out; }
+                return [a, ...Array(n - 1).fill('-')];                                  // 한 마디에 한 번
+            };
+            const bars = chordList.map(c => {
                 const a = nm(c);
-                if (c.second) { const b = nm(c.second); return beats === 3 ? `${a} ${b} -` : `${a} - ${b} -`; }
-                return beats === 3 ? `${a} - -` : `${a} - - -`;
+                if (!c.second) return cells(a, beats).join(' ');
+                const b = nm(c.second), h = Math.ceil(beats / 2);
+                return cells(a, h).concat(cells(b, beats - h)).join(' ');
             });
             const lines = []; for (let i = 0; i < bars.length; i += 4) lines.push(bars.slice(i, i + 4).join(' | ') + ' |');
-            const title = (document.getElementById('songName').value.trim() || '건반실 코드 연습') + (songKey ? ' (쉬운 자리로 옮김)' : '');
+            const title = (document.getElementById('songName').value.trim() || '코드 진행 연습') + (songKey ? ' (쉬운 자리로 옮김)' : '');
             try { localStorage.setItem('eaim_duet_import', JSON.stringify({ title, bpm: +document.getElementById('bpm').value || 90, melody: '', chords: lines.join('\n'), ts: Date.now() })); } catch (e) {}
             if (autoPlaying) stopAuto();
             location.href = window.EAIMKey ? EAIMKey.link('duet.html') : 'duet.html';
