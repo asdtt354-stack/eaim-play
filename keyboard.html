@@ -74,6 +74,10 @@
         .panel.show { display: block; }
         
         .chord-pad { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 5px; }
+        .acc-pad { grid-template-columns: repeat(6, 1fr); }
+        .acc-pad .acc { background: #46525c; }
+        .acc-pad .acc.active { background: #f1c40f; }
+        .acc-flip { background: #34495e; border: 2px dashed #7f8c8d !important; font-size: 0.95rem; }
         .type-pad { display: flex; gap: 5px; margin-bottom: 10px; }
         .input-btn { padding: 8px 0; background: #7f8c8d; border: 2px solid transparent; border-radius: 5px; color: white; cursor: pointer; font-family: inherit; }
         .input-btn.active { background: #f1c40f; color: #222; border-color: #fff; font-weight: bold; }
@@ -99,6 +103,41 @@
         .white-key { width: 12.5%; height: 100%; background: white; border: 1px solid #ccc; margin: 0; z-index: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; color: #555; font-weight: bold; font-size: 1.2rem; }
         .black-key { width: 8%; height: 60%; background: black; position: absolute; z-index: 2; top: 10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
         
+        /* 태블릿·노트북 가로 화면: 폭을 넓히고 건반·글씨를 크게 */
+        @media (min-width: 820px) {
+            body { padding: 10px 16px; }
+            .container { max-width: 1200px; padding: 14px 18px; }
+            h1 { font-size: 2.2rem; }
+            .score-grid { grid-template-columns: repeat(8, 1fr); }
+            .score-bar { height: 60px; font-size: 1.5rem; }
+            .score-bar.half { font-size: 1.15rem; }
+            .input-btn { padding: 11px 0; font-size: 1.2rem; }
+            .btn-add { font-size: 1.3rem; padding: 12px; }
+            .opt-btn, .key-btn { font-size: 1.05rem; padding: 7px 14px; }
+            .piano-wrap { height: 230px; }
+            .white-key { font-size: 1.5rem; }
+        }
+        /* 가로 화면: 위쪽 코드 악보와 아래쪽 건반이 스크롤해도 항상 보이게 */
+        @media (min-width: 820px) and (orientation: landscape) {
+            h1 { font-size: 1.7rem; margin: 0 0 3px; }
+            #duetLink { margin: 0 0 8px !important; padding: 6px 20px 5px !important; }
+            .container { padding-top: 6px; }
+            .control-group { padding: 7px; gap: 6px; margin-bottom: 7px; }
+            .score-display-area {
+                position: sticky; top: 0; z-index: 20; margin-bottom: 8px;
+                background: #1b2733; box-shadow: 0 6px 14px rgba(0,0,0,.45);
+                padding-left: 104px;   /* 왼쪽 위 '연주실' 버튼에 코드가 가리지 않게 */
+            }
+            .score-bar { height: 52px; font-size: 1.35rem; }
+            .piano-wrap {
+                position: sticky; bottom: 6px; z-index: 20;
+                height: min(210px, 26vh); margin-top: 8px;
+            }
+            .panel { padding: 8px; }
+            .nav-controls, .auto-bar { margin: 7px 0; }
+        }
+        @media (min-width: 1250px) { .container { max-width: 1400px; } }
+
         .guide-on { background: #f1c40f !important; box-shadow: 0 0 15px #f1c40f inset; }
         .key-pressed { transform: translateY(3px); background: #e74c3c !important; }
 
@@ -160,13 +199,21 @@
 
         <div id="panel-manual" class="panel show">
             <div class="chord-pad">
-                <button class="input-btn" onclick="selRoot('C')">C</button>
-                <button class="input-btn" onclick="selRoot('D')">D</button>
-                <button class="input-btn" onclick="selRoot('E')">E</button>
-                <button class="input-btn" onclick="selRoot('F')">F</button>
-                <button class="input-btn" onclick="selRoot('G')">G</button>
-                <button class="input-btn" onclick="selRoot('A')">A</button>
-                <button class="input-btn" onclick="selRoot('B')">B</button>
+                <button class="input-btn" data-root="C" onclick="selRoot('C')">C</button>
+                <button class="input-btn" data-root="D" onclick="selRoot('D')">D</button>
+                <button class="input-btn" data-root="E" onclick="selRoot('E')">E</button>
+                <button class="input-btn" data-root="F" onclick="selRoot('F')">F</button>
+                <button class="input-btn" data-root="G" onclick="selRoot('G')">G</button>
+                <button class="input-btn" data-root="A" onclick="selRoot('A')">A</button>
+                <button class="input-btn" data-root="B" onclick="selRoot('B')">B</button>
+            </div>
+            <div class="chord-pad acc-pad">
+                <button class="input-btn acc" onclick="selRoot(this.dataset.root)"></button>
+                <button class="input-btn acc" onclick="selRoot(this.dataset.root)"></button>
+                <button class="input-btn acc" onclick="selRoot(this.dataset.root)"></button>
+                <button class="input-btn acc" onclick="selRoot(this.dataset.root)"></button>
+                <button class="input-btn acc" onclick="selRoot(this.dataset.root)"></button>
+                <button class="input-btn acc-flip" onclick="flipAcc()" title="올림표와 내림표 바꾸기">♯↔♭</button>
             </div>
             <div class="type-pad" style="flex-wrap:wrap;">
                 <button class="input-btn" style="flex:1" onclick="selType('')">Maj</button>
@@ -411,8 +458,7 @@
         function goDuetPractice() {   // 건반실에서 확인한 코드 진행을 짝꿍 피아노실(화음 연습 화면)로 넘기기
             if (!chordList.length) { alert('먼저 코드를 넣어주세요 (예: C · Dm · G · C)'); return; }
             const beats = ((EAIMChord.PATTERNS[currentRhythm] || {}).beats === 3) ? 3 : 4;
-            const FL = { 'A#':'Bb', 'D#':'Eb', 'G#':'Ab' };   // 흔히 쓰는 표기로
-            const nm = (c) => { const t = transposed(c); const suf = String(c.name || '').split(' - ')[0].replace(/^[A-G][#b]?/, '').replace(/\/[A-G][#b]?$/, ''); return (FL[t.root] || t.root) + suf + (t.bass ? '/' + (FL[t.bass] || t.bass) : ''); };
+            const nm = (c) => { const t = transposed(c), f = wantFlat(c); const suf = String(c.name || '').split(' - ')[0].replace(/^[A-G][#b]?/, '').replace(/\/[A-G][#b]?$/, ''); return spellRoot(t.root, f) + suf + (t.bass ? '/' + spellRoot(t.bass, f) : ''); };
             const bars = chordList.map(c => {   // 마디 첫 박에 잡고 마디 끝까지 누르기
                 const a = nm(c);
                 if (c.second) { const b = nm(c.second); return beats === 3 ? `${a} ${b} -` : `${a} - ${b} -`; }
@@ -483,10 +529,27 @@
             if (mode === 'song') renderSongList();
         }
 
+        /* 검은 건반 근음: ♯ 표기와 ♭ 표기를 버튼 하나로 오갈 수 있어요 */
+        const ACC_SHARP = ['C#','D#','F#','G#','A#'], ACC_FLAT = ['Db','Eb','Gb','Ab','Bb'];
+        let accFlat = true;   // 악보에 더 흔한 ♭ 표기로 시작
+        function renderAcc() {
+            const list = accFlat ? ACC_FLAT : ACC_SHARP;
+            document.querySelectorAll('.acc-pad .acc').forEach((b, i) => {
+                b.dataset.root = list[i];
+                b.textContent = list[i].replace('#', '♯').replace('b', '♭');
+            });
+            markPad();
+        }
+        function flipAcc() {
+            accFlat = !accFlat;
+            const i = (accFlat ? ACC_SHARP : ACC_FLAT).indexOf(tempR);
+            if (i >= 0) tempR = (accFlat ? ACC_FLAT : ACC_SHARP)[i];   // 고른 코드도 같은 음으로 따라 바뀜
+            renderAcc(); updatePreview();
+        }
         function selRoot(r) { tempR = r; updatePreview(); markPad(); }
         function selType(t) { tempT = t; updatePreview(); markPad(); }
         function markPad() {
-            document.querySelectorAll('.chord-pad .input-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === tempR));
+            document.querySelectorAll('.chord-pad .input-btn[data-root]').forEach(b => b.classList.toggle('active', b.dataset.root === tempR));
             const typeLabel = tempT === '' ? 'Maj' : tempT;
             document.querySelectorAll('.type-pad .input-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === typeLabel));
         }
@@ -496,9 +559,16 @@
 
 
         const FLAT2SHARP = { 'C#':'Db', 'D#':'Eb', 'F#':'Gb', 'G#':'Ab', 'A#':'Bb' };
+        /* 화면에 보일 코드 이름: 넣을 때 쓴 표기(♭인지 ♯인지)를 그대로 지켜요 */
+        const TO_FLAT = { 'C#':'Db', 'D#':'Eb', 'F#':'Gb', 'G#':'Ab', 'A#':'Bb' };
+        const wantFlat = (ch) => /b/.test(ch.root || '') || /b/.test(keys[songKey] || '');
+        const spellRoot = (r, flat) => (flat ? (TO_FLAT[r] || r) : r);
         function parseChordToken(tok) {
             const c = EAIMChord.parse(tok); if (!c) return null;
-            return { root: c.root, type: c.type, quality: c.quality, intervals: c.intervals, bass: c.bass, name: c.name };
+            const t = String(tok).trim();
+            const rootTyped = /^[A-G][b♭]/.test(t) ? t.slice(0,1) + 'b' : c.root;   // Bb로 적었으면 Bb 그대로 (A#으로 바꾸지 않기)
+            const bassM = t.match(/\/([A-G][b♭])/);
+            return { root: rootTyped, type: c.type, quality: c.quality, intervals: c.intervals, bass: bassM ? bassM[1][0]+'b' : c.bass, name: c.name };
         }
         function applyChordText() {
             const raw = document.getElementById('chordText').value.replace(/\|/g, ' ').trim();
@@ -617,7 +687,7 @@ ${(n.lyrics || '').trim()}`, { json: true, temperature: .6, maxTokens: 400 });
                 div.className = `score-bar ${i === currentIdx ? 'active' : ''}`;
                 div.onclick = () => { currentIdx = i; renderScoreBoard(); updateGuide(); };
                 let num = document.createElement('span'); num.className = 'bar-number'; num.innerText = i + 1; div.appendChild(num);
-                const tr = (ch) => { const t = transposed(ch); return t.root + (ch.quality ?? ch.type) + (t.bass ? '/' + t.bass : ''); };
+                const tr = (ch) => { const t = transposed(ch), f = wantFlat(ch); return spellRoot(t.root, f) + (ch.quality ?? ch.type) + (t.bass ? '/' + spellRoot(t.bass, f) : ''); };
                 if (c.second) { div.classList.add('half'); div.append(tr(c)); const s2 = document.createElement('span'); s2.style.opacity = '.8'; s2.textContent = tr(c.second); div.appendChild(s2); }
                 else div.append(tr(c));
                 board.appendChild(div);
@@ -647,7 +717,7 @@ ${(n.lyrics || '').trim()}`, { json: true, temperature: .6, maxTokens: 400 });
             });
         }
 
-        init(); markPad();
+        init(); renderAcc(); markPad();
     </script>
 <script src="play-shell.js"></script>
 </body>
