@@ -208,7 +208,13 @@ input[type=range]{accent-color:var(--gold);width:120px}
       <div class="row" style="margin-top:8px"><button class="btn p" id="splitBtn" onclick="aiSplit()">✂️ 분리 시작</button><span class="st" id="splitSt"></span></div>
       <p class="note" style="margin-top:4px">분리된 트랙은 아래 스템 줄에 자동으로 들어가요. 선택한 스템마다 LALAL 크레딧이 따로 들어요 (보통 3개면 충분).</p>
     </div>
-    <p class="note">또는 미리 분리해 둔 파일(보컬·드럼·베이스·나머지)을 직접 올려요. 한 파일만 있으면 그 줄만 써도 돼요.</p>
+    <p class="note">또는 미리 분리해 둔 파일(보컬·드럼·베이스·나머지)을 직접 올려요. 한 파일만 있으면 그 줄만 써도 돼요.<br>한 번 올린 뒤 💾로 저장해 두면 이 태블릿에 남아서, 다음 시간엔 곡 이름만 누르면 바로 불러와요.</p>
+    <div class="row" style="margin:8px 0;gap:8px;flex-wrap:wrap;align-items:center">
+      <input class="in" id="stemSetName" placeholder="곡 이름 (예: 벚꽃엔딩)" style="width:190px">
+      <button class="btn" onclick="saveStemSet()">💾 이 태블릿에 저장</button>
+      <span class="st" id="stemSetSt"></span>
+    </div>
+    <div class="chips" id="stemSets" style="margin-bottom:8px"></div>
     <div id="stemRows"></div>
     <div class="transport"><button class="btn g" id="stemPlay" onclick="stemToggle()">▶ 함께 재생</button><label><input type="checkbox" id="stemLoop" checked> 반복</label><label>속도 <input type="range" id="stemRate" min="50" max="120" value="100" oninput="setStemRate(this.value)"> <b id="stemRateLbl">100</b>%</label><button class="btn" onclick="stemMyInst()">내 악기만 끄기</button></div>
   </div>
@@ -530,9 +536,57 @@ function loadStemUrl(id,url,label){const st=stems[id];if(!st)return;if(st.el){st
 const STEMS=[{id:'vocals',n:'🎤 보컬',inst:'vocal'},{id:'drums',n:'🥁 드럼',inst:'drum'},{id:'bass',n:'🎸 베이스',inst:'bass'},{id:'other',n:'🎹 나머지 (기타·키보드)',inst:'guitar'},{id:'piano',n:'🎹 피아노 (있으면)',inst:'piano'}];
 const stems={};// id → {el, gain, mute, solo}
 function renderStems(){$('stemRows').innerHTML=STEMS.map(st=>`<div class="stemrow" id="row-${st.id}"><div class="nm">${st.n}</div><input type="file" accept="audio/*" onchange="loadStem('${st.id}',this.files[0])"><label><input type="checkbox" onchange="stems['${st.id}'].mute=this.checked;mixStems()"> 끄기</label><label><input type="checkbox" onchange="stems['${st.id}'].solo=this.checked;mixStems()"> 혼자</label><input type="range" min="0" max="120" value="100" oninput="stems['${st.id}'].vol=Number(this.value)/100;mixStems()"></div>`).join('');STEMS.forEach(st=>stems[st.id]={el:null,gain:null,mute:false,solo:false,vol:1,remote:false})}
-function loadStem(id,f){if(!f)return;const st=stems[id];if(st.el){st.el.pause();try{st.src&&st.src.disconnect()}catch{}}st.remote=false;st.el=new Audio(URL.createObjectURL(f));st.el.preservesPitch=true;st.el.loop=$('stemLoop').checked;st.el.playbackRate=Number($('stemRate').value)/100;
+function loadStem(id,f){if(!f)return;const st=stems[id];st.file=f;st.fname=f.name||'';if(st.el){st.el.pause();try{st.src&&st.src.disconnect()}catch{}}st.remote=false;st.el=new Audio(URL.createObjectURL(f));st.el.preservesPitch=true;st.el.loop=$('stemLoop').checked;st.el.playbackRate=Number($('stemRate').value)/100;
  if(ctx){st.src=ctx.createMediaElementSource(st.el);st.gain=ctx.createGain();st.src.connect(st.gain);st.gain.connect(master)}mixStems();toast(`${STEMS.find(x=>x.id===id).n} 준비됨`)}
 function mixStems(){const anySolo=Object.values(stems).some(s=>s.solo&&s.el);STEMS.forEach(st=>{const s=stems[st.id];const row=$('row-'+st.id);const on=s.el&&!s.mute&&(!anySolo||s.solo);if(s.gain)s.gain.gain.value=on?s.vol:0;if(s.remote&&s.el)s.el.volume=on?Math.min(1,s.vol):0;if(row)row.classList.toggle('off',!!s.el&&!on)})}
+/* ═════ 스템을 이 태블릿에 저장 (브라우저를 닫아도 남아요) ═════ */
+const SDB='eaim_band_stems';
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open(SDB,1);
+  r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('sets'))r.result.createObjectStore('sets',{keyPath:'name'})};
+  r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error||new Error('저장소를 열 수 없어요'))})}
+function idbRun(mode,fn){return idb().then(db=>new Promise((res,rej)=>{
+  const tx=db.transaction('sets',mode), q=fn(tx.objectStore('sets'));
+  q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error)}))}
+async function saveStemSet(){
+  const st=$('stemSetSt'); st.classList.remove('err');
+  const name=($('stemSetName').value.trim())||($('songTitle').value.trim())||'이름 없는 곡';
+  const files={}, labels={};
+  for(const s0 of STEMS){ const t=stems[s0.id];
+    if(t.file){ files[s0.id]=t.file; labels[s0.id]=t.fname||''; }
+    else if(t.remote&&t.el&&t.el.src){ try{ const r=await fetch(t.el.src); files[s0.id]=await r.blob(); labels[s0.id]='AI 분리'; }catch(e){} } }
+  if(!Object.keys(files).length){ st.textContent='먼저 스템 파일을 올려 주세요'; st.classList.add('err'); return; }
+  st.textContent='저장하는 중…';
+  try{ await idbRun('readwrite',o=>o.put({name,ts:Date.now(),files,labels}));
+    st.textContent=`✅ "${name}" 저장됨 — 다음 시간엔 아래에서 누르기만 하면 돼요`; $('stemSetName').value=''; listStemSets(); }
+  catch(e){ st.textContent='저장하지 못했어요: '+(e.message||e); st.classList.add('err'); }
+}
+async function listStemSets(){
+  const box=$('stemSets'); if(!box) return;
+  let rows=[]; try{ rows=await idbRun('readonly',o=>o.getAll())||[]; }catch(e){}
+  rows.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  box.innerHTML=rows.length?'':'<span class="note">이 태블릿에 저장해 둔 곡이 아직 없어요</span>';
+  rows.forEach(r=>{
+    const n=Object.keys(r.files||{}).length;
+    const c=document.createElement('div'); c.className='chip';
+    c.innerHTML=`🎵 ${esc(r.name)} <small style="opacity:.7">${n}트랙</small> <b style="margin-left:6px">×</b>`;
+    c.onclick=e=>{ if(e.target.tagName==='B'){delStemSet(r.name);return} openStemSet(r); };
+    box.appendChild(c);
+  });
+}
+function openStemSet(r){
+  STEMS.forEach(s0=>{ const f=r.files&&r.files[s0.id]; if(f) loadStem(s0.id,f); });
+  const box=$('stemRows');
+  STEMS.forEach(s0=>{ const row=$('row-'+s0.id), lb=r.labels&&r.labels[s0.id];
+    if(row&&r.files&&r.files[s0.id]){ const nm=row.querySelector('.nm');
+      if(nm) nm.innerHTML=`${s0.n} <span style="color:var(--green)">✔</span>`; } });
+  $('stemSetSt').classList.remove('err');
+  $('stemSetSt').textContent=`"${r.name}" 불러왔어요`;
+  toast(`"${r.name}" 불러왔어요`);
+}
+async function delStemSet(name){
+  if(!confirm(`"${name}"을 이 태블릿에서 지울까요?`)) return;
+  try{ await idbRun('readwrite',o=>o.delete(name)); listStemSets(); }catch(e){}
+}
 let stemsPlaying=false;
 function stemToggle(){const loaded=Object.values(stems).filter(s=>s.el);if(!loaded.length){toast('스템 파일을 하나 이상 올려주세요');return}if(stemsPlaying){loaded.forEach(s=>{s.el.pause();s.el.currentTime=0});stemsPlaying=false;$('stemPlay').textContent='▶ 함께 재생';return}
  ctx&&ctx.resume();loaded.forEach(s=>{s.el.loop=$('stemLoop').checked;s.el.currentTime=0});Promise.all(loaded.map(s=>s.el.play().catch(()=>{}))).then(()=>{});stemsPlaying=true;$('stemPlay').textContent='■ 정지'}
@@ -601,7 +655,7 @@ function stopAll(){if(timer)clearInterval(timer);timer=null;drawTimers.forEach(c
 
 /* ═════ 시작 ═════ */
 function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.9;const comp=ctx.createDynamicsCompressor();master.connect(comp);comp.connect(ctx.destination);engine.load();$('gate').style.display='none';if(mp3El)buildMp3Graph();toast('🎻 악기 소리 불러오는 중…')}
-if(!S.style)S.style='kpop';renderSongs();renderStyles();setTimeout(()=>{document.querySelectorAll('#stepChips .chip').forEach(c=>c.classList.toggle('on',Number(c.dataset.s)===S.step));renderStepBox()},0);renderTeamList();renderSteps();setBpm(S.bpm);setKeyLock(S.beats||4);
+if(!S.style)S.style='kpop';renderSongs();renderStyles();setTimeout(()=>{document.querySelectorAll('#stepChips .chip').forEach(c=>c.classList.toggle('on',Number(c.dataset.s)===S.step));renderStepBox()},0);renderTeamList();listStemSets();renderSteps();setBpm(S.bpm);setKeyLock(S.beats||4);
 if(S.team){$('teamName').value=S.team.name;$('members').value=S.team.members.map(m=>m.n).join('\n');renderTeam()}
 if(S.song){$('songTitle').value=S.song.title;$('chords').value=S.song.bars.map(b=>b.name).join(' ');renderStepBox();$('songSt').textContent=`✅ "${S.song.title}" 선정됨`}
 showShare('');if(shared()){pullGroup(true);startPoll();const h=$('shareHint');if(h)h.style.display='block'}
