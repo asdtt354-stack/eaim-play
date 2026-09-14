@@ -143,6 +143,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
 .songs .sg .by{font-size:12px;opacity:.7;margin-left:5px}
 #libFind{font-size:15px;padding:6px 10px}
 #linkBtn.on{background:var(--mel-soft);border-color:var(--mel);color:var(--mel-ink);font-weight:600}
+#modeBtn{background:var(--head-soft);border-color:var(--head);color:var(--head-ink);font-weight:600}
 .app.solo-mel{grid-template-rows:auto auto 1fr} .app.solo-mel .part.cho{display:none}
 .app.solo-cho{grid-template-rows:auto 1fr auto} .app.solo-cho .part.mel{display:none}
 .app.solo-mel .part.mel .kb,.app.solo-cho .part.cho .kb{height:clamp(130px,30vh,280px)}
@@ -216,6 +217,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
     <button class="tog" id="clickBtn" aria-pressed="false">박자 소리</button>
     <button id="editBtn">곡 입력</button>
     <button id="linkBtn">📡 짝꿍 연결</button>
+    <button id="modeBtn"></button>
   </header>
 
   <section class="part mel">
@@ -801,6 +803,8 @@ function setSong(sg){
   if(state.playing) stop();
   song=sg; calcBPL(); $('songTitle').textContent=sg.title;
   document.querySelector('.app').classList.toggle('chord-only',!!sg.chordOnly);
+  const sm=innerWidth<=700||innerHeight<=560;
+  $('modeBtn').textContent=MODE_LBL[sm?'short':'long'][sg.chordOnly?0:1];
   if(sg.chordOnly){ $('startTitle').textContent='🎹 코드 짚기 연습'; $('startDesc').innerHTML='큰 건반에 짚을 자리가 켜져요.<br>박자에 맞춰 코드가 넘어가요. 혼자 연습해도 좋아요.'; }
   if(sg.chordOnly&&!room&&state.who.cho==='app'){ state.who.cho='kid'; syncWhoUI(); }
   // 두 옥타브: 멜로디 낮은솔~높은솔(G3~G5), 화음 한 옥타브 아래 솔~솔(G2~G4). 곡이 더 넓으면 알아서 늘어나요
@@ -823,7 +827,7 @@ function applyInputs(remote){
   src={title:$('inTitle').value.trim(),bpm:+$('inBpm').value,melody:$('inMel').value,chords:$('inCho').value};
   const r=parseSong(src.title,src.bpm,src.melody,src.chords);
   showCheck(r);
-  try{ localStorage.setItem(LAST_KEY,JSON.stringify(src)); }catch(e){}
+  try{ localStorage.setItem(src.melody.trim()?LAST_KEY:LAST_CHORD,JSON.stringify(src)); }catch(e){}
   if(room&&remote!==true) pushSong();
   if(r.song&&r.song.bars.length) setSong(r.song);
 }
@@ -868,7 +872,7 @@ async function readPhoto(file){
 }
 
 /* ---------- 이 기기에 곡 저장 ---------- */
-const SONG_KEY='eaim_duet_songs', LAST_KEY='eaim_duet_last';
+const SONG_KEY='eaim_duet_songs', LAST_KEY='eaim_duet_last', LAST_CHORD='eaim_duet_last_chord';
 function loadSongs(){ try{ return JSON.parse(localStorage.getItem(SONG_KEY)||'[]'); }catch(e){ return []; } }
 function storeSongs(l){ try{ localStorage.setItem(SONG_KEY,JSON.stringify(l)); }catch(e){} }
 function renderSongs(){
@@ -1228,6 +1232,20 @@ $('closeSheet').onclick=()=>$('sheet').classList.remove('open');
 $('sendSong').onclick=sendSong;
 $('listenBtn').onclick=listenAll;
 $('shareSong').onclick=shareSong;
+/* 2중주 ↔ 코드 짚기 연습 오가기 (마지막에 쓰던 곡을 각각 기억해요) */
+function otherSong(chordOnly){
+  try{ const o=JSON.parse(localStorage.getItem(chordOnly?LAST_CHORD:LAST_KEY)||'null');
+    if(o&&(chordOnly?o.chords:o.melody)) return o; }catch(e){}
+  return chordOnly?{title:'코드 짚기 연습',bpm:90,melody:'',chords:'C - - - | Am - - - | F - - - | G - - - |'}:{...DEFAULT,melody:DEFAULT.melody,chords:DEFAULT.chords};
+}
+function switchMode(){
+  if(room){ alert('짝꿍 연결 중에는 바꿀 수 없어요. 연결을 끊고 눌러 주세요.'); return; }
+  const want=!song.chordOnly;   // 지금이 2중주면 코드 연습으로, 코드 연습이면 2중주로
+  const o=otherSong(want);
+  $('inTitle').value=o.title; $('inBpm').value=o.bpm; $('inMel').value=want?'':(o.melody||''); $('inCho').value=o.chords||'';
+  applyInputs();
+}
+$('modeBtn').onclick=switchMode;
 $('libFind').addEventListener('input',renderLibrary);
 /* 키보드에 없는 기호(x, -, /, |) 넣기 버튼 — 입력 칸의 커서 자리에 들어가요 */
 function insertTok(ta,t){
@@ -1260,22 +1278,24 @@ $('mySeg').addEventListener('click',e=>{
 $('photoBtn').onclick=()=>$('photoIn').click();
 $('photoIn').onchange=e=>{ const f=e.target.files[0]; if(f) readPhoto(f); };
 const LBL=[['waitBtn','기다려 주기','⏸ 기다림'],['staffBtn','선 보이기','🎼 오선'],['clickBtn','박자 소리','🥁 박자'],['editBtn','곡 입력','✏️ 곡'],['linkBtn','📡 짝꿍 연결','📡 짝꿍'],['listenBtn','🎧 두 파트 다 들어보기','🎧 들어보기']];
+const MODE_LBL={long:['👫 2중주로','🎹 코드 짚기'],short:['👫 2중주','🎹 코드']};
 const SPD=[['0.5','🐢 느리게','🐢'],['0.75','🚶 보통','🚶'],['1','🏃 원래','🏃']];
 function fitLabels(){
   const sm=innerWidth<=700||innerHeight<=560;
   LBL.forEach(([id,lg,s2])=>{ const b=$(id); if(b&&!(id==='linkBtn'&&room)) b.textContent=sm?s2:lg; });
+  if(song) $('modeBtn').textContent=MODE_LBL[sm?'short':'long'][song.chordOnly?0:1];
   SPD.forEach(([v,lg,s2])=>{ const b=$('speedSeg').querySelector(`[data-s="${v}"]`); if(b) b.textContent=sm?s2:lg; });
 }
 fitLabels();
 addEventListener('resize',()=>{ fitLabels(); calcBPL(); curLine=-1; render(); });
 bindKb('mel'); bindKb('cho');
-try{ const last=JSON.parse(localStorage.getItem(LAST_KEY)||'null'); if(last&&(last.melody||last.chords)) src=last; }catch(e){}
+try{ const last=JSON.parse(localStorage.getItem(LAST_KEY)||'null'); if(last&&last.melody) src=last; }catch(e){}   // 2중주 곡만 기억 (코드 연습은 따로)
 /* 악보 사진 읽기: 아직 AI가 오선의 음 높이를 자주 틀려서 숨겨 둠. 나중에 AI가 좋아지면 true로 바꾸면 다시 나와요 */
 const PHOTO_READ=true;
 if(!PHOTO_READ) document.querySelector('.photo').hidden=true;
 let imported=false;   // 건반실 "이 코드로 연습하기"에서 넘어온 코드 진행
 try{ const im=JSON.parse(localStorage.getItem('eaim_duet_import')||'null'); localStorage.removeItem('eaim_duet_import');
-  if(im&&im.chords&&Date.now()-(im.ts||0)<10*60e3){ src={title:im.title||'코드 연습',bpm:im.bpm||90,melody:im.melody||'',chords:im.chords}; imported=true; localStorage.setItem(LAST_KEY,JSON.stringify(src)); } }catch(e){}
+  if(im&&im.chords&&Date.now()-(im.ts||0)<10*60e3){ src={title:im.title||'코드 연습',bpm:im.bpm||90,melody:im.melody||'',chords:im.chords}; imported=true; localStorage.setItem(LAST_CHORD,JSON.stringify(src)); } }catch(e){}
 if(new URLSearchParams(location.search).get('embed')==='1') document.body.classList.add('embed');
 setSong(parseSong(src.title,src.bpm,src.melody,src.chords).song);
 renderSongs();
