@@ -167,6 +167,16 @@ input[type=range]{accent-color:var(--gold);width:120px}
     <label><input type="checkbox" id="myinst4" checked> 내 악기 소리 같이</label>
     <label>템포 <input type="range" min="60" max="160" value="90" oninput="setBpm(this.value)" class="bpmSync"> <b class="bpmLblSync">90</b></label>
   </div>
+  <div id="keyPractice" style="display:none;margin-top:10px;text-align:center">
+    <div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap">
+      <span class="note">코드 짚는 박자</span>
+      <button class="btn kp" data-hit="bar" onclick="setKeyHit('bar')">한 마디에 한 번</button>
+      <button class="btn kp" data-hit="half" onclick="setKeyHit('half')">2박마다</button>
+      <button class="btn kp" data-hit="beat" onclick="setKeyHit('beat')">4비트 (매 박)</button>
+    </div>
+    <button class="btn p" style="margin-top:8px" onclick="goKeyPractice()">🎹 큰 건반으로 이 코드 짚어 보기 ▶</button>
+    <div class="note" style="margin-top:4px">화면 가득한 건반에 짚을 자리가 켜지고, 박자에 맞춰 코드가 넘어가요</div>
+  </div>
 </div><div class="nav"><button class="btn" onclick="go(3)">← 악기</button><button class="btn p" onclick="go(5)">음원 연습 →</button></div></section>
 
 <!-- 5 음원 -->
@@ -433,8 +443,28 @@ function renderChordLine(el,onPick){const bars=S.song?viewBars():[];el.innerHTML
 
 /* ═════ ④ 개인 연습 ═════ */
 let sel4=0;
-function renderPractice(){renderChordLine($('cl4'),i=>{sel4=i;showFing4();const c=S.song.bars[i];if(engine.ready)engine.playChord(c,ctx.currentTime,S.beats,S.inst==='drum'?'guitar':S.inst,true)});showFing4();renderBeat($('beat4'))}
+function renderPractice(){const kp=$('keyPractice'); if(kp){kp.style.display=(S.inst==='piano'&&S.song)?'block':'none'; setKeyHit(keyHit);}
+  renderChordLine($('cl4'),i=>{sel4=i;showFing4();const c=S.song.bars[i];if(engine.ready)engine.playChord(c,ctx.currentTime,S.beats,S.inst==='drum'?'guitar':S.inst,true)});showFing4();renderBeat($('beat4'))}
 function capoNote(){const sh=S.song&&S.step>1?viewShift():0;if(!sh)return'';const g=['guitar','eguitar'].includes(S.inst),k=S.inst==='piano';return`<div style="background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.5);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:.85rem">${g?`🎸 <b>카포 ${sh}프렛</b>을 끼우고 아래 모양대로 치세요`:k?`🎹 디지털 피아노 <b>트랜스포즈 +${sh}</b>(또는 −${(12-sh)%12})로 두고 아래 코드대로 치세요`:`${S.step}단계 코드예요 · 기타는 카포 ${sh}, 건반은 트랜스포즈 +${sh}`} — 소리는 원키와 같아요 (1단계로 바꾸면 원키 코드)</div>`}
+/* 건반(피아노) 파트: 이 곡 코드를 큰 건반 화면으로 넘겨 혼자 연습 */
+let keyHit='bar';
+function setKeyHit(v){keyHit=v;document.querySelectorAll('#keyPractice .kp').forEach(b=>b.classList.toggle('p',b.dataset.hit===v))}
+function goKeyPractice(){
+  const bars=S.song?viewBars():[];
+  if(!bars.length){alert('② 곡 선정에서 곡을 먼저 정해 주세요');return}
+  const beats=S.beats===3?3:4;
+  const cells=(a,n)=>keyHit==='beat'?Array(n).fill(a):keyHit==='half'?Array.from({length:n},(_,i)=>i%2?'-':a):[a,...Array(n-1).fill('-')];
+  const line=bars.map(b=>{
+    const a=String(b.name).split(' - ')[0];
+    if(!b.second) return cells(a,beats).join(' ');
+    const c=b.second.name,h=Math.ceil(beats/2);
+    return cells(a,h).concat(cells(c,beats-h)).join(' ');
+  });
+  const out=[]; for(let i=0;i<line.length;i+=4) out.push(line.slice(i,i+4).join(' | ')+' |');
+  try{localStorage.setItem('eaim_duet_import',JSON.stringify({title:(S.song.title||'밴드실 건반 파트')+(S.step>1?` (${S.step}단계)`:''),bpm:S.bpm||90,melody:'',chords:out.join('\n'),ts:Date.now()}))}catch(e){}
+  try{ if(typeof playing!=='undefined'&&playing) stopAll(); }catch(e){}
+  location.href=window.EAIMKey?EAIMKey.link('duet.html'):'duet.html';
+}
 function showFing4(){const c=S.song?viewBars()[sel4]:null;if(!c){$('fing4').innerHTML='';$('notes4').textContent='';return}document.querySelectorAll('#cl4 .cb').forEach((d,i)=>d.classList.toggle('sel',i===sel4));$('fing4').innerHTML=capoNote()+fingeringHTML(c,S.inst);$('notes4').textContent=chordTones(c).join(' · ');pianoMini($('pm4'),c)}
 function renderBeat(el){el.innerHTML=Array.from({length:S.beats},(_,i)=>`<i class="${i===0?'one':''}"></i>`).join('')}
 
