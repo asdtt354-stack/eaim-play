@@ -59,6 +59,14 @@
             box-shadow: 0 0 10px #f1c40f; transform: scale(1.05); z-index: 10;
         }
         .bar-number { position: absolute; top: 2px; left: 5px; font-size: 0.6rem; color: #bbb; }
+        .score-tools { display:flex; gap:6px; align-items:center; justify-content:flex-end; margin-bottom:6px; font-size:0.85rem; color:#bbb; }
+        .score-tools #barCount { margin-right:auto; }
+        .tool-btn { background:#3d4b57; border:1px solid #6b7b88; color:#ddd; border-radius:6px; padding:4px 10px; cursor:pointer; font-family:inherit; font-size:0.9rem; }
+        .tool-btn:active { background:#e74c3c; }
+        .bar-del { position:absolute; top:1px; right:3px; width:20px; height:20px; line-height:18px; text-align:center;
+                   background:rgba(0,0,0,.35); color:#ddd; border:none; border-radius:50%; cursor:pointer; font-family:inherit; font-size:0.9rem; padding:0; }
+        .bar-del:hover, .bar-del:active { background:#e74c3c; color:#fff; }
+        .score-bar.active .bar-del { background:rgba(0,0,0,.25); color:#333; }
         .score-bar.active .bar-number { color: #444; }
 
         /* 공통 스타일 */
@@ -179,6 +187,7 @@
                 <button class="opt-btn rhythm" onclick="setRhythm('dance', this)">댄스</button>
                 <button class="opt-btn rhythm" onclick="setRhythm('synth', this)">신스팝</button>
                 <button class="opt-btn rhythm" onclick="setRhythm('ballad', this)">발라드 기본</button>
+                <button class="opt-btn rhythm" onclick="setRhythm('beat4', this)">4비트</button>
                 <button class="opt-btn rhythm" onclick="setRhythm('beat8', this)">8비트</button>
                 <button class="opt-btn rhythm" onclick="setRhythm('whole', this)">온음</button>
                 <button class="opt-btn rhythm" onclick="setRhythm('waltz', this)">왈츠 3박</button>
@@ -189,6 +198,11 @@
         <div class="key-settings" id="key-buttons"></div>
 
         <div class="score-display-area">
+            <div class="score-tools">
+                <span id="barCount">0마디</span>
+                <button class="tool-btn" onclick="undoChord()">↩ 마지막 지우기</button>
+                <button class="tool-btn" onclick="clearChords()">🗑 전체 지우기</button>
+            </div>
             <div class="score-grid" id="score-board">
                 <span style="grid-column: 1 / -1; color:#666; padding:10px;">코드를 입력하세요</span>
             </div>
@@ -696,20 +710,37 @@ ${(n.lyrics || '').trim()}`, { json: true, temperature: .6, maxTokens: 400 });
             if(currentIdx === -1) { currentIdx = 0; renderScoreBoard(); updateGuide(); }
         }
 
+        /* 넣은 코드 지우기 */
+        function afterChange() {
+            if (autoPlaying) stopAuto();
+            if (chordList.length === 0) currentIdx = -1;
+            else currentIdx = Math.max(0, Math.min(currentIdx, chordList.length - 1));
+            renderScoreBoard(); updateGuide();
+        }
+        function removeChordAt(i) { chordList.splice(i, 1); afterChange(); }
+        function undoChord() { if (!chordList.length) return; chordList.pop(); afterChange(); }
+        function clearChords() { if (!chordList.length) return; if (!confirm('넣은 코드를 모두 지울까요?')) return; chordList = []; afterChange(); }
+
         function renderScoreBoard() {
             const board = document.getElementById('score-board');
             board.innerHTML = "";
+            const bc0 = document.getElementById('barCount'); if (bc0) bc0.textContent = chordList.length + '마디';
             if(chordList.length === 0) { board.innerHTML = "<span style='grid-column:1/-1; padding:10px; color:#666;'>코드 없음</span>"; return; }
             chordList.forEach((c, i) => {
                 let div = document.createElement('div');
                 div.className = `score-bar ${i === currentIdx ? 'active' : ''}`;
                 div.onclick = () => { currentIdx = i; renderScoreBoard(); updateGuide(); };
                 let num = document.createElement('span'); num.className = 'bar-number'; num.innerText = i + 1; div.appendChild(num);
+                const del = document.createElement('button');   // 이 마디만 지우기
+                del.className = 'bar-del'; del.textContent = '×'; del.title = (i+1) + '마디 지우기';
+                del.onclick = (e) => { e.stopPropagation(); removeChordAt(i); };
+                div.appendChild(del);
                 const tr = (ch) => { const t = transposed(ch), f = wantFlat(ch); return spellRoot(t.root, f) + (ch.quality ?? ch.type) + (t.bass ? '/' + spellRoot(t.bass, f) : ''); };
                 if (c.second) { div.classList.add('half'); div.append(tr(c)); const s2 = document.createElement('span'); s2.style.opacity = '.8'; s2.textContent = tr(c.second); div.appendChild(s2); }
                 else div.append(tr(c));
                 board.appendChild(div);
             });
+            const bc = document.getElementById('barCount'); if (bc) bc.textContent = chordList.length + '마디';
             let activeEl = board.querySelector('.active');
             if(activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
