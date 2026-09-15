@@ -47,11 +47,11 @@
             border: 2px solid #555;
         }
         .score-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; align-items: stretch;
         }
         .score-bar {
             background: #34495e; border: 1px solid #7f8c8d; border-radius: 8px;
-            height: 50px; display: flex; align-items: center; justify-content: center;
+            min-height: 50px; display: flex; align-items: center; justify-content: center;
             font-size: 1.3rem; color: #ecf0f1; font-weight: bold; position: relative;
         }
         .score-bar.active {
@@ -96,7 +96,10 @@
         .song-row { display:flex; align-items:center; gap:6px; background:#222; border:1px solid #555; border-radius:8px; padding:6px 10px; }
         .song-row .nm { flex:1; font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .song-row button { background:#444; border:1px solid #666; color:#ddd; border-radius:6px; padding:3px 8px; cursor:pointer; font-family:inherit; }
-        .score-bar.half { flex-direction:column; font-size:1rem; line-height:1.15; }
+        .score-bar.half { flex-direction:column; font-size:1rem; line-height:1.2; gap:1px; padding:2px 4px; }
+        .score-bar.half span { white-space:nowrap; }
+        .score-bar.half.p3 { font-size:.9rem; }
+        .score-bar.half.p4 { font-size:.8rem; }
         .nav-controls { display: flex; gap: 10px; justify-content: center; margin: 10px 0; }
         .nav-btn { background: #95a5a6; border: none; padding: 10px; border-radius: 30px; color: white; flex: 1; font-family: inherit; cursor: pointer;}
 
@@ -117,7 +120,7 @@
             .container { max-width: 1200px; padding: 14px 18px; }
             h1 { font-size: 2.2rem; }
             .score-grid { grid-template-columns: repeat(8, 1fr); }
-            .score-bar { height: 60px; font-size: 1.5rem; }
+            .score-bar { min-height: 60px; font-size: 1.5rem; }
             .score-bar.half { font-size: 1.15rem; }
             .input-btn { padding: 11px 0; font-size: 1.2rem; }
             .btn-add { font-size: 1.3rem; padding: 12px; }
@@ -136,7 +139,7 @@
                 background: #1b2733; box-shadow: 0 6px 14px rgba(0,0,0,.45);
                 padding-left: 104px;   /* 왼쪽 위 '연주실' 버튼에 코드가 가리지 않게 */
             }
-            .score-bar { height: 52px; font-size: 1.35rem; }
+            .score-bar { min-height: 52px; font-size: 1.35rem; }
             .piano-wrap {
                 position: sticky; bottom: 6px; z-index: 20;
                 height: min(210px, 26vh); margin-top: 8px;
@@ -242,7 +245,10 @@
                 <button class="input-btn" style="flex:1" onclick="selType('sus2')">sus2</button>
                 <button class="input-btn" style="flex:1" onclick="selType('sus4')">sus4</button>
             </div>
-            <button class="btn-add" onclick="addChordManual()">⬇️ 넣기 (<span id="preview-chord">C</span>)</button>
+            <div style="display:grid;grid-template-columns:1fr auto;gap:5px">
+                <button class="btn-add" onclick="addChordManual()">⬇️ 넣기 (<span id="preview-chord">C</span>)</button>
+                <button class="btn-add" style="background:#2980b9;width:auto;padding:10px 14px" onclick="addChordManual(true)" title="앞 마디를 나눠서 그 마디 안에 이어 넣어요">➕ 같은 마디에</button>
+            </div>
         </div>
 
         <div id="panel-text" class="panel">
@@ -286,7 +292,7 @@
         </div>
         
         <div class="piano-wrap" id="piano"></div>
-        <div style="margin-top:5px; color:#aaa; font-size:0.8rem;">반주를 고르고 ▶ 자동 반주를 누르면 마디마다 코드가 넘어가요. 그 위에서 노란 건반을 짚어 보세요!</div>
+        <div style="margin-top:5px; color:#aaa; font-size:0.8rem;">반주를 고르고 ▶ 자동 반주를 누르면 마디마다 코드가 넘어가요. 그 위에서 노란 건반을 짚어 보세요!<br>한 마디에 코드가 여럿이면 <b>➕ 같은 마디에</b>로 넣거나 <b>C-F</b>, <b>C-F-G-Am</b>처럼 붙여 쓰면 박이 나뉘어요.</div>
 
     </div>
 
@@ -422,6 +428,7 @@
             if (autoPlaying) stopAuto();
             Tone.Transport.stop(); Tone.Transport.cancel();
             if(isHoldingKey) handleKeyPress(null, false);
+            renderScoreBoard();   // 3박·4박이 바뀌면 마디 안의 박 나눔도 다시 계산
         }
 
         function handleKeyPress(inputNote, isPressed) {
@@ -491,10 +498,8 @@
                 return [a, ...Array(n - 1).fill('-')];                                  // 한 마디에 한 번
             };
             const bars = chordList.map(c => {
-                const a = nm(c);
-                if (!c.second) return cells(a, beats).join(' ');
-                const b = nm(c.second), h = Math.ceil(beats / 2);
-                return cells(a, h).concat(cells(b, beats - h)).join(' ');
+                const list = partsOf(c), sp = splitBeats(list.length, beats);
+                return list.map((ch, k) => cells(nm(ch), sp[k])).flat().join(' ');
             });
             const lines = []; for (let i = 0; i < bars.length; i += 4) lines.push(bars.slice(i, i + 4).join(' | ') + ' |');
             const title = (document.getElementById('songName').value.trim() || '코드 진행 연습') + (songKey ? ' (쉬운 자리로 옮김)' : '');
@@ -529,11 +534,17 @@
                 const playChord = (ch, t0, nb) => {   // nb = 이 코드가 차지하는 박 수
                     EAIMChord.renderPattern(currentRhythm, transposed(ch), (ns, at, len, vel) => { if (at < nb) synth.triggerAttackRelease(ns, Math.min(len, nb - at) * beat, t0 + at * beat, vel); }, nb);
                 };
-                if (c.second) { const half = Math.floor(beats/2); playChord(c, time, half); playChord(c.second, time + half*beat, beats - half); }
-                else playChord(c, time, beats);
+                const list = partsOf(c), sp = splitBeats(list.length, beats);
+                let at = 0;
+                list.forEach((ch, k) => {
+                    playChord(ch, time + at * beat, sp[k]);
+                    const a0 = at, idx0 = autoIdx;
+                    Tone.Draw.schedule(() => { currentIdx = idx0; curPart = k; renderScoreBoard(); updateGuide(); }, time + a0 * beat);
+                    at += sp[k];
+                });
                 if (document.getElementById('metro').checked) for (let b = 0; b < beats; b++) metro.triggerAttackRelease(b === 0 ? 'C6' : 'G5', '32n', time + b*beat);
                 const idxNow = autoIdx;
-                Tone.Draw.schedule(() => { currentIdx = idxNow; renderScoreBoard(); updateGuide(); document.querySelectorAll('.score-bar')[idxNow]?.classList.add('playing'); }, time);
+                Tone.Draw.schedule(() => { document.querySelectorAll('.score-bar')[idxNow]?.classList.add('playing'); }, time);
                 autoIdx++;
             }, '1m').start(0);
             Tone.Transport.start('+0.1');
@@ -587,7 +598,7 @@
         }
         function updatePreview() { document.getElementById('preview-chord').innerText = tempR + tempT; }
         
-        function addChordManual() { try { addChordToData(tempR, tempT); } catch(e) { alert('코드 넣기 오류: ' + e.message); console.error(e); } }
+        function addChordManual(sameBar) { try { addChordToData(tempR, tempT, sameBar); } catch(e) { alert('코드 넣기 오류: ' + e.message); console.error(e); } }
 
 
         const FLAT2SHARP = { 'C#':'Db', 'D#':'Eb', 'F#':'Gb', 'G#':'Ab', 'A#':'Bb' };
@@ -608,7 +619,7 @@
             if (autoPlaying) stopAuto();
             const bars = raw.split(/\s+/).map(tok => tok.split(/-(?=[A-G])/).map(parseChordToken).filter(Boolean)).filter(b => b.length);
             if (!bars.length) { alert('읽을 수 있는 코드가 없어요. 예: C G Am F'); return; }
-            chordList = bars.map(b => b.length === 1 ? { ...b[0] } : { ...b[0], name: b.map(c=>c.name).join(' - '), second: b[1] });
+            chordList = bars.map(b => b.length === 1 ? { ...b[0] } : packBar(b));
             currentIdx = 0; renderScoreBoard(); updateGuide();
             document.getElementById('importMsg').textContent = `${chordList.length}마디를 넣었어요`;
         }
@@ -703,9 +714,23 @@ ${(n.lyrics || '').trim()}`, { json: true, temperature: .6, maxTokens: 400 });
             } catch (e) { msg.textContent = '❌ ' + e.message; }
         }
 
-        function addChordToData(root, type) {
+        /* 한 마디 안의 코드들 — 마디를 고르게 나눠 가져요 (C-F = 2박씩, C-F-G-Am = 1박씩) */
+        const partsOf = (c) => c.parts || (c.second ? [c, c.second] : [c]);
+        function packBar(list) {
+            const parts = list.slice(0, 4);
+            return { ...parts[0], name: parts.map(c => c.name).join(' - '), parts, second: parts[1] || null };
+        }
+        function splitBeats(n, beats) {   // 박을 코드 수만큼 나눔 (4박 3코드 → 2·1·1)
+            const base = Math.floor(beats / n); let rest = beats - base * n;
+            return Array.from({ length: n }, () => base + (rest-- > 0 ? 1 : 0));
+        }
+        function addChordToData(root, type, sameBar) {
             const c = parseChordToken(root + type) || { name: root+type, root, type, quality: type, intervals: [0,4,7] };
-            chordList.push(c);
+            if (sameBar && chordList.length) {
+                const last = chordList[chordList.length - 1], list = partsOf(last);
+                if (list.length >= 4) { alert('한 마디에는 코드 4개까지 넣을 수 있어요'); return; }
+                chordList[chordList.length - 1] = packBar([...list, c]);
+            } else chordList.push(c);
             renderScoreBoard();
             if(currentIdx === -1) { currentIdx = 0; renderScoreBoard(); updateGuide(); }
         }
@@ -729,15 +754,24 @@ ${(n.lyrics || '').trim()}`, { json: true, temperature: .6, maxTokens: 400 });
             chordList.forEach((c, i) => {
                 let div = document.createElement('div');
                 div.className = `score-bar ${i === currentIdx ? 'active' : ''}`;
-                div.onclick = () => { currentIdx = i; renderScoreBoard(); updateGuide(); };
+                div.onclick = () => { currentIdx = i; curPart = 0; renderScoreBoard(); updateGuide(); };
                 let num = document.createElement('span'); num.className = 'bar-number'; num.innerText = i + 1; div.appendChild(num);
                 const del = document.createElement('button');   // 이 마디만 지우기
                 del.className = 'bar-del'; del.textContent = '×'; del.title = (i+1) + '마디 지우기';
                 del.onclick = (e) => { e.stopPropagation(); removeChordAt(i); };
                 div.appendChild(del);
                 const tr = (ch) => { const t = transposed(ch), f = wantFlat(ch); return spellRoot(t.root, f) + (ch.quality ?? ch.type) + (t.bass ? '/' + spellRoot(t.bass, f) : ''); };
-                if (c.second) { div.classList.add('half'); div.append(tr(c)); const s2 = document.createElement('span'); s2.style.opacity = '.8'; s2.textContent = tr(c.second); div.appendChild(s2); }
-                else div.append(tr(c));
+                const list = partsOf(c), nb = ((EAIMChord.PATTERNS[currentRhythm] || {}).beats === 3) ? 3 : 4;
+                if (list.length > 1) {
+                    div.classList.add('half'); div.classList.add('p' + list.length);
+                    const sp = splitBeats(list.length, nb);
+                    list.forEach((ch, k) => {
+                        const el = document.createElement('span');
+                        if (!(i === currentIdx && k === curPart)) el.style.opacity = '.8';
+                        el.innerHTML = `${tr(ch)}<small style="opacity:.6;margin-left:4px">${sp[k]}박</small>`;
+                        div.appendChild(el);
+                    });
+                } else div.append(tr(c));
                 board.appendChild(div);
             });
             const bc = document.getElementById('barCount'); if (bc) bc.textContent = chordList.length + '마디';
@@ -752,10 +786,12 @@ ${(n.lyrics || '').trim()}`, { json: true, temperature: .6, maxTokens: 400 });
             if(next >= 0 && next < chordList.length) { currentIdx = next; renderScoreBoard(); updateGuide(); }
         }
 
+        let curPart = 0;
         function updateGuide() {
             document.querySelectorAll('.key').forEach(k=>k.classList.remove('guide-on'));
             if(currentIdx === -1 || !chordList[currentIdx]) return;
-            let target = chordList[currentIdx];
+            const glist = partsOf(chordList[currentIdx]);
+            let target = glist[Math.min(curPart, glist.length - 1)];
             let guideIdx = (pcIdx(target.root) - songKey + 12) % 12;
             let iv = target.intervals || (target.type === 'm' ? [0,3,7] : target.type === '7' ? [0,4,7,10] : [0,4,7]);
             let notes = iv.map(i => SHARPS[(guideIdx + i) % 12]);
