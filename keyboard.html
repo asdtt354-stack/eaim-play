@@ -246,15 +246,18 @@
                 <button class="input-btn" style="flex:1" onclick="selType('sus4')">sus4</button>
             </div>
             <div style="display:grid;grid-template-columns:1fr auto;gap:5px">
-                <button class="btn-add" onclick="addChordManual()">⬇️ 넣기 (<span id="preview-chord">C</span>)</button>
-                <button class="btn-add" style="background:#2980b9;width:auto;padding:10px 14px" onclick="addChordManual(true)" title="앞 마디를 나눠서 그 마디 안에 이어 넣어요">➕ 같은 마디에</button>
+                <button class="btn-add" onclick="addChordManual()">⬇️ 새 마디에 넣기 (<span id="preview-chord">C</span>)<br><small style="font-weight:normal;opacity:.85">마디 하나를 통째로 — 4박</small></button>
+                <button class="btn-add" style="background:#2980b9;width:auto;padding:8px 14px" onclick="addChordManual(true)" title="앞 마디를 나눠서 그 마디 안에 이어 넣어요">➕ 앞 마디 나눠 넣기<br><small style="font-weight:normal;opacity:.85">2박 → 1박씩으로</small></button>
             </div>
         </div>
 
         <div id="panel-text" class="panel">
             <textarea id="chordText" class="chord-text" placeholder="예)  Cadd9  G/B  Am7  Fmaj7 | Dm7  G7sus4  Cmaj7  C
 · 띄어쓰기 = 마디, | 는 보기용
-· 한 마디에 코드 둘이면  C-G  (붙임표)
+· 띄어쓰기 = 마디 나누기,  붙임표 = 마디 안 나누기
+·  C       → 한 마디 전부 C (4박)
+·  C-G     → C 2박 + G 2박
+·  C-F-G-Am → 네 코드를 1박씩
 · add9, sus2, sus4, maj7, m7, 9, 6, dim 다 돼요. 분수코드 G/B 도 OK"></textarea>
             <div style="display:flex; gap:6px;">
                 <button class="btn-add" onclick="applyChordText()">⬇ 이 진행으로 넣기</button>
