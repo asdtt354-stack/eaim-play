@@ -142,6 +142,8 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
 .songs .sg button+button{border-left:1.5px solid var(--line);color:var(--muted)}
 .songs .sg .by{font-size:12px;opacity:.7;margin-left:5px}
 #libFind{font-size:15px;padding:6px 10px}
+#libKind{flex-wrap:wrap}
+#libKind button{flex:1 1 auto}
 #linkBtn.on{background:var(--mel-soft);border-color:var(--mel);color:var(--mel-ink);font-weight:600}
 #modeBtn{background:var(--head-soft);border-color:var(--head);color:var(--head-ink);font-weight:600}
 .app.solo-mel{grid-template-rows:auto auto 1fr} .app.solo-mel .part.cho{display:none}
@@ -164,6 +166,13 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
 .app.chord-only .track{grid-template-rows:34px minmax(0,1fr)}
 .app.chord-only .cb{font-size:min(clamp(18px,4vw,46px),calc(var(--ch,120px) * 0.34))}
 .app.chord-only .cb .lb{flex-direction:column;align-items:center;line-height:1.15}
+
+.app.two-hand #levelSeg{display:none}
+.app.two-hand .cb{font-size:clamp(13px,1.7vw,19px);align-items:center}
+.app.two-hand .cb{padding:0 2px}
+.app.two-hand .cb .lb{line-height:1.6}
+.app.two-hand .cb .nm.hi::before{top:1.5px;width:3.5px;height:3.5px}
+.app.two-hand .cb .nm.lo::after{bottom:1.5px;width:3.5px;height:3.5px}
 .app.chord-only .cb .tn{display:block;font-family:var(--ui);font-size:min(15px,calc(var(--ch,120px) * 0.13));opacity:.85;white-space:nowrap}
 .app.chord-only .cb.small .tn,.app.chord-only .cb.tiny .tn{font-size:12px}
 .app.chord-only .part.cho .kb{height:clamp(140px,32vh,300px)}
@@ -222,7 +231,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
 
   <section class="part mel">
     <div class="plabel">
-      <span class="pname">멜로디</span>
+      <span class="pname" id="melName">멜로디</span>
       <div class="seg small who" data-part="mel" role="group" aria-label="멜로디 연주자"><button data-w="kid" class="on">🙋 학생이 쳐요</button><button data-w="app">🤖 앱이 쳐요</button></div>
     </div>
     <div class="kb" id="kbMel"></div>
@@ -242,7 +251,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
   <section class="part cho">
     <div class="kb" id="kbCho"></div>
     <div class="plabel">
-      <span class="pname">화음</span>
+      <span class="pname" id="lowName">화음</span>
       <div class="seg small who" data-part="cho" role="group" aria-label="화음 연주자"><button data-w="kid">🙋 학생이 쳐요</button><button data-w="app" class="on">🤖 앱이 쳐요</button></div>
       <div class="seg small" id="levelSeg" role="group" aria-label="화음 단계"><button data-l="1" class="on">① 아무 건반</button><button data-l="2">② 근음</button><button data-l="3">③ 세 음 모두</button></div>
     </div>
@@ -278,7 +287,8 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
       <dt>도/-/-/레</dt><dd>점8분음표 + 16분음표</dd>
       <dt>도/레/미</dt><dd>셋잇단음표</dd>
       <dt>?</dt><dd>확인이 필요한 곳 표시</dd>
-      <dt>C Dm G7</dt><dd>화음은 치는 박에 코드 이름, 나머지는 x 또는 -</dd>
+      <dt>C Dm G7</dt><dd>아래 칸에 코드 이름을 적으면 화음 (나머지 칸은 x 또는 -)</dd>
+      <dt>낮은도 솔 미 솔</dt><dd>아래 칸에 계이름을 적으면 왼손 한 음씩 — 양손 피아노가 돼요</dd>
       <dt>멜로디 비우기</dt><dd>화음만 크게 띄워서 코드 연습을 해요</dd>
     </dl>
   </details>
@@ -300,16 +310,21 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
   </div>
   <div class="saved">
     <div class="saved-head"><span>📚 곡 서랍 — 선생님들이 함께 쓰는 곡</span><button id="shareSong">📤 서랍에 넣기</button></div>
+    <div class="seg small" id="libKind" role="group" aria-label="곡 갈래">
+      <button data-k="" class="on">전체</button><button data-k="양손">🎹 양손 피아노</button><button data-k="2중주">👫 2중주</button><button data-k="코드">🎸 코드 연습</button>
+    </div>
     <input id="libFind" placeholder="곡 이름으로 찾기" autocomplete="off">
     <div class="songs" id="libList"></div>
     <p class="msg" id="libMsg"></p>
+    <p class="msg">저작권이 있는 곡(대중가요·애니메이션 곡 등)은 서랍에 넣지 말고 <b>이 기기에 저장</b>만 써 주세요.</p>
   </div>
 </aside>
 
 <div class="dlg" id="dlg" hidden>
   <div class="dlg-box" role="dialog" aria-label="두 태블릿 합주">
     <div class="sheet-head"><h2>📡 두 태블릿 합주</h2><button id="dlgClose">닫기</button></div>
-    <p class="msg">한 태블릿에 한 파트씩 맡아요. 누가 ▶ 연주를 눌러도 3초 뒤 두 태블릿이 함께 시작해요. 합주 중에는 기다려 주기가 꺼져요.</p>
+    <p class="msg" id="dlgHint">한 태블릿에 한 파트씩 맡아요. 누가 ▶ 연주를 눌러도 3초 뒤 두 태블릿이 함께 시작해요.</p>
+    <p class="msg">합주 중에는 기다려 주기가 꺼져요.</p>
     <div class="dlg-row"><span class="lbl">내 파트</span><div class="seg" id="mySeg"><button data-p="mel" class="on">🎵 멜로디</button><button data-p="cho">🎶 화음</button></div></div>
     <div id="dlgOff">
       <button id="makeRoom" class="bigbtn">새 합주방 만들기</button>
@@ -418,27 +433,48 @@ function parseSong(title,bpm,melText,choText){
     });
   });
   if(!mb.length) cbRaw.forEach(tk=>{ bars.push({start:t,beats:tk.length}); t+=tk.length; });   // 화음만 연습
+  /* 아래 칸: 코드 이름(C, G7)과 계이름(도, 낮은솔)을 섞어 쓸 수 있어요 — 양손 피아노는 왼손 계이름으로 */
   const cho=[],crest=[];
   const cb=barsOf(choText);
-  if(cb.length>bars.length) warnings.push(`화음이 멜로디보다 ${cb.length-bars.length}마디 더 많아요. 넘치는 마디는 빼고 연주해요.`);
-  let lastC=null;
+  if(cb.length>bars.length) warnings.push(`아래 칸이 멜로디보다 ${cb.length-bars.length}마디 더 많아요. 넘치는 마디는 빼고 연주해요.`);
+  let lastC=null, hasNote=false;
   cb.slice(0,bars.length).forEach((bar,bi)=>{
-    const tk=tokens(bar); const B=bars[bi];
-    if(tk.length!==B.beats) warnings.push(`${bi+1}마디: 멜로디는 ${B.beats}칸, 화음은 ${tk.length}칸이에요.`+(B.beats>tk.length?' 한 박에 음이 둘 이상이면 도레처럼 붙여 써 주세요.':' 모자란 박은 이어 누르면 -, 쉬면 x를 넣어 주세요.'));
-    tk.slice(0,B.beats).forEach((raw,ci)=>{
-      const q=raw.includes('?'); const s=raw.replace(/\?/g,''); const st=B.start+ci;
-      if(isHold(s)){ if(lastC) lastC.dur+=1; }
-      else if(isRest(s)){ lastC=null; crest.push({start:st,dur:1}); }
-      else {
-        const c=parseChord(s);
-        if(!c){errors.push(`화음 ${bi+1}마디 ${ci+1}박: "${s}"는 코드로 읽을 수 없어요.`);lastC=null;}
-        else {lastC={...c,start:st,dur:1,bar:bi,unsure:q,part:'cho'};cho.push(lastC);if(q)unsure.push(`화음 ${bi+1}마디 ${ci+1}박 ${c.name}`);}
-      }
+    const B=bars[bi];
+    const ex=expandBar(tokens(bar),B.beats), tk=ex.tk;
+    if(ex.tooMany) errors.push(`아래 칸 ${bi+1}마디: 붙여 쓴 음이 너무 많아요. 박마다 띄어 써 주세요.`);
+    if(ex.spread) info.push(`아래 칸 ${bi+1}마디: 붙여 쓴 계이름을 한 박에 ${ex.spread}개씩${NAME[ex.spread]?`(${NAME[ex.spread]})`:''} 나눴어요.`);
+    if(tk.length!==B.beats) warnings.push(`${bi+1}마디: 위 칸은 ${B.beats}칸, 아래 칸은 ${tk.length}칸이에요.`+(B.beats>tk.length?' 모자란 박은 이어 누르면 -, 쉬면 x를 넣어 주세요.':''));
+    let ct=B.start;
+    tk.slice(0,B.beats).forEach(tok=>{
+      const subs=tok.split('/'); const d=1/subs.length; if(d<minSub) minSub=d;
+      const c0=ct;
+      subs.forEach((raw,j)=>{
+        ct=r6(c0+j/subs.length);
+        const q=raw.includes('?'); const x=raw.replace(/\?/g,'');
+        if(isHold(x)||x===''){ if(lastC) lastC.dur=r6(lastC.dur+d); }
+        else if(isRest(x)){ lastC=null; crest.push({start:ct,dur:d}); }
+        else {
+          const n=parseNote(x);
+          if(n){   // 계이름 한 음 (왼손 라인)
+            hasNote=true;
+            lastC={name:(n.oct>0?'높은'.repeat(n.oct):n.oct<0?'낮은'.repeat(-n.oct):'')+n.name+(n.acc>0?'#':n.acc<0?'b':''),
+              root:n.midi,tones:[n.midi],note:n,start:ct,dur:d,bar:bi,unsure:q,part:'cho'};
+            cho.push(lastC);
+          } else {
+            const c=parseChord(x);
+            if(!c){errors.push(`아래 칸 ${bi+1}마디: "${x}"는 코드나 계이름으로 읽을 수 없어요.`);lastC=null;}
+            else {lastC={...c,start:ct,dur:d,bar:bi,unsure:q,part:'cho'};cho.push(lastC);if(q)unsure.push(`아래 칸 ${bi+1}마디 ${c.name}`);}
+          }
+        }
+      });
+      ct=r6(c0+1);
     });
   });
   mel.forEach(ev=>{ if(ev.unsure){ const b=Math.floor(ev.start-bars[ev.bar].start+1e-6)+1; unsure.unshift(`${ev.bar+1}마디 ${b}박 ${ev.oct>0?'높은'.repeat(ev.oct):ev.oct<0?'낮은'.repeat(-ev.oct):''}${ev.name}${ev.acc>0?'#':ev.acc<0?'b':''}`);} });
   const steps=mel.map(e=>e.step), midis=mel.map(e=>e.midi), ct=cho.flatMap(c=>c.tones);
-  const song={title:title||'제목 없는 곡',bpm:Math.max(30,Math.min(220,bpm||90)),bars,mel,mrest,cho,crest,total:t,minSub,chordOnly:!mb.length,
+  const csteps=cho.filter(c=>c.note).map(c=>c.note.step);
+  const song={title:title||'제목 없는 곡',bpm:Math.max(30,Math.min(220,bpm||90)),bars,mel,mrest,cho,crest,total:t,minSub,chordOnly:!mb.length,twoHand:hasNote,
+    cMinStep:csteps.length?Math.min(...csteps):0,cMaxStep:csteps.length?Math.max(...csteps):7,
     minStep:steps.length?Math.min(...steps):0,maxStep:steps.length?Math.max(...steps):7,
     minMidi:midis.length?Math.min(...midis):60,maxMidi:midis.length?Math.max(...midis):72,
     choMax:ct.length?Math.max(...ct):60,barStarts:new Set(bars.map(b=>b.start))};
@@ -559,7 +595,7 @@ function bindKb(part){
   el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('pointerleave',up);
   el.addEventListener('contextmenu',e=>e.preventDefault());
 }
-const reqKeys=ev=>state.level===2?[ev.root]:ev.tones;
+const reqKeys=ev=>ev.note?[ev.root]:(state.level===2?[ev.root]:ev.tones);
 function nearChord(){
   const p=state.playing?pos:startPos; let best=null;
   for(const ev of song.cho){ if(ev.start-0.6>p) break; if(p<ev.start+ev.dur) best=ev; }
@@ -568,7 +604,7 @@ function nearChord(){
 function pressKey(part,m,pid){
   releasePtr(pid);
   let notes=[m];
-  if(part==='cho'&&state.level===1){ const ev=nearChord(); if(ev&&ev.tones.includes(m)) notes=ev.tones.slice(); }
+  if(part==='cho'&&state.level===1){ const ev=nearChord(); if(ev&&!ev.note&&ev.tones.includes(m)) notes=ev.tones.slice(); }
   const vel=part==='mel'?0.5:(notes.length>1?0.26:0.34);
   const voices=notes.map(n=>noteOn(n,vel));
   notes.forEach(n=>{down[part][n]=(down[part][n]||0)+1;setDown(part,n);});
@@ -598,6 +634,7 @@ function judge(part,m){
 function barAt(p){let i=0; song.bars.forEach((b,j)=>{if(b.start<=p+1e-6) i=j;}); return i;}
 const TN_SH=['도','도#','레','레#','미','파','파#','솔','솔#','라','라#','시'], TN_FL=['도','레b','레','미b','미','파','솔b','솔','라b','라','시b','시'];
 function chordHTML(ev){
+  if(ev.note) return labelHTML(ev.note);
   /* 구성음 계이름: 그 코드가 속한 조의 조표를 따라 ♭·♯을 고름 (Cm→도·미b·솔, D→레·파#·라) */
   const minor=/m(?!aj)/.test(ev.name.replace(/^[A-G][#b]?/,''));
   const key=((ev.root%12)+(minor?3:0)+12)%12;
@@ -668,7 +705,16 @@ function buildLine(li){
       x.style.left=X(r.start+0.5)+'%'; x.style.top='50%'; cL.appendChild(x);}
   });
   cL.style.setProperty('--ch',(cL.clientHeight||120)+'px');   // 칸 높이에 맞춰 코드 글씨 크기 조절
-  song.cho.forEach(ev=>addBlock(ev,cL,'cb',chordHTML(ev)));
+  if(song.twoHand){   // 왼손도 음 높이에 따라 위아래로
+    const CH=cL.clientHeight||120, cpad=18;
+    const clo=Math.min(song.cMinStep-1,-1), chi=Math.max(song.cMaxStep+1,8);
+    const csh=(CH-2*cpad)/(chi-clo), cY=st=>cpad+(chi-st)*csh;
+    const cbh=Math.max(26,Math.min(38,csh*2.4));
+    song.cho.forEach(ev=>{
+      const r=addBlock(ev,cL,'cb',chordHTML(ev)); if(!r) return;
+      if(ev.note){ r.b.style.top=cY(ev.note.step)+'px'; r.b.style.bottom='auto'; r.b.style.height=cbh+'px'; r.b.style.transform='translateY(-50%)'; }
+    });
+  } else song.cho.forEach(ev=>addBlock(ev,cL,'cb',chordHTML(ev)));
   $('pageInfo').textContent=(innerWidth<=700||innerHeight<=560?'':song.title+' · ')+`${li+1} / ${Math.ceil(song.bars.length/BPL)}줄`;
 }
 
@@ -805,7 +851,12 @@ function setSong(sg){
   document.querySelector('.app').classList.toggle('chord-only',!!sg.chordOnly);
   const sm=innerWidth<=700||innerHeight<=560;
   $('modeBtn').textContent=MODE_LBL[sm?'short':'long'][sg.chordOnly?0:1];
-  if(sg.chordOnly){ $('startTitle').textContent='🎹 코드 짚기 연습'; $('startDesc').innerHTML='큰 건반에 짚을 자리가 켜져요.<br>박자에 맞춰 코드가 넘어가요. 혼자 연습해도 좋아요.'; }
+  $('lowName').textContent=sg.twoHand?'왼손':'화음';
+  $('melName').textContent=sg.twoHand?'오른손':'멜로디';
+  labelParts();
+  document.querySelector('.app').classList.toggle('two-hand',!!sg.twoHand);
+  if(sg.twoHand){ $('startTitle').textContent='🎹 양손 피아노'; $('startDesc').innerHTML='위 건반은 오른손, 아래 건반은 왼손.<br>칠 자리가 켜지고, 기다려 주기를 켜면 두 손이 다 맞을 때까지 기다려요.'; }
+  else if(sg.chordOnly){ $('startTitle').textContent='🎹 코드 짚기 연습'; $('startDesc').innerHTML='큰 건반에 짚을 자리가 켜져요.<br>박자에 맞춰 코드가 넘어가요. 혼자 연습해도 좋아요.'; }
   if(sg.chordOnly&&!room&&state.who.cho==='app'){ state.who.cho='kid'; syncWhoUI(); }
   // 두 옥타브: 멜로디 낮은솔~높은솔(G3~G5), 화음 한 옥타브 아래 솔~솔(G2~G4). 곡이 더 넓으면 알아서 늘어나요
   buildKb('mel',Math.min(55,sg.minMidi),Math.max(79,sg.maxMidi));
@@ -993,11 +1044,13 @@ async function loadNewTeacherSong(){
 }
 
 /* ---------- 곡 서랍: 모든 선생님이 함께 쓰는 곡 모음 ---------- */
-let libAll=[];
+let libAll=[], libKind='';
+const songKind=()=>song?(song.chordOnly?'코드':song.twoHand?'양손':'2중주'):'2중주';
+const KIND_ICON={'양손':'🎹','2중주':'👫','코드':'🎸'};
 function libRow(sg,mine){
   const w=document.createElement('span'); w.className='sg';
   const a=document.createElement('button');
-  a.innerHTML=`${(sg.title||'제목 없는 곡').replace(/[<&]/g,'')}<span class="by">${(sg.by||'').replace(/[<&]/g,'')}</span>`;
+  a.innerHTML=`${KIND_ICON[sg.kind]||''} ${(sg.title||'제목 없는 곡').replace(/[<&]/g,'')}<span class="by">${(sg.by||'').replace(/[<&]/g,'')}</span>`;
   a.onclick=()=>applySongObj(sg);
   w.appendChild(a);
   if(mine){
@@ -1012,9 +1065,11 @@ function libRow(sg,mine){
 function renderLibrary(){
   const box=$('libList'), q=$('libFind').value.trim().toLowerCase();
   const uid=(window.firebase&&firebase.apps.length&&firebase.auth().currentUser||{}).uid;
-  const rows=q?libAll.filter(sg=>(sg.title||'').toLowerCase().includes(q)||(sg.by||'').toLowerCase().includes(q)):libAll;
+  let rows=libAll;
+  if(libKind) rows=rows.filter(sg=>(sg.kind||'2중주')===libKind);
+  if(q) rows=rows.filter(sg=>(sg.title||'').toLowerCase().includes(q)||(sg.by||'').toLowerCase().includes(q));
   box.innerHTML='';
-  if(!rows.length){ box.innerHTML=`<span class="msg">${libAll.length?'찾는 곡이 없어요.':'서랍이 아직 비어 있어요. 완성한 곡을 넣어 주세요.'}</span>`; return; }
+  if(!rows.length){ box.innerHTML=`<span class="msg">${libAll.length?'이 갈래에는 곡이 없어요.':'서랍이 아직 비어 있어요. 완성한 곡을 넣어 주세요.'}</span>`; return; }
   rows.slice(0,60).forEach(sg=>box.appendChild(libRow(sg,uid&&sg.uid===uid)));
   if(rows.length>60) box.insertAdjacentHTML('beforeend','<span class="msg">이름으로 찾으면 더 나와요.</span>');
 }
@@ -1039,7 +1094,7 @@ async function shareSong(){
     if(!u) u=(await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())).user;
     const by=(u.displayName||u.email||'').split('@')[0];
     await db.collection('duetLibrary').doc(u.uid+'_'+docId(src.title)).set({
-      title:src.title||'제목 없는 곡',bpm:src.bpm||90,melody:src.melody,chords:src.chords||'',by,uid:u.uid,ts:Date.now()});
+      title:src.title||'제목 없는 곡',bpm:src.bpm||90,melody:src.melody,chords:src.chords||'',kind:songKind(),by,uid:u.uid,ts:Date.now()});
     m.className='msg ok'; m.textContent='서랍에 넣었어요. 다른 선생님도 꺼내 쓸 수 있어요.';
     loadLibrary();
   }catch(e){ m.className='msg err'; m.textContent=fbErr(e); }
@@ -1074,6 +1129,16 @@ async function roomPatch(fields,mask,c){
 }
 const heartbeat=()=>roomPatch({devs:{[DEV]:{part:myPart,t:serverNow()}}},['devs.'+DEV]);
 async function calibrate(){ bestRtt=1e9; for(let i=0;i<3;i++) await heartbeat(); }
+const partNames=()=>song&&song.twoHand?{mel:'오른손',cho:'왼손'}:{mel:'멜로디',cho:'화음'};
+function labelParts(){
+  const n=partNames();
+  const a=$('mySeg').querySelector('[data-p="mel"]'), b=$('mySeg').querySelector('[data-p="cho"]');
+  if(a) a.textContent=(song&&song.twoHand?'🖐️ ':'🎵 ')+n.mel;
+  if(b) b.textContent=(song&&song.twoHand?'✋ ':'🎶 ')+n.cho;
+  $('dlgHint').textContent=song&&song.twoHand
+    ? '한 태블릿에 한 손씩 맡아요. 한 화면에서 둘이 나눠 쳐도 되고, 태블릿 두 대로 나눠도 돼요.'
+    : '한 태블릿에 한 파트씩 맡아요. 누가 ▶ 연주를 눌러도 3초 뒤 두 태블릿이 함께 시작해요.';
+}
 function dErr(t){ $('dlgErr').textContent=t||''; }
 async function makeRoom(){
   dErr('');
@@ -1158,7 +1223,7 @@ function onRoom(d){
   if(d.sv&&d.sv!==lastSv&&d.song&&(d.song.melody||d.song.chords)){ lastSv=d.sv; if(!state.playing) applySongObj(d.song); }
   if(d.cmd&&d.cmd.id&&d.cmd.id!==lastCmd) handleCmd(d.cmd);
   const mates=Object.entries(d.devs||{}).filter(([k,v])=>k!==DEV&&v&&v.part).map(([,v])=>v.part);
-  const nm={mel:'멜로디',cho:'화음'};
+  const nm=partNames();
   $('mateMsg').textContent=!mates.length?'짝꿍을 기다리는 중이에요. 짝꿍 태블릿에서 이 코드를 넣어 주세요.'
     :mates.includes(myPart)?`⚠️ 짝꿍도 ${nm[myPart]}를 골랐어요. 한 명은 다른 파트로 바꿔 주세요.`
     :`✅ 짝꿍 연결됨 (${mates.map(p=>nm[p]).join(', ')} 태블릿)`;
@@ -1247,6 +1312,10 @@ function switchMode(){
 }
 $('modeBtn').onclick=switchMode;
 $('libFind').addEventListener('input',renderLibrary);
+$('libKind').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  libKind=b.dataset.k; $('libKind').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); renderLibrary();
+});
 /* 키보드에 없는 기호(x, -, /, |) 넣기 버튼 — 입력 칸의 커서 자리에 들어가요 */
 function insertTok(ta,t){
   const a=ta.selectionStart!=null?ta.selectionStart:ta.value.length, z=ta.selectionEnd!=null?ta.selectionEnd:a;
