@@ -121,6 +121,7 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
 .quick button b{font-family:var(--fun);font-size:19px;margin-right:3px;color:var(--mel-ink)}
 .quick button:active{background:var(--mel-soft)}
 .photo button{width:100%;background:var(--mel-soft);border-color:var(--mel);color:var(--mel-ink);font-weight:600}
+#midiBtn{background:var(--cho-soft);border-color:var(--cho);color:var(--cho-ink);margin-bottom:4px}
 .msg{font-size:14px;line-height:1.6;margin-top:6px;color:var(--muted)}
 .check{display:grid;gap:4px;font-size:14px;line-height:1.6}
 .err{color:#B4232B} .warn{color:#8A5A00} .ok{color:var(--mel-ink)} .info{color:#2F5E9E}
@@ -265,6 +266,9 @@ input:focus,textarea:focus{outline:3px solid var(--mel-soft);border-color:var(--
     <label>원래 빠르기<input id="inBpm" type="number" min="30" max="220" inputmode="numeric"></label>
   </div>
   <div class="photo">
+    <button id="midiBtn">🎵 MIDI 파일 불러오기 (오른손·왼손 자동)</button>
+    <input type="file" id="midiIn" accept=".mid,.midi,audio/midi" hidden>
+    <p class="msg" id="midiMsg">플레이스코어 등에서 악보를 MIDI로 저장해 오면 가장 정확해요.</p>
     <button id="photoBtn">📷 악보 사진·PDF로 멜로디 읽기</button>
     <input type="file" id="photoIn" accept="image/*,application/pdf" hidden>
     <p class="msg" id="photoMsg">읽은 결과가 아래 칸에 채워지면, 확인하고 고쳐 주세요. ?가 붙은 곳은 AI가 자신 없는 곳이에요.</p>
@@ -922,6 +926,178 @@ async function readPhoto(file){
   }finally{ btn.disabled=false; $('photoIn').value=''; }
 }
 
+/* ═════ MIDI 파일 읽기 — 플레이스코어 등에서 저장한 .mid를 계이름 블록으로 ═════ */
+function readMidi(buf){
+  const d=new DataView(buf); let p=0;
+  const str=n=>{let s='';for(let i=0;i<n;i++)s+=String.fromCharCode(d.getUint8(p++));return s};
+  if(str(4)!=='MThd') throw new Error('MIDI 파일이 아니에요.');
+  const hlen=d.getUint32(p);p+=4; const fmt=d.getUint16(p);p+=2; const ntrk=d.getUint16(p);p+=2;
+  const div=d.getUint16(p);p+=2; p+=hlen-6;
+  if(div&0x8000) throw new Error('이 MIDI는 아직 읽지 못해요(SMPTE 방식).');
+  const notes=[],tempos=[],sigs=[]; let keysf=0;
+  for(let tr=0;tr<ntrk;tr++){
+    if(p>=buf.byteLength) break;
+    if(str(4)!=='MTrk'){ p+=4; continue; }
+    const len=d.getUint32(p);p+=4; const end=p+len;
+    let t=0,run=0; const on={};
+    const vlq=()=>{let v=0,b;do{b=d.getUint8(p++);v=(v<<7)|(b&0x7f)}while(b&0x80);return v};
+    while(p<end){
+      t+=vlq();
+      let st=d.getUint8(p);
+      if(st&0x80){p++;run=st} else st=run;
+      const hi=st&0xf0, ch=st&0x0f;
+      if(hi===0x90||hi===0x80){
+        const n=d.getUint8(p++), v=d.getUint8(p++);
+        const key=ch+':'+n;
+        if(hi===0x90&&v>0){ (on[key]=on[key]||[]).push(t); }
+        else { const a=on[key]&&on[key].shift(); if(a!=null&&t>a) notes.push({t:a,dur:t-a,pitch:n,trk:tr,ch}); }
+      }
+      else if(hi===0xA0||hi===0xB0||hi===0xE0) p+=2;
+      else if(hi===0xC0||hi===0xD0) p+=1;
+      else if(st===0xFF){
+        const ty=d.getUint8(p++), l=vlq();
+        if(ty===0x51) tempos.push({t,us:(d.getUint8(p)<<16)|(d.getUint8(p+1)<<8)|d.getUint8(p+2)});
+        else if(ty===0x58) sigs.push({t,num:d.getUint8(p),den:1<<d.getUint8(p+1)});
+        else if(ty===0x59) keysf=d.getInt8(p);
+        p+=l;
+      }
+      else if(st===0xF0||st===0xF7){ const l=vlq(); p+=l; }
+      else p++;
+    }
+    p=end;
+  }
+  if(!notes.length) throw new Error('이 파일에는 음표가 없어요.');
+  notes.forEach(n=>{n.b=n.t/div; n.d=n.dur/div});
+  const bpm=tempos.length?Math.round(60000000/tempos[0].us):90;
+  const sg=sigs[0]||{num:4,den:4};
+  const beats=Math.max(2,Math.round(sg.num*4/sg.den));
+  return {notes,bpm,beats,flat:keysf<0};
+}
+
+const MID_SH=['도','도#','레','레#','미','파','파#','솔','솔#','라','라#','시'];
+const MID_FL=['도','레b','레','미b','미','파','솔b','솔','라b','라','시b','시'];
+function midiName(m,flat){
+  const oct=Math.floor(m/12)-5, nm=(flat?MID_FL:MID_SH)[((m%12)+12)%12];
+  return (oct>0?'높은'.repeat(Math.min(oct,2)):oct<0?'낮은'.repeat(Math.min(-oct,2)):'')+nm;
+}
+/* 왼손에 세 음 이상이 함께 울리면 코드 이름으로 (C, Am, G7 …) */
+const CH_LET_SH=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const CH_LET_FL=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const CH_KIND=[[[0,4,7],''],[[0,3,7],'m'],[[0,4,7,10],'7'],[[0,3,7,10],'m7'],[[0,4,7,11],'maj7'],[[0,3,6],'dim'],[[0,4,8],'aug'],[[0,5,7],'sus4'],[[0,2,7],'sus2']];
+function chordNameOf(pitches,flat){
+  const pcs=[...new Set(pitches.map(p=>((p%12)+12)%12))];
+  if(pcs.length<3) return null;
+  for(const root of pcs){
+    const iv=pcs.map(p=>((p-root)%12+12)%12).sort((a,b)=>a-b);
+    for(const [pat,suf] of CH_KIND)
+      if(pat.length===iv.length&&pat.every((v,i)=>v===iv[i])) return (flat?CH_LET_FL:CH_LET_SH)[root]+suf;
+  }
+  return null;
+}
+
+/* 한 손: 같은 시각에 여러 음이면 하나만 남기고(오른손 제일 높은 음, 왼손 제일 낮은 음) 줄로 만듦 */
+function handLine(notes,top,flat){
+  const by={};
+  notes.forEach(n=>{ const k=Math.round(n.b*48)/48; (by[k]=by[k]||[]).push(n); });
+  let dropped=0, chords=0;
+  const line=Object.keys(by).map(Number).sort((a,b)=>a-b).map(k=>{
+    const g=by[k].slice().sort((a,b)=>a.pitch-b.pitch);
+    if(!top&&g.length>=3){
+      const nm=chordNameOf(g.map(x=>x.pitch),flat);
+      if(nm){ chords++; return {b:k,d:Math.max(...g.map(x=>x.d)),pitch:g[0].pitch,chord:nm}; }
+    }
+    if(g.length>1) dropped+=g.length-1;
+    const n=top?g[g.length-1]:g[0];
+    return {b:k,d:n.d,pitch:n.pitch};
+  });
+  for(let i=0;i<line.length-1;i++) line[i].d=Math.min(line[i].d,line[i+1].b-line[i].b);
+  return {line,dropped,chords};
+}
+/* 박 칸으로 바꾸기: 한 박을 1·2·3·4로 나눠 가장 잘 맞는 나눔을 고름 */
+function toCells(line,beats,flat){
+  if(!line.length) return '';
+  const endB=Math.max(...line.map(n=>n.b+n.d));
+  const total=Math.max(beats,Math.ceil(endB/beats-1e-6)*beats);
+  const at=t=>line.find(n=>n.b<=t+1e-6&&t<n.b+n.d-1e-6);
+  const cells=[];
+  for(let b=0;b<total;b++){
+    const ins=line.filter(n=>n.b>=b-1e-6&&n.b<b+1-1e-6);
+    let n=1;
+    for(const cand of [1,2,4,3,8]){
+      if(ins.every(x=>Math.abs((x.b-b)*cand-Math.round((x.b-b)*cand))<0.14)){ n=cand; break; }
+    }
+    if(n>4) n=4;
+    const slots=[];
+    for(let j=0;j<n;j++){
+      const t=b+j/n;
+      const st=ins.find(x=>Math.abs(x.b-t)<0.5/n);
+      if(st) slots.push(st.chord||midiName(st.pitch,flat));
+      else slots.push(at(t+0.01)?'-':'x');
+    }
+    cells.push(slots.join('/'));
+  }
+  const bars=[];
+  for(let i=0;i<cells.length;i+=beats) bars.push(cells.slice(i,i+beats).join(' '));
+  const lines=[];
+  for(let i=0;i<bars.length;i+=4) lines.push(bars.slice(i,i+4).join(' | ')+' |');
+  return lines.join('\n');
+}
+function midiToSong(buf,name){
+  const {notes,bpm,beats,flat}=readMidi(buf);
+  const t0=Math.min(...notes.map(n=>n.b)); const base=Math.floor(t0/beats)*beats;
+  notes.forEach(n=>n.b-=base);
+  const groups={};
+  notes.forEach(n=>{ const k=n.trk+':'+n.ch; (groups[k]=groups[k]||[]).push(n); });
+  let keys=Object.keys(groups).filter(k=>groups[k].length);
+  let right=[],left=[];
+  if(keys.length>1){
+    keys.sort((a,b)=>avg(groups[b])-avg(groups[a]));
+    right=groups[keys[0]];
+    left=keys.slice(1).flatMap(k=>groups[k]);
+  } else {
+    /* 트랙이 하나면 같은 시각에 울리는 음끼리 묶어, 제일 높은 음은 오른손 나머지는 왼손으로 */
+    const by={};
+    notes.forEach(n=>{ const k=Math.round(n.b*48)/48; (by[k]=by[k]||[]).push(n); });
+    let cut=60;
+    Object.keys(by).map(Number).sort((a,b)=>a-b).forEach(k=>{
+      const g=by[k].slice().sort((a,b)=>a.pitch-b.pitch);
+      if(g.length>1){ right.push(g[g.length-1]); left.push(...g.slice(0,-1)); cut=(g[g.length-1].pitch+g[g.length-2].pitch)/2; }
+      else (g[0].pitch>=cut?right:left).push(g[0]);
+    });
+    if(!left.length||!right.length){ right=notes; left=[]; }
+  }
+  const R=handLine(right,true,flat), L=handLine(left,false,flat);
+  return {
+    title:(name||'').replace(/\.(mid|midi)$/i,'')||'MIDI 곡',
+    bpm, beats,
+    melody:toCells(R.line,beats,flat),
+    chords:toCells(L.line,beats,flat),
+    dropped:R.dropped+L.dropped, chordCount:L.chords||0,
+    hands:left.length?2:1
+  };
+}
+const avg=g=>g.reduce((a,n)=>a+n.pitch,0)/g.length;
+
+async function loadMidi(file){
+  const msg=$('midiMsg'), btn=$('midiBtn');
+  btn.disabled=true; msg.className='msg'; msg.textContent='읽는 중…';
+  try{
+    const r=midiToSong(await file.arrayBuffer(),file.name);
+    $('inTitle').value=r.title; $('inBpm').value=r.bpm;
+    $('inMel').value=r.melody; $('inCho').value=r.chords;
+    applyInputs();
+    const bars=barsOf($('inMel').value).length;
+    msg.className='msg ok';
+    msg.textContent=`${bars}마디를 읽었어요 (${r.hands===2?'오른손·왼손':'한 손'}, ${r.bpm} BPM).`
+      +(r.chordCount?` 왼손에서 함께 울린 화음 ${r.chordCount}번은 코드 이름으로 넣었어요.`:'')
+      +(r.dropped?` 같은 자리에 겹친 음 ${r.dropped}개는 한 음만 남겼어요.`:'')
+      +' 블록을 보면서 확인해 주세요.';
+  }catch(e){
+    msg.className='msg err';
+    msg.textContent=(e&&e.message&&/[가-힣]/.test(e.message))?e.message:'MIDI를 읽지 못했어요. 다시 저장해서 올려 주세요.';
+  }finally{ btn.disabled=false; $('midiIn').value=''; }
+}
+
 /* ---------- 이 기기에 곡 저장 ---------- */
 const SONG_KEY='eaim_duet_songs', LAST_KEY='eaim_duet_last', LAST_CHORD='eaim_duet_last_chord';
 function loadSongs(){ try{ return JSON.parse(localStorage.getItem(SONG_KEY)||'[]'); }catch(e){ return []; } }
@@ -1344,6 +1520,8 @@ $('mySeg').addEventListener('click',e=>{
   myPart=b.dataset.p; $('mySeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
   if(room){ applyPartLayout(); heartbeat().catch(()=>{}); }
 });
+$('midiBtn').onclick=()=>$('midiIn').click();
+$('midiIn').onchange=e=>{ const f=e.target.files[0]; if(f) loadMidi(f); };
 $('photoBtn').onclick=()=>$('photoIn').click();
 $('photoIn').onchange=e=>{ const f=e.target.files[0]; if(f) readPhoto(f); };
 const LBL=[['waitBtn','기다려 주기','⏸ 기다림'],['staffBtn','선 보이기','🎼 오선'],['clickBtn','박자 소리','🥁 박자'],['editBtn','곡 입력','✏️ 곡'],['linkBtn','📡 짝꿍 연결','📡 짝꿍'],['listenBtn','🎧 두 파트 다 들어보기','🎧 들어보기']];
