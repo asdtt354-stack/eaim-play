@@ -130,7 +130,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
   <div class="lbl">코드 진행 (공백 = 마디, C-G = 한 마디에 둘, G/B = 분수코드, N.C. = 코드 없이 쉬는 마디)</div><textarea class="in" id="chords" placeholder="Cadd9 G/B Am7 Fmaj7 | Dm7 G7sus4 Cmaj7 C"></textarea>
   <div class="note">add9 · sus2 · sus4 · maj7 · m7 · 9 · 6 · dim 다 읽어요. 어려우면 🎯 코드 단순화.</div>
   <div class="lbl">반주 스타일</div><div class="chips" id="styleChips"></div>
-  <div class="lbl">🎸 기타 스트로크 <span class="note">— 악보 사진에서 읽어오거나 칸을 눌러 직접 정해요 (통기타 파트에 쓰여요)</span></div><div id="strumEdit"></div>
+  <div class="lbl">🎸 기타 스트로크 <span class="note">— 악보 사진에서 읽어오거나 칸을 눌러 직접 정해요 (통기타·일렉기타 파트에 쓰여요)</span></div><div id="strumEdit"></div>
   <div class="row" style="margin-top:8px">
     <label class="note">템포 <input type="range" id="bpm" min="60" max="160" value="90" oninput="setBpm(this.value)"> <b id="bpmLbl">90</b> BPM</label>
     <button class="btn" onclick="simplify()">🎯 코드 단순화</button><button class="btn" id="undoSimplify" onclick="undoSimplify()" style="display:none">↩ 원래 코드로</button>
@@ -307,6 +307,8 @@ function spellRoot(r,pref){r=FL2SH[r]||r;if(pref==='flat')return SH2FL[r]||r;if(
 function spell(name,pref){if(!name||name==='N.C.')return name;return String(name).replace(/^([A-G][#b]?)/,(m,r)=>spellRoot(r,pref)).replace(/\/([A-G][#b]?)$/,(m,r)=>'/'+spellRoot(r,pref))}
 function prefFromText(txt){let f=0,s=0;for(const m of String(txt||'').matchAll(/(?:^|[\s|\/(-])[A-G]([#b])/g)){if(m[1]==='b')f++;else s++}return f>s?'flat':s>f?'sharp':''}
 function prefFromKey(chords){const cs=chords.filter(c=>c&&c.root);if(!cs.length)return'';const c=cs[cs.length-1],P=EAIMChord.PC;let i=P.indexOf(c.root);if(c.type==='m')i=(i+3)%12;const k=P[i];return['G','D','A','E','B','F#'].includes(k)?'sharp':['F','A#','D#','G#','C#'].includes(k)?'flat':''}
+/* 운지·음 이름 표시용 철자 (계산은 샵 이름 그대로) */
+let FING_PREF='';const nn=x=>x?spellRoot(x,FING_PREF):x;
 function barsText(bars,pref){return bars.map(b=>b.nc?'N.C.':[b,b.second].filter(Boolean).map(c=>spell(chordName(c),pref)).join('-')).join(' ')}
 /* ── 같은 곡, 내 단계: 1 원키 · 2 쉬운 조(카포/트랜스포즈) · 3 쉬운 모양 ── */
 const OPEN=new Set(['C','D','E','G','A','Am','Dm','Em','C7','D7','E7','G7','A7','B7','Am7','Em7','Dm7','Bm7','Cmaj7','Fmaj7','Amaj7','Dmaj7','Cadd9','Asus2','Dsus2','Dsus4','Asus4','Esus4','Gsus4','Aadd9','Dadd9','G/B','C/E','D/F#','Am/G']);
@@ -586,7 +588,7 @@ const STRUM={
  rnb:{n:'R&B 스트럼',p:['↓','','','↑','','↓','','↑'],tip:'뒷박 ↑을 살짝 앞당겨서'},
  dance:{n:'댄스 (뒷박)',p:['','↑','','↑','','↑','','↑'],tip:'강박은 비우고 뒷박만 짧게 (레게 느낌)'},
  synth:{n:'신스팝',p:['↓','','','↑','↓','','','↑'],tip:'길게 울리고 뒷박 ↑'},
- kpop:{n:'K-pop 아르페지오',arp:['6','3','2','1','3','2','1','3'],tip:'엄지가 6·5줄, 검지·중지·약지가 3·2·1줄'},
+ kpop:{n:'K-pop 아르페지오',arp:['근','③','②','①','③','②','①','③'],tip:'근 = 엄지로 코드의 근음 줄(운지표에서 치는 줄 중 가장 굵은 줄), ③②① = 검지·중지·약지로 가는 쪽 세 줄'},
  waltz:{n:'왈츠 3박',p:['↓','','↑','↓','↑','↓'],tip:'1박 베이스 줄만 ↓, 2·3박 위 세 줄'},
 };
 const EGSTRUM={
@@ -596,36 +598,36 @@ const EGSTRUM={
  rnb:{n:'R&B 컷팅',p:['↓','','','↑','','↓','','↑'],tip:'왼손을 살짝 떼어 "촥" 소리'},
  dance:{n:'댄스 뒷박',p:['','↓','','↓','','↓','','↓'],tip:'뒷박만, 짧게'},
  synth:{n:'신스팝 스탭',p:['↓','','','↓','','','↓',''],tip:'짧게 끊어서'},
- kpop:{n:'K-pop 리프',arp:['6','5','6','5','6','5','6','5'],tip:'근음·5도 줄을 번갈아 (팜 뮤트)'},
+ kpop:{n:'파워코드 K-pop',p:['↓','','','↑','↓','↑','↓','↑'],tip:'근음·5도 두 줄을 한꺼번에, 팜 뮤트로 짧게 끊어서'},
  waltz:{n:'왈츠 3박',p:['↓','','↓','','↓',''],tip:'박마다 한 번'},
 };
-function strumHTML(inst){const style=S.song?.style||S.style||'beat8';const own=inst==='guitar'&&S.song?.strum?S.song.strum:null;
+function strumHTML(inst){const style=S.song?.style||S.style||'beat8';const own=(inst==='guitar'||inst==='eguitar')&&S.song?.strum?S.song.strum:null;
  const T=own?{n:S.song.strumSrc==='written'?'악보 스트로크':S.song.strumSrc==='rhythm'?'악보 리듬에서 추정한 스트로크':'우리가 정한 스트로크',p:own,tip:'② 곡 선정에서 칸을 눌러 바꿀 수 있어요'}:((inst==='eguitar'?EGSTRUM:STRUM)[style]||STRUM.beat8);const n=T.p?T.p.length:T.arp.length;const lab=Array.from({length:n},(_,i)=>String(i%4+1));
- const cells=(arr,cls)=>arr.map((x,i)=>`<div style="text-align:center"><div style="font-family:'Space Mono',monospace;font-size:.7rem;color:${i%4===0?'var(--gold)':'var(--sub)'}">${lab[i]}</div><div style="height:30px;border-radius:6px;background:${x?'rgba(212,168,67,.18)':'var(--panel)'};border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:${cls==='arp'?'.9rem':'1.1rem'};color:${x?'#fff':'var(--line)'}">${x||'·'}</div></div>`).join('');
- return`<div style="margin-top:10px"><h4>✋ 오른손 — ${T.n} <span class="note">(${own?'이 곡에 저장됨':STYLES[style]||style})</span></h4><div style="display:grid;grid-template-columns:repeat(${n},1fr);gap:3px">${T.p?cells(T.p,'strum'):cells(T.arp,'arp')}</div><div class="note" style="margin-top:4px">${T.p?'↓ 다운 · ↑ 업 · 숫자는 "일 이 삼 사"로 세기':'숫자 = 뜯는 줄 (6이 제일 굵은 줄)'} — ${T.tip}</div></div>`}
+ const cells=(arr,cls)=>arr.map((x,i)=>`<div style="text-align:center"><div style="font-family:'Space Mono',monospace;font-size:.7rem;color:${i%4===0?'var(--gold)':'var(--sub)'}">${lab[i]}</div><div style="height:30px;border-radius:6px;background:${x?'rgba(212,168,67,.18)':'var(--panel)'};border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:${cls==='arp'?'.9rem':'1.1rem'};color:${x==='근'?'var(--gold)':x==='5'?'#60a5fa':x?'#fff':'var(--line)'}">${x||'·'}</div></div>`).join('');
+ return`<div style="margin-top:10px"><h4>✋ 오른손 — ${T.n} <span class="note">(${own?'이 곡에 저장됨':STYLES[style]||style})</span></h4><div style="display:grid;grid-template-columns:repeat(${n},1fr);gap:3px">${T.p?cells(T.p,'strum'):cells(T.arp,'arp')}</div><div class="note" style="margin-top:4px">${T.p?'↓ 다운 · ↑ 업 · 위 숫자는 "일 이 삼 사"로 세기':'위 숫자는 박 세기 · 칸 안은 뜯는 줄 — 근 = 근음 줄'+(inst==='eguitar'?', 5 = 5도 줄':', ①②③ = 줄 번호(①이 제일 가는 줄)')} — ${T.tip}</div></div>`}
 function fingeringHTML(c,inst){
 if(c.nc)return`<h4>🤫 N.C. — 이 마디는 코드 없이 쉬어요</h4><div class="note" style="font-size:.92rem;line-height:1.7">노코드(No Chord): 반주 악기는 소리를 멈추는 자리예요. 박은 속으로 세고, 다음 마디 첫 박에 맞춰 다시 들어오세요.</div>`;
 if(inst==='eguitar'){const bn=c.root;const i=NOTES.indexOf(bn);const e=(i-4+12)%12,a=(i-9+12)%12;const useE=e<=a;const fr=useE?e:a;const str=useE?0:1;
   // 6줄 (위가 굵은 E, 아래가 얇은 e) — 파워코드는 굵은 두 줄만
-  let svg=`<svg viewBox="0 0 220 130">`;const names=['E','A','D','G','B','e'];for(let s2=0;s2<6;s2++){const y=16+s2*18;svg+=`<text x="4" y="${y+4}" font-size="10" fill="#a99cc4">${names[s2]}</text><line x1="22" y1="${y}" x2="212" y2="${y}" stroke="#ccc" stroke-width="${2.4-s2*.3}"/>`}for(let f=0;f<=5;f++){const x=22+f*38;svg+=`<line x1="${x}" y1="10" x2="${x}" y2="112" stroke="${f===0?'#fff':'#666'}" stroke-width="${f===0?3:1}"/>`;if(f>0)svg+=`<text x="${x-19}" y="124" font-size="9" fill="#777" text-anchor="middle">${f}</text>`}
-  const dot=(strIdx,f,col,label)=>{const x=f===0?14:22+(f-.5)*38;const y=16+strIdx*18;return f>5?'':`<circle cx="${x}" cy="${y}" r="8" fill="${col}"/><text x="${x}" y="${y+3.5}" font-size="8.5" fill="#1a1200" text-anchor="middle" font-weight="700">${label}</text>`};
+  let svg=`<svg viewBox="0 0 220 130">`;const names=['E','A','D','G','B','e'];for(let s2=0;s2<6;s2++){const y=16+s2*18;svg+=`<text x="4" y="${y+4}" font-size="10" fill="#a99cc4">${names[s2]}</text><line x1="22" y1="${y}" x2="212" y2="${y}" stroke="#ccc" stroke-width="${2.4-s2*.3}"/>`}for(let f=0;f<=6;f++){const x=22+f*31;svg+=`<line x1="${x}" y1="10" x2="${x}" y2="112" stroke="${f===0?'#fff':'#666'}" stroke-width="${f===0?3:1}"/>`;if(f>0)svg+=`<text x="${x-15.5}" y="124" font-size="9" fill="#777" text-anchor="middle">${f}</text>`}
+  const dot=(strIdx,f,col,label)=>{const x=f===0?14:22+(f-.5)*31;const y=16+strIdx*18;return f>6?'':`<circle cx="${x}" cy="${y}" r="8" fill="${col}"/><text x="${x}" y="${y+3.5}" font-size="8.5" fill="#1a1200" text-anchor="middle" font-weight="700">${label}</text>`};
   const mute=(strIdx)=>`<text x="14" y="${16+strIdx*18+4}" font-size="11" fill="#f87171" text-anchor="middle">×</text>`;
-  svg+=dot(str,fr,'#d4a843',bn)+dot(str+1,fr+2,'#60a5fa','5');for(let k=0;k<6;k++)if(k!==str&&k!==str+1)svg+=mute(k);svg+=`</svg>`;
+  svg+=dot(str,fr,'#d4a843',nn(bn))+dot(str+1,fr+2,'#60a5fa','5');for(let k=0;k<6;k++)if(k!==str&&k!==str+1)svg+=mute(k);svg+=`</svg>`;
   const shape=GUITAR[c.name]||GUITAR[c.root+c.quality]||GUITAR[c.root+(c.type==='m'?'m':'')];
-  return`<h4>⚡ ${c.name} 파워코드 <span class="note">— 근음 + 5도, 두 줄만 (장·단조 상관없이 같은 모양)</span></h4>${svg}<div class="note" style="text-align:center">노랑 = 근음 ${bn} · 파랑 = 5도 (한 줄 아래 두 프렛 위) · × 표시 줄은 치지 않아요${shape?` · 통기타 폼도 가능: ${shape}`:''}</div>${strumHTML('eguitar')}`}
+  return`<h4>⚡ ${c.name} 파워코드 <span class="note">— 근음 + 5도, 두 줄만 (장·단조 상관없이 같은 모양)</span></h4>${svg}<div class="note" style="text-align:center">노랑 = 근음 ${nn(bn)} · 파랑 = 5도 (한 줄 아래 두 프렛 위) · × 표시 줄은 치지 않아요${shape?` · 통기타 폼도 가능: ${shape}`:''}</div>${strumHTML('eguitar')}`}
  if(inst==='guitar'){const shape=GUITAR[c.name]||GUITAR[c.root+c.quality]||GUITAR[c.root+(c.type==='m'?'m':c.type==='7'?'7':'')]||GUITAR[c.root+(c.type==='m'?'m':'')];const approx=!(GUITAR[c.name]||GUITAR[c.root+c.quality]);if(!shape)return`<h4>🎸 ${c.name}</h4><div class="note">운지표가 없어요. 2·3단계로 바꾸거나 코드 단순화를 해보세요.</div>${strumHTML('guitar')}`;
   const frets=[...shape].map(ch=>ch==='x'?-1:Number(ch));const minF=Math.min(...frets.filter(f=>f>0));const base=(Math.max(...frets)>4&&minF>1)?minF:1;
   let svg=`<svg viewBox="0 0 130 150">`;for(let i=0;i<5;i++)svg+=`<line x1="20" y1="${30+i*24}" x2="120" y2="${30+i*24}" stroke="#aaa" stroke-width="${i===0&&base===1?4:1.5}"/>`;for(let s=0;s<6;s++)svg+=`<line x1="${20+s*20}" y1="30" x2="${20+s*20}" y2="126" stroke="#ccc" stroke-width="1.5"/>`;
   frets.forEach((f,s)=>{const x=20+s*20;if(f<0)svg+=`<text x="${x}" y="22" font-size="12" fill="#f87171" text-anchor="middle">×</text>`;else if(f===0)svg+=`<circle cx="${x}" cy="18" r="5" fill="none" stroke="#fff" stroke-width="1.5"/>`;else{const y=30+(f-base)*24+12;svg+=`<circle cx="${x}" cy="${y}" r="8" fill="#d4a843"/>`}});
   if(base>1)svg+=`<text x="4" y="46" font-size="11" fill="#aaa">${base}fr</text>`;svg+=`</svg>`;return`<h4>🎸 ${c.name} 운지 <span class="note">(왼쪽이 굵은 줄)</span></h4>${svg}${approx?'<div class="note" style="text-align:center">텐션을 뺀 기본 폼이에요</div>':''}${strumHTML('guitar')}`}
  if(inst==='bass'){const bn=c.bass||c.root;const i=NOTES.indexOf(bn);const e=(i-4+12)%12,a=(i-9+12)%12;const fifth=NOTES[(NOTES.indexOf(c.root)+7)%12];const useE=e<=a;const fret=useE?e:a;const str=useE?0:1;const fi=NOTES.indexOf(fifth);const f5=[(fi-4+12)%12,(fi-9+12)%12,(fi-2+12)%12];const s5=f5.indexOf(Math.min(...f5.filter(x=>x<=7).concat([99])));
-  let svg=`<svg viewBox="0 0 220 110">`;const names=['E','A','D','G'];for(let s=0;s<4;s++){const y=20+s*24;svg+=`<text x="4" y="${y+4}" font-size="11" fill="#a99cc4">${names[s]}</text><line x1="22" y1="${y}" x2="212" y2="${y}" stroke="#ccc" stroke-width="${2.5-s*.4}"/>`}for(let f=0;f<=5;f++){const x=22+f*38;svg+=`<line x1="${x}" y1="12" x2="${x}" y2="96" stroke="${f===0?'#fff':'#666'}" stroke-width="${f===0?3:1}"/>`;if(f>0)svg+=`<text x="${x-19}" y="108" font-size="9" fill="#777" text-anchor="middle">${f}</text>`}
-  const dot=(strIdx,fr,col,label)=>{const x=fr===0?14:22+(fr-.5)*38;const y=20+strIdx*24;return fr>5?'':`<circle cx="${x}" cy="${y}" r="9" fill="${col}"/><text x="${x}" y="${y+4}" font-size="9" fill="#1a1200" text-anchor="middle" font-weight="700">${label}</text>`};
-  svg+=dot(str,fret,'#d4a843',bn);if(s5>=0&&s5<3)svg+=dot(s5,f5[s5],'#60a5fa',fifth);svg+=`</svg>`;
-  return`<h4>🎸 ${c.name} 베이스 <span class="note">— 이 한 음만 짚어 반복해요</span></h4>${svg}<div class="note" style="text-align:center">노랑 = 근음 ${bn}${c.bass?' (분수코드 베이스)':''} · 파랑 = 5도음 ${fifth}</div>`}
+  let svg=`<svg viewBox="0 0 220 110">`;const names=['E','A','D','G'];for(let s=0;s<4;s++){const y=20+s*24;svg+=`<text x="4" y="${y+4}" font-size="11" fill="#a99cc4">${names[s]}</text><line x1="22" y1="${y}" x2="212" y2="${y}" stroke="#ccc" stroke-width="${2.5-s*.4}"/>`}for(let f=0;f<=7;f++){const x=22+f*24;svg+=`<line x1="${x}" y1="12" x2="${x}" y2="96" stroke="${f===0?'#fff':'#666'}" stroke-width="${f===0?3:1}"/>`;if(f>0)svg+=`<text x="${x-12}" y="108" font-size="9" fill="#777" text-anchor="middle">${f}</text>`}
+  const dot=(strIdx,fr,col,label)=>{const x=fr===0?14:22+(fr-.5)*24;const y=20+strIdx*24;return fr>7?'':`<circle cx="${x}" cy="${y}" r="9" fill="${col}"/><text x="${x}" y="${y+4}" font-size="9" fill="#1a1200" text-anchor="middle" font-weight="700">${label}</text>`};
+  svg+=dot(str,fret,'#d4a843',nn(bn));if(s5>=0&&s5<3)svg+=dot(s5,f5[s5],'#60a5fa',nn(fifth));svg+=`</svg>`;
+  return`<h4>🎸 ${c.name} 베이스 <span class="note">— 이 한 음만 짚어 반복해요</span></h4>${svg}<div class="note" style="text-align:center">노랑 = 근음 ${nn(bn)}${c.bass?' (분수코드 베이스)':''} · 파랑 = 5도음 ${nn(fifth)}</div>`}
  if(inst==='drum'){return`<h4>🥁 기본 비트</h4><div style="font-family:'Space Mono',monospace;font-size:.85rem;line-height:1.9">하이햇 ×-×-×-×-×-×-×-×<br>스네어 &nbsp;&nbsp;&nbsp;&nbsp;○&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;○<br>킥&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;●&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;●&nbsp;&nbsp;●</div><div class="note">코드는 ${c.name} — 드럼은 마디 첫 박을 크게</div>`}
- if(inst==='vocal'){return`<h4>🎤 ${c.name}</h4><div style="font-size:1rem;line-height:1.8">근음 <b style="color:var(--gold)">${c.root}</b>을 허밍해 보세요<br>코드 음: ${chordTones(c).join(' · ')}</div>`}
- return`<h4>🎹 ${c.name} 피아노</h4><div style="font-size:1rem;line-height:1.8">왼손 <b style="color:var(--gold)">${c.bass||c.root}</b> (낮은 옥타브${c.bass?' · 분수코드 베이스':''})<br>오른손 <b>${chordTones(c).join(' · ')}</b>${c.intervals.length>3?'<br><span class="note">텐션(9·7)은 맨 위에 두면 예뻐요</span>':''}</div>`}
+ if(inst==='vocal'){return`<h4>🎤 ${c.name}</h4><div style="font-size:1rem;line-height:1.8">근음 <b style="color:var(--gold)">${nn(c.root)}</b>을 허밍해 보세요<br>코드 음: ${chordTones(c).map(nn).join(' · ')}</div>`}
+ return`<h4>🎹 ${c.name} 피아노</h4><div style="font-size:1rem;line-height:1.8">왼손 <b style="color:var(--gold)">${nn(c.bass||c.root)}</b> (낮은 옥타브${c.bass?' · 분수코드 베이스':''})<br>오른손 <b>${chordTones(c).map(nn).join(' · ')}</b>${c.intervals.length>3?'<br><span class="note">텐션(9·7)은 맨 위에 두면 예뻐요</span>':''}</div>`}
 function pianoMini(el,c){const tones=chordTones(c);const whites=['C','D','E','F','G','A','B'];let h='';whites.forEach(w=>h+=`<div class="w ${tones.includes(w)?'on':''}">${w}</div>`);const blacks={ 'C#':1,'D#':2,'F#':4,'G#':5,'A#':6};Object.entries(blacks).forEach(([n,i])=>h+=`<div class="b ${tones.includes(n)?'on':''}" style="left:${i*14.28-3}%"></div>`);el.innerHTML=h}
 function renderChordLine(el,onPick){const bars=S.song?viewBars():[];el.innerHTML=bars.length?bars.map((b,i)=>`<div class="cb" data-i="${i}">${b.name}</div>`).join(''):'<span class="note">② 곡 선정에서 곡을 먼저 정해주세요</span>';el.querySelectorAll('.cb').forEach(d=>d.onclick=()=>onPick(Number(d.dataset.i)))}
 
@@ -654,7 +656,7 @@ function goKeyPractice(){
   try{ if(typeof playing!=='undefined'&&playing) stopAll(); }catch(e){}
   location.href=window.EAIMKey?EAIMKey.link('duet.html'):'duet.html';
 }
-function showFing4(){const c=S.song?viewBars()[sel4]:null;if(!c){$('fing4').innerHTML='';$('notes4').textContent='';return}document.querySelectorAll('#cl4 .cb').forEach((d,i)=>d.classList.toggle('sel',i===sel4));$('fing4').innerHTML=capoNote()+fingeringHTML(c,S.inst);$('notes4').textContent=chordTones(c).join(' · ');pianoMini($('pm4'),c)}
+function showFing4(){const c=S.song?viewBars()[sel4]:null;if(!c){$('fing4').innerHTML='';$('notes4').textContent='';return}document.querySelectorAll('#cl4 .cb').forEach((d,i)=>d.classList.toggle('sel',i===sel4));FING_PREF=stepBars(S.step).pref;$('fing4').innerHTML=capoNote()+fingeringHTML(c,S.inst);$('notes4').textContent=chordTones(c).map(nn).join(' · ');pianoMini($('pm4'),c)}
 function renderBeat(el){el.innerHTML=Array.from({length:S.beats},(_,i)=>`<i class="${i===0?'one':''}"></i>`).join('')}
 
 /* ═════ ⑤ 음원: mp3 / 간이 분리 / 스템 / 앱 반주 ═════ */
@@ -787,7 +789,7 @@ const engine={kits:{},ready:false,
     const up=isE?[bass3,EAIMChord.PC[(EAIMChord.PC.indexOf(c.root)+7)%12]+'3',c.root+'4']:[bass3,...v.slice(1),v[0].replace(/\d/,m=>+m+1)];
     const strum=(tt,g,down=true)=>(down?up:[...up].reverse()).forEach((n,i)=>k.play(n,tt+i*(isE?.008:.016),beat*(isE?.35:.6),master,g*(isE?1.1:1),{release:isE?.08:.3}));
     const hits={kpop:[[0,.45],[1.5,.3],[2,.4],[2.5,.25],[3,.35],[3.5,.25]],pop16:[[0,.45],[1.5,.35],[2,.4],[2.75,.28],[3.5,.35]],rnb:[[0,.4],[1.5,.3],[2.5,.4],[3.75,.25]],dance:[[.5,.35],[1.5,.35],[2.5,.35],[3.5,.35]],synth:[[0,.4],[1.5,.3],[2,.35],[3.5,.3]],ballad:[[0,.45],[1,.3],[2,.35],[3,.3]],beat8:[[0,.45],[.5,.25],[1,.35],[1.5,.25],[2,.4],[2.5,.25],[3,.35],[3.5,.25]],waltz:[[0,.45],[1,.3],[2,.3]]}[style]||[[0,.45]];
-    const own=!isE&&S.song?.strum;   // 악보에서 읽었거나 직접 정한 스트로크가 있으면 그대로 (8분음 칸)
+    const own=S.song?.strum;   // 악보에서 읽었거나 직접 정한 스트로크가 있으면 그대로 (8분음 칸) — 통기타·일렉기타 모두
     if(own){ own.forEach((x,i)=>{ const at=i/2; if(x&&at<nb) strum(t+at*beat,i===0?.45:x==='↓'?(i%2===0?.38:.3):.24,x==='↓') }); }
     else if(style==='kpop'&&!isE){ const arp=[bass3,v[1],v[2],v[3]||v[0].replace(/\d/,m=>+m+1)]; [0,1,2,3,2,1,2,3].forEach((ix,i)=>{ if(i/2<nb) k.play(arp[ix],t+i*beat/2,beat*.55,master,i===0?.5:.38,{release:.35}) }); }
     else hits.forEach(([at,g],i)=>{ if(at<nb) strum(t+at*beat,g,(at%1)===0) });
@@ -828,7 +830,7 @@ function togglePlay(mode){if(playing){stopAll();return}if(!S.song){toast('② �
    if(mode==='minus'&&on.includes('drum'))beatPattern(nb,t,beat);
    if(mode==='band'){if($('click6').checked)for(let b=0;b<nb;b++)engine.click(t+b*beat,b===0);if($('drum6').checked)beatPattern(nb,t,beat,.7)}
    if(!bar.nc){chordInst.forEach(k=>engine.playChord(bar,t,half,k));if(bar.second)chordInst.forEach(k=>engine.playChord(bar.second,t+half*beat,nb-half,k))}
-   const vb=viewBars();schedDraw(t,()=>{document.querySelectorAll('.cb').forEach(d=>d.classList.toggle('now',Number(d.dataset.i)===i%bars.length));$('stageNow').textContent=vb[i%bars.length].name;$('stageNext').textContent=vb[(i+1)%bars.length].name;$('stageBar').textContent=`${(i%bars.length)+1} / ${bars.length} 마디 · ${Math.floor(i/bars.length)+1}회`;beatAnim(nb,beat)})}
+   const vb=viewBars();schedDraw(t,()=>{if(mode==='solo'&&cur===4){sel4=i%bars.length;showFing4()}document.querySelectorAll('.cb').forEach(d=>d.classList.toggle('now',Number(d.dataset.i)===i%bars.length));$('stageNow').textContent=vb[i%bars.length].name;$('stageNext').textContent=vb[(i+1)%bars.length].name;$('stageBar').textContent=`${(i%bars.length)+1} / ${bars.length} 마디 · ${Math.floor(i/bars.length)+1}회`;beatAnim(nb,beat)})}
   nextBar+=nb*beat;barIdx++}};
  tick();timer=setInterval(tick,40)}
 function schedDraw(t,fn){drawTimers.push(setTimeout(fn,Math.max(0,(t-ctx.currentTime)*1000)))}
