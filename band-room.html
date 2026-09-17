@@ -133,7 +133,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
   <div class="lbl">🎸 기타 스트로크 <span class="note">— 악보 사진에서 읽어오거나 칸을 눌러 직접 정해요 (통기타 파트에 쓰여요)</span></div><div id="strumEdit"></div>
   <div class="row" style="margin-top:8px">
     <label class="note">템포 <input type="range" id="bpm" min="60" max="160" value="90" oninput="setBpm(this.value)"> <b id="bpmLbl">90</b> BPM</label>
-    <button class="btn" onclick="simplify()">🎯 코드 단순화</button>
+    <button class="btn" onclick="simplify()">🎯 코드 단순화</button><button class="btn" id="undoSimplify" onclick="undoSimplify()" style="display:none">↩ 원래 코드로</button>
 
     <button class="btn" onclick="setKeyLock(4)">4박</button><button class="btn" onclick="setKeyLock(3)">3박</button><span id="beatsLbl" class="note">4박자</span>
   </div>
@@ -350,7 +350,13 @@ function markSongDirty(){
   if(S.song&&now&&(now!==chosen||strumChanged)){ st.textContent='⚠️ 코드를 고쳤어요 — "🎯 이 곡으로 정하기"를 눌러야 연습·합주에 반영돼요'; st.classList.add('err'); }
   else if(S.song){ st.textContent=`✅ "${S.song.title}" 선정됨`; st.classList.remove('err'); }
 }
-function simplify(){const txt=$('chords').value;const bars=parseProgression(txt);const pref=stepBars(1,bars,txt).pref;$('chords').value=bars.map(b=>b.nc?'N.C.':[b,b.second].filter(Boolean).map(c=>spell(EAIMChord.simplify(c).name.split('/')[0],pref)).join('-')).join(' ');renderStepBox();toast('트라이어드로 단순화했어요 (다시 되돌리려면 예시곡을 눌러요)')}
+function simplify(){const txt=$('chords').value;const bars=parseProgression(txt);if(!bars.length)return;const pref=stepBars(1,bars,txt).pref;
+ // 되돌리기용으로 단순화 전 코드를 기억 (두 번 눌러도 처음 원래 코드를 유지) — 2026-09-17
+ if(!S.preSimplify||txt.trim()!==(S.simplifiedOut||'').trim())S.preSimplify=txt;
+ const out=bars.map(b=>b.nc?'N.C.':[b,b.second].filter(Boolean).map(c=>spell(EAIMChord.simplify(c).name.split('/')[0],pref)).join('-')).join(' ');
+ $('chords').value=out;S.simplifiedOut=out;persist();renderStepBox();markSongDirty();renderUndo();toast('트라이어드로 단순화했어요 — ↩ 원래 코드로 되돌릴 수 있어요')}
+function undoSimplify(){if(!S.preSimplify)return;$('chords').value=S.preSimplify;S.preSimplify=null;S.simplifiedOut=null;persist();renderStepBox();markSongDirty();renderUndo();toast('원래 코드로 되돌렸어요')}
+function renderUndo(){const b=$('undoSimplify');if(b)b.style.display=S.preSimplify?'':'none'}
 
 /* ═════ 단계 ═════ */
 const STEP=['팀 구성','곡 선정','악기 선택','개인 연습','음원 연습','합주'];
@@ -398,7 +404,7 @@ function esc(x){return String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 
 /* ═════ ② 곡 ═════ */
 function renderSongs(){$('songs').innerHTML=EXAMPLES.map((e,i)=>`<div class="song" onclick="useExample(${i})"><b>${e.t}</b><small>${e.c}</small></div>`).join('')}
-function useExample(i){const e=EXAMPLES[i];$('songTitle').value=e.t;$('chords').value=e.c;S.strum=null;S.strumSrc='';setBpm(e.bpm);setKeyLock(e.beats||4);setStyle(e.style||'beat8');renderStepBox();markSongDirty()}
+function useExample(i){const e=EXAMPLES[i];$('songTitle').value=e.t;$('chords').value=e.c;S.strum=null;S.strumSrc='';S.preSimplify=null;renderUndo();setBpm(e.bpm);setKeyLock(e.beats||4);setStyle(e.style||'beat8');renderStepBox();markSongDirty()}
 function setStyle(k){S.style=k;document.querySelectorAll('#styleChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.s===k));if(k==='waltz')setKeyLock(3)}
 function renderStyles(){$('styleChips').innerHTML=Object.entries(STYLES).map(([k,v])=>`<div class="chip ${S.style===k?'on':''}" data-s="${k}" onclick="setStyle('${k}')">${v}</div>`).join('')}
 function setBpm(v){S.bpm=Number(v);$('bpm').value=v;$('bpmLbl').textContent=v;document.querySelectorAll('.bpmSync').forEach(r=>r.value=v);document.querySelectorAll('.bpmLblSync').forEach(l=>l.textContent=v)}
@@ -433,7 +439,7 @@ async function readSheet(){const st=$('ocrSt');st.classList.remove('err');
    st.textContent='MIDI를 읽는 중…';$('ocrBtn').disabled=true;
    try{
      const d=midiToChords(await sheetFile.arrayBuffer(),sheetFile.name);
-     S.strum=null;S.strumSrc='';
+     S.strum=null;S.strumSrc='';S.preSimplify=null;renderUndo();
      $('chords').value=d.chords;renderStepBox();
      if(d.title)$('songTitle').value=d.title;
      setBpm(d.bpm);setKeyLock(d.beats);
@@ -450,7 +456,7 @@ async function readSheet(){const st=$('ocrSt');st.classList.remove('err');
   const d=await EAIMKey.gemini('',{json:true,temperature:.2,maxTokens:2048,parts:[{inline_data:{mime_type:img.mime,data:img.b64}},{text:SHEET_PROMPT}]});
   if(d.title)$('songTitle').value=d.title;if(d.bpm)setBpm(d.bpm);if(d.beats)setKeyLock(Number(d.beats)||4);
   const stm=d.strum_source!=='none'?parseStrum(d.strum):null;S.strum=stm?fitStrum(stm,strumLen()):null;S.strumSrc=S.strum?(d.strum_source==='written'?'written':'rhythm'):'';renderStrumEdit();
-  if(d.chords){$('chords').value=d.chords;renderStepBox();markSongDirty()}
+  if(d.chords){$('chords').value=d.chords;S.preSimplify=null;renderUndo();renderStepBox();markSongDirty()}
   const ncN=parseProgression(d.chords||'').filter(b=>b.nc).length;
   st.textContent=(d.estimated?'⚠️ 코드명이 없어서 AI가 추정했어요. 꼭 확인하고 고쳐 쓰세요.':'✅ 읽었어요. 확인 후 "이 곡으로 정하기"')+(ncN?` · 노코드 ${ncN}마디`:'')+(S.strum?(S.strumSrc==='written'?' · 🎸 스트로크 읽음':' · 🎸 스트로크 추정(확인 필요)'):'')+(img.isPdf?' (PDF 첫 페이지만 읽었어요)':'');
  }catch(e){st.textContent='❌ '+e.message;st.classList.add('err')}finally{$('ocrBtn').disabled=false}}
@@ -834,7 +840,7 @@ function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();ma
 if(!S.style)S.style='kpop';renderSongs();renderStyles();setTimeout(()=>{document.querySelectorAll('#stepChips .chip').forEach(c=>c.classList.toggle('on',Number(c.dataset.s)===S.step));renderStepBox()},0);renderTeamList();listStemSets();renderSteps();setBpm(S.bpm);setKeyLock(S.beats||4);
 if(S.team){$('teamName').value=S.team.name;$('members').value=S.team.members.map(m=>m.n).join('\n');renderTeam()}
 if(S.song){$('songTitle').value=S.song.title;$('chords').value=S.song.src||barsText(S.song.bars,stepBars(1).pref);if(S.strum===undefined){S.strum=S.song.strum||null;S.strumSrc=S.song.strumSrc||''}renderStepBox();$('songSt').textContent=`✅ "${S.song.title}" 선정됨`}
-renderStrumEdit();
+renderStrumEdit();renderUndo();
 showShare('');if(shared()){pullGroup(true);startPoll();const h=$('shareHint');if(h)h.style.display='block'}
 </script>
 <script src="play-shell.js"></script>
