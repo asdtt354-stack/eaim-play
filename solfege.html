@@ -81,6 +81,10 @@ input[type=range]{accent-color:var(--gold);width:110px}
   </div>
   <div class="note" id="modeDesc" style="margin-top:6px"></div>
   <div class="lbl" id="instLbl">악기</div><div class="chips" id="insts"></div>
+  <div class="row" id="vRangeRow" style="margin-top:8px;display:none">
+    <label>🎤 음역 <select id="vRange" onchange="setVRange(this.value)"></select></label>
+    <span id="vCustom" style="display:none"><label>가장 낮은 음 <select id="vLow" onchange="setVCustom()"></select></label> <label>가장 높은 음 <select id="vHigh" onchange="setVCustom()"></select></label></span>
+  </div>
   <div class="row" id="chordOpt" style="margin-top:8px;display:none"><label><input type="checkbox" id="twoNote" onchange="S.two=this.checked;newSheet()"> 🎹 화음 초견 (두 음을 같이 짚기)</label></div>
   <div class="row" style="margin-top:10px">
     <label>조 <select id="key" onchange="newSheet()"></select></label>
@@ -115,7 +119,8 @@ input[type=range]{accent-color:var(--gold);width:110px}
 <div class="card" id="earCard" style="display:none">
   <h2>👂 음정 듣고 맞히기</h2><div class="desc">두 음을 듣고 무슨 음정인지 고르세요. 틀리면 정답을 다시 들려줘요.</div>
   <div class="row"><label>들려주는 방식 <select id="earStyle"><option value="harmonic">함께 (화성적)</option><option value="melodic" selected>이어서 (선율적)</option></select></label>
-   <label><input type="checkbox" id="earDown"> 아래로 내려가는 음정도</label></div>
+   <label><input type="checkbox" id="earDown"> 아래로 내려가는 음정도</label>
+   <label><input type="checkbox" id="earBlack" onchange="S.earBlack=this.checked;persist();newInterval()"> 검은건반 음도 나오기</label></div>
   <div class="row" style="justify-content:center;margin-top:10px"><button class="btn p" onclick="newInterval()">🔊 문제 듣기</button><button class="btn" onclick="replayInterval()">🔁 다시 듣기</button></div>
   <div class="qopts" id="earOpts" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:12px"></div>
   <div class="msg" id="earFb"></div>
@@ -210,10 +215,13 @@ const LEVELS=[
  {n:'5 · 임시표·16분',span:12, leap:9, acc:.18, rest:.10},
 ];
 const KEYS=[{n:'다장조 C',root:'C',mode:'major'},{n:'사장조 G',root:'G',mode:'major'},{n:'바장조 F',root:'F',mode:'major'},{n:'라단조 Am',root:'A',mode:'minor'},{n:'마단조 Em',root:'E',mode:'minor'},{n:'라장조 D',root:'D',mode:'major'}];
-const S={mode:'sing',two:false,inst:'vocal',lv:0,key:0,meter:4,bars:4,bpm:76,notes:[],ok:0,bad:0,streak:0};
+const S={mode:'sing',two:false,inst:'vocal',lv:0,key:0,meter:4,bars:4,bpm:76,notes:[],ok:0,bad:0,streak:0,vRange:'mid',vLow:57,vHigh:74,earBlack:true};
+/* 보컬 음역 (2026-09-17 요청: 시창·초견 음이 너무 높음). oct:-12 = 악보는 그대로, 소리는 한 옥타브 아래 (변성기 뒤 남학생) */
+const V_RANGES={high:{n:'높게 · 도4–솔5',low:60,high:79},mid:{n:'보통 · 라3–레5',low:57,high:74},low:{n:'낮게 · 솔3–도5',low:55,high:72},male:{n:'남학생(변성기 뒤) · 악보 도4–미5, 소리는 한 옥타브 아래',low:60,high:76,oct:-12},custom:{n:'직접 정하기'}};
 try{Object.assign(S,JSON.parse(localStorage.getItem('eaim_sight')||'{}'))}catch{}
-const persist=()=>localStorage.setItem('eaim_sight',JSON.stringify({mode:S.mode,two:S.two,inst:S.inst,lv:S.lv,key:S.key,meter:S.meter,bars:S.bars,bpm:S.bpm}));
-const inst=()=>INSTS.find(i=>i.id===S.inst)||INSTS[0];
+const persist=()=>localStorage.setItem('eaim_sight',JSON.stringify({mode:S.mode,two:S.two,inst:S.inst,lv:S.lv,key:S.key,meter:S.meter,bars:S.bars,bpm:S.bpm,vRange:S.vRange,vLow:S.vLow,vHigh:S.vHigh,earBlack:S.earBlack}));
+const inst=()=>{const b=INSTS.find(i=>i.id===S.inst)||INSTS[0];if(b.id!=='vocal')return b;
+ const R=S.vRange==='custom'?{low:S.vLow,high:S.vHigh}:(V_RANGES[S.vRange]||V_RANGES.mid);return{...b,low:R.low,high:R.high,iv:R.oct?-R.oct:0,octDown:!!R.oct}};
 const lvl=()=>LEVELS[S.lv];
 
 /* ═════ 음정 ═════ */
@@ -285,7 +293,10 @@ function makeSheet(){
  if(pool.length<3){S.notes=[];return}
  // 레벨 음역으로 좁히기 (으뜸음에서 시작해 span 만큼)
  let ti=pool.findIndex((m,i)=>sdeg[i]===0&&m>=I.low+Math.floor((I.high-I.low)/3));if(ti<0)ti=Math.floor(pool.length/2)-2;
- const lo=Math.max(0,ti-1),hi=Math.min(pool.length-1,ti+L.span-1);
+ if(I.id==='vocal'){ // 좁은 음역에서도 선율이 한쪽 끝에 몰리지 않게: 레벨 음역이 가장 많이 들어가는 으뜸음, 같으면 낮은 쪽
+  let best=-1,bc=-1;pool.forEach((m,i)=>{if(sdeg[i]!==0)return;const bl=L.span>=8?4:1;const c=Math.min(pool.length-1,i+L.span-1)-Math.max(0,i-bl);if(c>bc){bc=c;best=i}});if(best>=0)ti=best}
+ const below=(I.id==='vocal'&&L.span>=8)?4:1;   // 보컬은 한 옥타브 이상 레벨에서 으뜸음 아래 '솔'까지 내려가게
+ const lo=Math.max(0,ti-below),hi=Math.min(pool.length-1,ti+L.span-1);
  const inR=i=>i>=lo&&i<=hi;
  // ── 화성 진행 ──
  const PROG={4:[0,3,4,0],3:[0,4,0],2:[0,0],8:[0,3,4,0,0,3,4,0]}[bars]||Array.from({length:bars},(_,i)=>i%4===0?0:i%4===1?3:i%4===2?4:0);
@@ -357,7 +368,7 @@ function render(el,forPrint){lastFret=0;
  const lines=Math.ceil(bars/perLine),W=left+perLine*barW+16,H=top+lines*lineH;
  const useFlat=!keySig().sharp;
  let svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" font-family="Noto Sans KR,sans-serif">`;
- svg+=`<text x="8" y="18" font-size="11" fill="#555">${I.n} · ${KEYS[S.key].n}${I.iv?` (기보 ${nameOf((PC.indexOf(KEYS[S.key].root)+I.iv)%12+60,useFlat?'b':'#').sol} 조)`:''} · ♩=${S.bpm}</text>`;
+ svg+=`<text x="8" y="18" font-size="11" fill="#555">${I.n} · ${KEYS[S.key].n}${I.octDown?' (소리는 한 옥타브 아래)':I.iv?` (기보 ${nameOf((PC.indexOf(KEYS[S.key].root)+I.iv)%12+60,useFlat?'b':'#').sol} 조)`:''} · ♩=${S.bpm}</text>`;
  for(let L=0;L<lines;L++){const y0=top+L*lineH+26;
   if(I.clef==='D'){for(let i=0;i<5;i++)svg+=`<line x1="${left}" y1="${y0+i*sp}" x2="${left+perLine*barW}" y2="${y0+i*sp}" stroke="#333"/>`;
    svg+=`<rect x="${left-30}" y="${y0+sp*.6}" width="5" height="${sp*2.8}" fill="#222"/><rect x="${left-22}" y="${y0+sp*.6}" width="5" height="${sp*2.8}" fill="#222"/>`;
@@ -450,7 +461,11 @@ function render(el,forPrint){lastFret=0;
      svg+=`<line x1="${sx}" y1="${ys[i]}" x2="${sx}" y2="${tip}" stroke="${col}" stroke-width="1.4"/>`});
     const bx1=posOf(gr[0])+(up?4.9:-4.9),bx2=posOf(gr[gr.length-1])+(up?4.9:-4.9);
     svg+=`<line x1="${bx1}" y1="${tip}" x2="${bx2}" y2="${tip}" stroke="#222" stroke-width="3.4" stroke-linecap="round"/>`;
-    if(gr.every(n=>n.len<=.25))svg+=`<line x1="${bx1}" y1="${tip+(up?5:-5)}" x2="${bx2}" y2="${tip+(up?5:-5)}" stroke="#222" stroke-width="3" stroke-linecap="round"/>`;
+    // 16분음표 둘째 빔: 이어진 16분음표끼리는 잇고, 혼자인 16분음표는 짧은 부분 빔 (예: 붙점8분+16분) — 2026-09-17
+    const by=tip+(up?5:-5),sxOf=n=>posOf(n)+(up?4.9:-4.9);
+    gr.forEach((n,i)=>{if(n.len>.25)return;const prev=i>0&&gr[i-1].len<=.25,next=i<gr.length-1&&gr[i+1].len<=.25;
+     if(next)svg+=`<line x1="${sxOf(n)}" y1="${by}" x2="${sxOf(gr[i+1])}" y2="${by}" stroke="#222" stroke-width="3"/>`;
+     else if(!prev){const toLeft=i===gr.length-1;const x1=sxOf(n),x2=toLeft?x1-8:x1+8;svg+=`<line x1="${x1}" y1="${by}" x2="${x2}" y2="${by}" stroke="#222" stroke-width="3"/>`}});
    });}}
  svg+='</svg>';host.innerHTML=svg;
  renderBeat();}
@@ -468,7 +483,7 @@ function renderBeat(){$('beat').innerHTML=Array.from({length:S.meter},(_,i)=>`<i
 function buildPiano(){const I=S.mode==='harmony'?{input:'piano',low:48,high:84,iv:0,n:'🎹 피아노'}:inst();const wrap=$('pianoWrap'),padW=$('padWrap');
  if(I.input==='pad'){wrap.style.display='none';padW.style.display='block';$('inputDesc').textContent='박에 맞춰 패드(또는 스페이스바)를 두드려요. 음정은 보지 않고 리듬만 봅니다.';return}
  wrap.style.display='block';padW.style.display='none';
- if(S.mode==='harmony'){$('inputDesc').textContent='왼손으로 근음, 오른손으로 화음을 짚어요. 0.9초 안에 누른 음들을 한 화음으로 봅니다.'}else $('inputDesc').textContent=I.iv?`악보에 적힌 계이름 그대로 건반을 누르세요 (실제 소리는 ${I.n.replace(/\s*\(.*/,'')} 음높이로 납니다)`:'악보의 음을 건반에서 찾아 박에 맞춰 누르세요';
+ if(S.mode==='harmony'){$('inputDesc').textContent='왼손으로 근음, 오른손으로 화음을 짚어요. 0.9초 안에 누른 음들을 한 화음으로 봅니다.'}else $('inputDesc').textContent=I.octDown?'악보의 음을 건반에서 찾아 박에 맞춰 누르세요 (소리는 한 옥타브 아래로 납니다)':I.iv?`악보에 적힌 계이름 그대로 건반을 누르세요 (실제 소리는 ${I.n.replace(/\s*\(.*/,'')} 음높이로 납니다)`:'악보의 음을 건반에서 찾아 박에 맞춰 누르세요';
  const low=I.low,high=I.high;const keys=[];for(let m=low;m<=high;m++)keys.push(m);
  const whites=keys.filter(m=>NAT.includes(((m%12)+12)%12)).length;const w=100/whites;
  let wi=0,html='';
@@ -489,7 +504,7 @@ function newBus(){bus=ctx.createGain();bus.connect(comp)}
 function killBus(){if(!bus)return;const o=bus,n=ctx.currentTime;o.gain.cancelScheduledValues(n);o.gain.setValueAtTime(o.gain.value,n);o.gain.linearRampToValueAtTime(0,n+.05);setTimeout(()=>{try{o.disconnect()}catch{}},150);newBus()}
 function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.9;comp=ctx.createDynamicsCompressor();master.connect(comp);comp.connect(ctx.destination);newBus();
  ['piano','guitar','bass'].forEach(k=>{kits[k]=new EAIMSound.SampleKit(ctx,k==='vocal'?'piano':k,{low:36,high:88,step:3});kits[k].load()});
- $('gate').style.display='none';renderInsts();renderLv();renderKeys();renderProgs();$('bpm').value=S.bpm;$('bpmLbl').textContent=S.bpm;buildPiano();setMode(S.mode||'melody');toast('🎻 악기 소리 불러오는 중…')}
+ $('gate').style.display='none';$('earBlack').checked=S.earBlack!==false;renderInsts();renderLv();renderKeys();renderProgs();$('bpm').value=S.bpm;$('bpmLbl').textContent=S.bpm;buildPiano();setMode(S.mode||'melody');toast('🎻 악기 소리 불러오는 중…')}
 const kitFor=()=>{const I=inst();return kits[I.id]||kits[I.input==='pad'?'piano':'piano']};
 const DRUM_SND={crash:{f:6000,len:.5,v:.5},ride:{f:7000,len:.35,v:.4},hh:{f:9000,len:.05,v:.35},hhO:{f:8000,len:.25,v:.4},hhF:{f:7000,len:.08,v:.3},snare:{f:1800,len:.14,v:.6},tom1:{f:400,len:.2,v:.6},tom2:{f:260,len:.25,v:.6},kick:null};
 function playDrum(kind,t,vol=1){if(!ctx)return;if(kind==='kick'){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(45,t+.22);g.gain.setValueAtTime(1.1*vol,t);g.gain.exponentialRampToValueAtTime(.01,t+.28);o.connect(g);g.connect(bus);o.start(t);o.stop(t+.3);return}
@@ -557,11 +572,16 @@ function stopAll(){timers.forEach(clearTimeout);timers=[];if(ctx)killBus();runni
 /* ═════ 음정 듣고 맞히기 ═════ */
 let curIv=null,eOk=0,eNo=0,eStreak=0;
 function newInterval(){if(!ctx){toast('시작하기를 먼저 눌러주세요');return}stopAll();$('earFb').textContent='';
- const pool=IV_BY_LV[S.lv];const semi=pool[Math.floor(Math.random()*pool.length)];
- const down=$('earDown').checked&&Math.random()<.4;
- const I=inst();const lo=Math.max(I.low,55),hi=Math.min(I.high,79);
- let root=lo+Math.floor(Math.random()*Math.max(1,(hi-lo-12)));
- const second=down?root-semi:root+semi;
+ const pool=IV_BY_LV[S.lv];const I=inst();const lo=Math.max(I.low,55),hi=Math.min(I.high,79);
+ const white=m=>NAT.includes(((m%12)+12)%12);const allowBlack=$('earBlack').checked;   // 끄면 두 음 모두 흰건반 (2026-09-17)
+ let semi,down,root,second,tries=0;
+ do{semi=pool[Math.floor(Math.random()*pool.length)];down=$('earDown').checked&&Math.random()<.4;
+  if(allowBlack){root=lo+Math.floor(Math.random()*Math.max(1,(hi-lo-12)));if(down&&root-semi<lo-2)root=Math.min(hi,root+semi)}
+  else{ // 흰건반만: 이 음정이 되는 흰건반 두 음 중에서 고름 (드문 음정도 골고루 나오게)
+   const c=[];for(let r=lo-2;r<=hi+2;r++){const s2=down?r-semi:r+semi;if(white(r)&&white(s2)&&Math.min(r,s2)>=lo-2&&Math.max(r,s2)<=hi+2)c.push(r)}
+   if(!c.length){tries++;continue}root=c[Math.floor(Math.random()*c.length)]}
+  second=down?root-semi:root+semi;break;
+ }while(++tries<50);
  curIv={semi,root,second,down};playInterval();
  $('earOpts').innerHTML=pool.map(x=>{const v=IVAL.find(i=>i.s===x);return `<div class="qopt" data-s="${x}" onclick="answerIv(${x})">${v.n}<div style="font-size:.7rem;color:var(--sub);font-weight:400">${v.ab}</div></div>`}).join('')}
 function playInterval(){if(!curIv)return;const t=ctx.currentTime+.1;const style=$('earStyle').value;
@@ -716,7 +736,14 @@ function hShowScore(){
 }
 
 /* ═════ 설정 UI ═════ */
-function renderInsts(){$('insts').innerHTML=INSTS.map(i=>`<div class="chip ${S.inst===i.id?'on':''}" onclick="S.inst='${i.id}';renderInsts();buildPiano();persist();S.mode==='ear'?newInterval():newSheet()">${i.n}</div>`).join('')}
+const V_NOTES=[53,55,57,59,60,62,64,65,67,69,71,72,74,76,77,79,81];
+function renderVRange(){const row=$('vRangeRow');if(!row)return;row.style.display=S.inst==='vocal'?'flex':'none';
+ $('vRange').innerHTML=Object.entries(V_RANGES).map(([k,v])=>`<option value="${k}" ${S.vRange===k?'selected':''}>${v.n}</option>`).join('');
+ const opt=sel=>V_NOTES.map(m=>`<option value="${m}" ${sel===m?'selected':''}>${nameOf(m,'#').sol}${Math.floor(m/12)-1} (${nameOf(m,'#').en})</option>`).join('');
+ $('vLow').innerHTML=opt(S.vLow);$('vHigh').innerHTML=opt(S.vHigh);$('vCustom').style.display=S.vRange==='custom'?'inline':'none'}
+function setVRange(k){S.vRange=V_RANGES[k]?k:'mid';if(k==='custom'&&!(S.vHigh-S.vLow>=7)){S.vLow=57;S.vHigh=74}renderVRange();persist();buildPiano();S.mode==='ear'?newInterval():S.mode==='harmony'?0:newSheet()}
+function setVCustom(){let lo=Number($('vLow').value),hi=Number($('vHigh').value);if(hi-lo<7){hi=Math.min(81,lo+7);if(hi-lo<7)lo=hi-7;toast('음역은 5도(7반음) 이상 벌려 주세요')}S.vLow=lo;S.vHigh=hi;renderVRange();persist();buildPiano();S.mode==='ear'?newInterval():newSheet()}
+function renderInsts(){renderVRange();$('insts').innerHTML=INSTS.map(i=>`<div class="chip ${S.inst===i.id?'on':''}" onclick="S.inst='${i.id}';renderInsts();buildPiano();persist();S.mode==='ear'?newInterval():newSheet()">${i.n}</div>`).join('')}
 const SING_LV=['1 · 순차 진행(도–레–미)','2 · 3도 도약','3 · 4·5도 도약','4 · 한 옥타브·붙점','5 · 임시표·단조'];
 function renderLv(){$('lv').innerHTML=LEVELS.map((l,i)=>`<div class="chip ${S.lv===i?'on':''}" onclick="S.lv=${i};renderLv();persist();S.mode==='ear'?newInterval():newSheet()">${S.mode==='sing'?SING_LV[i]:l.n}</div>`).join('')}
 function renderProgs(){$('hProg').innerHTML=PROGS.map((p,i)=>`<option value="${i}">${p.n}</option>`).join('')}
