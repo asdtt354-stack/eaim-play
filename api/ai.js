@@ -1,13 +1,19 @@
-// EAIM — Gemini AI 중계 서버 함수 (Vercel)  · api/ai.js  v0.3 (2026-09-17)
+// EAIM — Gemini AI 중계 서버 함수 (Vercel)  · api/ai.js  v0.4 (2026-09-17)
 // ★ 기준본: eaim-play 저장소(음악과). 다른 저장소는 이 파일을 고치지 않고 같은 버전을 그대로 복사합니다.
 //   모델 별칭 추가·수정이 필요하면 음악과 창에 요청 → 기준본을 고치고 버전을 올린 뒤 다시 복사.
 // 본보기: 같은 저장소의 api/lalal.js (키는 서버 환경변수에만, 학생 브라우저로 내려보내지 않음)
 // 위치: 저장소 루트의 api/ai.js  → 앱은 상대 경로 'api/ai' 로 부릅니다 (공통 규칙 10-1)
 //
 // Vercel 프로젝트 → Settings → Environment Variables
-//   GEMINI_KEY        (필수) 서버 전용 Gemini 키. ※ '웹사이트 제한'을 걸면 서버에서 호출이 막힙니다.
+// 어떤 키를 쓰나 (2026-09-17 중간 단계 결정)
+//   ① 초대 링크의 교사가 ALLOWED_TEACHERS에 있으면 → 운영자 키 GEMINI_KEY
+//   ② 그 밖의 교사 → 그 교사가 뮤지컬메이커 교사 대시보드에 넣은 본인 키(meta/settings.apiKey)
+//   ③ 둘 다 없으면 → 막고 "선생님 키가 없어요" 안내
+//   어느 키든 서버 안에서만 쓰고 학생 브라우저로 내려보내지 않습니다.
+//
+//   GEMINI_KEY        (선택) 운영자 서버용 Gemini 키. ※ '웹사이트 제한'을 걸면 서버에서 호출이 막힙니다.
 //                     웹사이트 제한 없이 'API 제한(Generative Language API만)' + 하루 한도만 걸어 둔 키를 따로 만드세요.
-//   ALLOWED_TEACHERS  (권장) AI를 허용할 교사 UID, 쉼표로 구분. 비워 두면 교사 설정 문서가 있는 모든 교사 허용.
+//   ALLOWED_TEACHERS  (선택) 운영자 키를 쓸 교사 UID, 쉼표로 구분. 여기 없는 교사는 본인 키로만 씁니다.
 //   ALLOWED_ORIGINS   (선택) 허용 주소, 쉼표로 구분. 비워 두면 아래 기본 목록.
 //   AI_PER_MIN        (선택) 교사 한 명당 분당 텍스트 요청 수 (기본 60)
 //   MUSIC_PER_MIN     (선택) 교사 한 명당 분당 노래 생성 수 (기본 6)
@@ -69,22 +75,24 @@ const fail = (req, res, status, message, extra) => send(req, res, status, { erro
 const settingsCache = new Map();
 async function teacherGate(uid) {
   if (!/^[A-Za-z0-9]{20,40}$/.test(uid || '')) return { ok: false, status: 403, reason: 'AI는 선생님이 준 초대 링크(QR)로 들어왔을 때 쓸 수 있어요.' };
-  if (TEACHERS.length && !TEACHERS.includes(uid)) return { ok: false, status: 403, reason: '이 초대 링크의 선생님 계정은 AI 사용이 허용되지 않았어요. (서버 ALLOWED_TEACHERS)' };
   const hit = settingsCache.get(uid);
   if (hit && Date.now() - hit.t < 30000) return hit.v;
   let v;
   try {
     const r = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/teachers/${uid}/meta/settings?key=${FB_WEB_KEY}`);
+    const operator = TEACHERS.includes(uid) && process.env.GEMINI_KEY ? process.env.GEMINI_KEY : '';
     if (r.status === 404) {
-      v = TEACHERS.includes(uid) ? { ok: true } : { ok: false, status: 403, reason: '선생님 설정이 아직 없어요. 선생님이 교사 페이지에 한 번 로그인해야 해요.' };
+      v = operator ? { ok: true, key: operator, who: 'operator' } : { ok: false, status: 403, reason: '선생님 설정이 아직 없어요. 선생님이 뮤지컬메이커 교사 대시보드에서 Gemini 키를 넣어야 해요.' };
     } else if (!r.ok) {
       v = { ok: false, status: 503, reason: '선생님 설정을 읽지 못했어요. 잠시 뒤 다시 해 보세요.' };
     } else {
-      const d = await r.json();
+      const f = (await r.json()).fields || {};
+      const own = (f.apiKey?.stringValue || '').trim();
       // AI 켜짐 판단은 mediaOn만 봄 (classOn은 과학 앱과 함께 쓰는 값이라 보지 않음 — 2026-09-17 결정). rooms 전환 후 수업 방 열림 상태로 교체
-      v = d.fields?.mediaOn?.booleanValue === false
-        ? { ok: false, status: 403, reason: '선생님이 지금 AI 기능을 꺼 두었어요.' }
-        : { ok: true };
+      if (f.mediaOn?.booleanValue === false) v = { ok: false, status: 403, reason: '선생님이 지금 AI 기능을 꺼 두었어요.' };
+      else if (operator) v = { ok: true, key: operator, who: 'operator' };
+      else if (own) v = { ok: true, key: own, who: 'teacher' };
+      else v = { ok: false, status: 403, reason: '선생님 Gemini 키가 아직 없어요. 선생님이 뮤지컬메이커 교사 대시보드에서 키를 넣어야 해요.' };
     }
   } catch { v = { ok: false, status: 503, reason: '선생님 설정을 읽지 못했어요. 인터넷 연결을 확인해 주세요.' }; }
   settingsCache.set(uid, { t: Date.now(), v });
@@ -103,17 +111,14 @@ function rateOk(uid, kind) {
 export default async function handler(req, res) {
   const origin = req.headers.origin || '';
   if (req.method === 'OPTIONS') return ORIGINS.includes(origin) ? send(req, res, 200, { ok: true }) : fail(req, res, 403, '허용되지 않은 주소예요.');
-  const key = process.env.GEMINI_KEY;
   const action = (req.query && req.query.action) || '';
 
   if (req.method === 'GET' && action === 'ping') {
-    if (!key) return send(req, res, 200, { ok: false, reason: 'AI 서버에 키가 아직 없어요. (선생님: Vercel 환경변수 GEMINI_KEY)' });
     const g = await teacherGate((req.query && req.query.teacher) || '');
     return send(req, res, 200, { ok: g.ok, reason: g.ok ? '' : g.reason });
   }
   if (req.method !== 'POST') return fail(req, res, 405, 'POST로 보내 주세요.');
   if (!ORIGINS.includes(origin)) return fail(req, res, 403, '허용되지 않은 주소에서 온 요청이에요.');
-  if (!key) return fail(req, res, 500, 'AI 서버에 키가 아직 없어요. (선생님: Vercel 환경변수 GEMINI_KEY)');
 
   let body;
   try { body = JSON.parse((await readBody(req)).toString() || '{}'); }
@@ -126,6 +131,7 @@ export default async function handler(req, res) {
 
   const gate = await teacherGate(body.teacher || '');
   if (!gate.ok) return fail(req, res, gate.status, gate.reason);
+  const key = gate.key;
 
   const kind = alias.startsWith('music') ? 'music' : alias.startsWith('image') ? 'image' : alias;
   const wait = rateOk(body.teacher, kind);
@@ -149,8 +155,9 @@ export default async function handler(req, res) {
     if (!r.ok) {
       const msg = d?.error?.message || '';
       let m = msg || ('AI 오류 ' + r.status);
-      if (r.status === 403 && /referer|referrer|blocked|API key/i.test(msg)) m = 'AI 서버 키가 막혀 있어요. (선생님: 서버용 키에는 웹사이트 제한을 걸지 마세요)';
-      else if (r.status === 400 && /API key not valid/i.test(msg)) m = 'AI 서버 키가 올바르지 않아요. (선생님: GEMINI_KEY 값 확인)';
+      const which = gate.who === 'operator' ? '운영자 키(Vercel GEMINI_KEY)' : '선생님 Gemini 키(뮤지컬메이커 교사 대시보드)';
+      if (r.status === 403 && /referer|referrer|blocked|API key/i.test(msg)) { m = `${which}에 웹사이트 제한이 걸려 있어 서버에서 쓸 수 없어요. 제한 없는 키로 바꿔 주세요.`; settingsCache.delete(body.teacher); }
+      else if (r.status === 400 && /API key not valid|API_KEY_INVALID/i.test(msg)) { m = `${which}가 올바르지 않아요. 키 값을 확인해 주세요.`; settingsCache.delete(body.teacher); }
       const ra = r.headers.get('retry-after');
       return fail(req, res, r.status, m, ra ? { 'Retry-After': ra } : {});
     }
