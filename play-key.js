@@ -1,40 +1,42 @@
 /* ═══════════════════════════════════════════════════════════
-   EAIM 연주실 — Gemini 키 찾기 (play-key.js)
-   연주실은 뮤지컬메이커와 주소가 달라서 그쪽 키를 못 봅니다.
-   순서대로 찾아요:
-   1) 이 기기에 선생님이 저장한 키 (연주실 대문 → 선생님 설정)
-   2) 뮤지컬메이커가 같은 주소에 남긴 키 (같은 저장소에 둘 때)
-   3) 주소에 ?teacher=UID 가 있으면 Firestore 설정에서 읽기 (초대 링크)
+   EAIM 연주실 — AI 연결 공용 모듈 (play-key.js)  v0.2 (2026-09-17)
+   · Gemini 키를 브라우저에 두지 않습니다. 모든 AI 요청은 같은 주소의 서버 함수
+     api/ai 로 보내고, 키는 Vercel 환경변수(GEMINI_KEY)에만 있습니다. (공통 규칙 6-1)
+   · AI는 선생님 초대 링크(?teacher=UID)로 들어왔을 때만 켜집니다.
+     서버가 그 선생님의 AI 켜기/끄기(meta/settings.mediaOn)를 확인합니다.
+   · 방 파일들이 쓰던 이름(get, has, gemini, lyria, NO_KEY_MSG …)은 그대로 둡니다.
+     get() 은 이제 키가 아니라 "AI를 쓸 수 있으면 'relay', 아니면 ''" 을 돌려줍니다.
    ═══════════════════════════════════════════════════════════ */
 (function (global) {
   'use strict';
-  const FB_KEY = 'AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY', PROJECT = 'eaim-classroom';
+  const FB_KEY = 'AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY', PROJECT = 'eaim-classroom'; // Firebase 웹 설정값(공개) — 수업 상황 신호용
+  const AI_URL = 'api/ai';   // 상대 경로 (공통 규칙 10-1)
   const P = new URLSearchParams(location.search);
   const teacher = P.get('teacher') || '';
-  let cache = null;
 
-  async function fromFirestore(uid) {
+  /* ── 예전 방식으로 이 기기에 남아 있던 키 지우기 (더 이상 쓰지 않음) ── */
+  try { localStorage.removeItem('eaim_play_api'); sessionStorage.removeItem('eaim_play_api_session'); } catch {}
+
+  /* ── AI 사용 가능 여부 (서버에 물어보고 1분 기억) ── */
+  let reason = teacher ? 'AI 연결을 확인하는 중이에요. 잠시 뒤 다시 눌러 주세요.' : 'AI 기능은 선생님이 준 초대 링크(QR)로 들어왔을 때 쓸 수 있어요.';
+  let statusCache = null, statusAt = 0;
+  async function status() {
+    if (!teacher) return { ok: false, reason };
+    if (statusCache && Date.now() - statusAt < 60000) return statusCache;
     try {
-      const r = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/teachers/${uid}/meta/settings?key=${FB_KEY}`);
-      if (!r.ok) return '';
-      const d = await r.json();
-      const on = d.fields?.mediaOn?.booleanValue; if (on === false) return '';
-      return d.fields?.apiKey?.stringValue || '';
-    } catch { return ''; }
+      const r = await fetch(`${AI_URL}?action=ping&teacher=${encodeURIComponent(teacher)}`, { cache: 'no-store' });
+      const d = await r.json().catch(() => ({}));
+      statusCache = r.ok ? { ok: !!d.ok, reason: d.reason || '' } : { ok: false, reason: r.status === 404 ? 'AI 서버 함수(api/ai)가 아직 배포되지 않았어요.' : 'AI 서버 응답 오류 ' + r.status };
+    } catch { statusCache = { ok: false, reason: 'AI 서버에 연결하지 못했어요. 인터넷을 확인해 주세요.' }; }
+    statusAt = Date.now();
+    if (!statusCache.ok) reason = statusCache.reason;
+    return statusCache;
   }
-  async function get() {
-    if (cache) return cache;
-    const local = (localStorage.getItem('eaim_play_api') || localStorage.getItem('mm_teacher_api') || '').trim();
-    if (local) return (cache = local);
-    if (teacher) { const k = await fromFirestore(teacher); if (k) { sessionStorage.setItem('eaim_play_api_session', k); return (cache = k); } }
-    const ss = sessionStorage.getItem('eaim_play_api_session'); if (ss) return (cache = ss);
-    return '';
-  }
-  function set(k) { k = (k || '').trim(); if (k) localStorage.setItem('eaim_play_api', k); else localStorage.removeItem('eaim_play_api'); cache = null; }
-  function has() { return !!((localStorage.getItem('eaim_play_api') || localStorage.getItem('mm_teacher_api') || sessionStorage.getItem('eaim_play_api_session') || '').trim()) || !!teacher; }
+  async function get() { return (await status()).ok ? 'relay' : ''; }
+  function set() { /* 키는 이제 서버에만 둡니다 — 기기에 저장하지 않음 */ }
+  function has() { return !!teacher; }
   /** 다른 방으로 갈 때 ?teacher= 를 그대로 붙여줌 */
   function link(href) { if (!teacher) return href; const g = P.get('group'); return href + (href.includes('?') ? '&' : '?') + 'teacher=' + encodeURIComponent(teacher) + (g ? '&group=' + encodeURIComponent(g) : ''); }
-  const NO_KEY_MSG = 'AI 기능을 쓰려면 Gemini 키가 필요해요. 연주실 대문의 "선생님 설정"에서 한 번 넣어두거나, 선생님이 준 초대 링크(?teacher=…)로 들어오세요.';
 
   /* ── 줄 서기 + 재시도: 같은 기기에서 동시에 여러 요청이 나가지 않게, 429/503이면 기다렸다 다시 ── */
   let chain = Promise.resolve();
@@ -70,21 +72,36 @@
     return JSON.parse(t);
   }
 
+  /** 서버 함수로 보내기 → Gemini 원래 응답 JSON */
+  function relay(model, contents, generationConfig) {
+    return fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teacher, model, contents, generationConfig }) });
+  }
+  async function failMsg(r, busyMsg) {
+    const e = await r.json().catch(() => ({}));
+    const m = e?.error?.message || '';
+    if (r.status === 404 && !m) return 'AI 서버 함수(api/ai)가 아직 배포되지 않았어요.';
+    if (r.status === 403 || r.status === 413) { statusCache = null; return m || 'AI를 쓸 수 없는 상태예요.'; }
+    if (r.status === 429) return m || busyMsg;
+    return m || ('오류 ' + r.status);
+  }
+  async function ready() { const s = await status(); if (!s.ok) throw new Error(s.reason || reason); }
+
   /** 공용 Gemini 텍스트 호출 (JSON 모드 옵션) */
   async function gemini(prompt, { json = false, temperature = .7, maxTokens = 1024, parts = null } = {}) {
-    const k = await get(); if (!k) throw new Error(NO_KEY_MSG);
-    const body = { contents: [{ parts: parts || [{ text: prompt }] }], generationConfig: { temperature, maxOutputTokens: maxTokens } };
-    if (json) body.generationConfig.responseMimeType = 'application/json';
+    await ready();
+    const contents = [{ parts: parts || [{ text: prompt }] }];
+    const gc = { temperature, maxOutputTokens: maxTokens };
+    if (json) gc.responseMimeType = 'application/json';
     return queued(async () => {
-      const r = await withRetry(() => fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify(body) }), waitMsg);
-      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(r.status === 429 ? '지금 요청이 너무 많아요. 30초쯤 뒤에 다시 눌러주세요.' : (e?.error?.message || ('오류 ' + r.status))); }
+      const r = await withRetry(() => relay('text', contents, gc), waitMsg);
+      if (!r.ok) throw new Error(await failMsg(r, '지금 요청이 너무 많아요. 30초쯤 뒤에 다시 눌러주세요.'));
       const d = await r.json(); const txt = d.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
       if (!json) return txt.trim();
       try { return safeJSON(txt); }
       catch (e) {
         // 한 번 더: 답을 JSON 으로만 고쳐 달라고
-        const fix = { contents: [{ parts: [{ text: '다음 텍스트를 올바른 JSON 하나로만 고쳐서 출력하세요. 숫자 자리에는 숫자만(예: 4/4는 4), 설명·코드펜스 금지.\n\n' + txt }] }], generationConfig: { temperature: 0, maxOutputTokens: maxTokens, responseMimeType: 'application/json' } };
-        const r2 = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify(fix) });
+        const fix = [{ parts: [{ text: '다음 텍스트를 올바른 JSON 하나로만 고쳐서 출력하세요. 숫자 자리에는 숫자만(예: 4/4는 4), 설명·코드펜스 금지.\n\n' + txt }] }];
+        const r2 = await relay('text', fix, { temperature: 0, maxOutputTokens: maxTokens, responseMimeType: 'application/json' });
         const d2 = await r2.json().catch(() => ({})); const t2 = d2.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
         try { return safeJSON(t2); } catch { throw new Error('AI 답을 읽지 못했어요. 한 번 더 눌러보세요.'); }
       }
@@ -92,17 +109,17 @@
   }
   /** Lyria 30초 클립 → { b64, mime, text } */
   async function lyria(prompt, full = false) {
-    const k = await get(); if (!k) throw new Error(NO_KEY_MSG);
-    const model = full ? 'lyria-3-pro-preview' : 'lyria-3-clip-preview';
+    await ready();
     return queued(async () => {
-      const r = await withRetry(() => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }), waitMsg);
-      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(r.status === 429 ? '노래 생성 요청이 몰려 있어요. 1분쯤 뒤에 다시 눌러주세요.' : (e?.error?.message || ('오류 ' + r.status))); }
+      const r = await withRetry(() => relay(full ? 'music-full' : 'music', [{ parts: [{ text: prompt }] }]), waitMsg);
+      if (!r.ok) throw new Error(await failMsg(r, '노래 생성 요청이 몰려 있어요. 1분쯤 뒤에 다시 눌러주세요.'));
       const d = await r.json(); const ps = d.candidates?.[0]?.content?.parts || [];
       const a = ps.find(p => p.inlineData); if (!a) throw new Error('노래가 나오지 않았어요. 문장을 조금 바꿔보세요.');
       return { b64: a.inlineData.data, mime: a.inlineData.mimeType || 'audio/mpeg', text: ps.filter(p => p.text).map(p => p.text).join('\n') };
     });
   }
-  /* ── 수업 상황 신호: 학생이 어느 방 몇 단계인지 (초대 링크로 들어온 경우만) ── */
+  /* ── 수업 상황 신호: 학생이 어느 방 몇 단계인지 (초대 링크로 들어온 경우만) ──
+     ※ 문서 ID가 이름+모둠인 점은 기록 통일 단계(반+번호)에서 바꿀 예정 — 이번에는 그대로 둠 */
   let lastPing = 0;
   async function ping(room, step, extra = {}) {
     if (!teacher) return;
@@ -141,5 +158,8 @@
     return { mime: 'image/jpeg', b64: dataUrl.split(',')[1], dataUrl, isPdf };
   }
 
-  global.EAIMKey = { fileToImage, get, set, has, link, gemini, lyria, queued, withRetry, teacher, group: P.get('group') || '', ping, NO_KEY_MSG };
+  global.EAIMKey = { fileToImage, get, set, has, link, gemini, lyria, queued, withRetry, teacher, group: P.get('group') || '', ping, status };
+  // 방 파일들이 쓰는 안내 문구 — 지금 AI를 못 쓰는 실제 이유를 보여줌 (규칙 6-3: 원인에 맞는 실패 문구)
+  Object.defineProperty(global.EAIMKey, 'NO_KEY_MSG', { get: () => reason, enumerable: true });
+  if (teacher) status();   // 미리 확인해 두기
 })(window);

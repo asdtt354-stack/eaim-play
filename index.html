@@ -96,10 +96,10 @@ main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
         <div class="chips"><span>리듬 블록</span><span>신코페이션 표시</span><span>박자 맞혀 치기</span><span>듣기 퀴즈 4종</span><span>진짜 드럼 소리</span></div>
         <div class="for">리듬 감각 · 귀 훈련 · 게임</div></div>
     </a>
-    <a class="room" href="sight.html">
+    <a class="room" href="solfege.html">
       <div class="ico">🎼</div>
-      <div><h2>초견실 <span class="en">Sight Reading</span></h2>
-        <p>처음 보는 4마디 악보를 박에 맞춰 읽고 연주해요. 악기·조·난이도를 고르면 매번 새 악보가 나오고, 음정과 박을 바로 채점해 줍니다. 화음 초견과 음정 듣고 맞히기(완전4도·증4도…)도 함께.</p>
+      <div><h2>솔페지오실 <span class="en">Solfege</span></h2>
+        <p>시창·청음·초견·건반화성을 한 곳에서. 처음 보는 4마디 악보를 박에 맞춰 읽고 연주해요. 악기·조·난이도를 고르면 매번 새 악보가 나오고, 음정과 박을 바로 채점해 줍니다. 화음 초견과 음정 듣고 맞히기(완전4도·증4도…)도 함께.</p>
         <div class="chips"><span>선율 초견</span><span>화음 초견</span><span>음정 청음</span><span>난이도 5단계</span><span>연습지 인쇄</span></div>
         <div class="for">시창·청음·초견 수업 · 밴드 파트 연습</div></div>
     </a>
@@ -115,14 +115,9 @@ main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
   <div class="box" style="margin-bottom:14px">
     <h3>선생님 — <a href="guide.html" style="color:var(--gold);text-decoration:underline">📘 연주실 교수법 보기</a> · <a href="teacher.html" style="color:var(--purple);text-decoration:underline">교사 페이지 →</a></h3>
     <p style="margin-bottom:10px">구글 로그인 후 반·모둠 초대 QR을 만들고, 지금 누가 어느 방에 있는지 보고, 즉흥·이야기 작곡실 제출물을 모아 봅니다.</p>
-    <h3>AI 기능 열기 (초대 링크 없이 쓸 때)</h3>
-    <p>건반실의 AI 코드 진행, 밴드실의 악보 사진 읽기, 작곡실의 동기 제안·노래 만들기는 Gemini 키가 있어야 해요. 이 기기에 한 번 넣어두면 모든 방에서 쓰입니다. 학생이 초대 링크(<b>?teacher=선생님UID</b>)로 들어오면 뮤지컬메이커에 저장된 키를 자동으로 가져와요.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">
-      <input id="keyIn" type="password" placeholder="Gemini API 키" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#faf8ff;outline:none;font-family:inherit">
-      <button onclick="saveKey()" style="padding:9px 14px;border-radius:9px;border:0;background:var(--gold2);font-weight:700;cursor:pointer;font-family:inherit">저장</button>
-      <button onclick="clearKey()" style="padding:9px 14px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit">지우기</button>
-      <span id="keySt" style="font-size:.82rem;color:var(--sub)"></span>
-    </div>
+    <h3>AI 기능</h3>
+    <p>건반실의 AI 코드 진행, 밴드실·짝꿍 피아노실·관악실의 악보 사진 읽기, 작곡실의 동기 제안·노래 만들기는 <b>선생님 초대 링크(교사 페이지의 QR)</b>로 들어왔을 때 켜져요. 키는 서버에만 있고 이 기기에는 저장하지 않습니다.</p>
+    <p style="margin-top:6px;font-size:.85rem">지금 상태: <span id="keySt" style="color:var(--sub)">확인 중…</span></p>
   </div>
   <div class="box">
     <h3>쓰는 법</h3>
@@ -134,9 +129,7 @@ main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
 <script>
 (function(){
   const st=document.getElementById('keySt');
-  function show(){ EAIMKey.get().then(k=>{ st.textContent = k ? (localStorage.getItem('eaim_play_api') ? '✅ 이 기기에 저장됨' : '✅ 초대 링크로 연결됨') : '키 없음'; }); }
-  window.saveKey=()=>{ const v=document.getElementById('keyIn').value.trim(); if(v.length<10){ st.textContent='키가 너무 짧아요'; return; } EAIMKey.set(v); document.getElementById('keyIn').value=''; show(); };
-  window.clearKey=()=>{ EAIMKey.set(''); show(); };
+  function show(){ EAIMKey.status().then(s=>{ st.textContent = s.ok ? '✅ AI 연결됨' : '⚪ ' + (s.reason || 'AI를 쓸 수 없어요'); }); }
   document.querySelectorAll('a.room').forEach(a=>{ a.href=EAIMKey.link(a.getAttribute('href')); });
   show();
   if(EAIMKey.teacher){ const b=document.getElementById('studentBox'); b.style.display='block'; if(EAIMKey.group) document.getElementById('groupLbl').textContent=' ('+EAIMKey.group+')'; const n=localStorage.getItem('eaim_jam_name')||''; document.getElementById('nameIn').value=n; if(n) document.getElementById('nameSt').textContent='✅ '+n; }

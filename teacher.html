@@ -60,7 +60,7 @@ th{background:#faf8ff;white-space:nowrap}
 <main>
 <div class="card gate" id="gate">
   <h2 style="font-size:1.6rem">구글 계정으로 로그인</h2>
-  <p>뮤지컬메이커에 쓰는 것과 같은 구글 계정으로 들어오면, 반·모둠 초대 QR, 수업 상황, 제출물이 이 계정 아래에 모입니다. Gemini 키와 AI 켜기/끄기는 뮤지컬메이커 교사 대시보드 설정을 그대로 씁니다.</p>
+  <p>뮤지컬메이커에 쓰는 것과 같은 구글 계정으로 들어오면, 반·모둠 초대 QR, 수업 상황, 제출물이 이 계정 아래에 모입니다. AI 켜기/끄기는 뮤지컬메이커 교사 대시보드 설정을 따릅니다. Gemini 키는 서버(Vercel 환경변수)에만 있어 이 페이지나 학생 기기로 오지 않습니다.</p>
   <button class="btn g" onclick="login()">G  Google 로그인</button>
   <p class="note" style="margin-top:14px">로그인 창이 안 뜨면 Firebase → Authentication → Settings → Authorized domains에 <b>eaim-play.vercel.app</b>을 추가해야 해요.</p>
 </div>
@@ -108,7 +108,7 @@ const CFG={apiKey:"AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",authDomain:"eaim-cla
 firebase.initializeApp(CFG);const auth=firebase.auth(),db=firebase.firestore();
 const $=id=>document.getElementById(id);const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2200)};
 const esc=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-const ROOMS={'index.html':'🎹 연주실 대문','jam.html':'🎸 즉흥 작곡실','composer.html':'🎼 이야기 작곡실','band-room.html':'🥁 밴드실','rhythm.html':'🥁 리듬실','sight.html':'🎼 초견실','keyboard.html':'🎹 건반실','duet.html':'👫 짝꿍 피아노실','wind.html':'🎺 관악실'};
+const ROOMS={'index.html':'🎹 연주실 대문','jam.html':'🎸 즉흥 작곡실','composer.html':'🎼 이야기 작곡실','band-room.html':'🥁 밴드실','rhythm.html':'🥁 리듬실','solfege.html':'🎼 솔페지오실','keyboard.html':'🎹 건반실','duet.html':'👫 짝꿍 피아노실','wind.html':'🎺 관악실'};
 let uid=null,groups=[],room='index.html',liveTimer=null;
 const BASE=location.origin+location.pathname.replace(/[^/]*$/,'');
 
