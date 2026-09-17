@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>📚 곡 서랍 (관리자) | EAIM 연주실</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<script src="song-link.js"></script>
+<style>
+:root{--bg:#141021;--panel:#1e1830;--panel2:#2a2240;--line:#3d3358;--text:#f3eefb;--sub:#a99cc4;--gold:#d4a843;--purple:#a78bfa;--green:#4ade80;--red:#f87171;--blue:#60a5fa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+button,input,textarea,select{font-family:inherit;font-size:inherit}
+header{padding:22px 16px 6px;text-align:center}
+.logo{font-family:'Space Mono',monospace;font-size:1.7rem;font-weight:700;color:var(--gold)}
+.tag{font-size:.78rem;color:var(--sub);letter-spacing:.12em}
+main{max-width:900px;margin:0 auto;padding:10px 14px 90px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:1.05rem;font-weight:900;margin-bottom:6px}
+.note{font-size:.82rem;color:var(--sub);line-height:1.6}
+.lbl{font-size:.78rem;color:var(--sub);margin:10px 0 5px}
+.in{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;color:var(--text);outline:none;font-size:.95rem}
+.in:focus{border-color:var(--purple)}
+textarea.in{min-height:90px;resize:vertical;line-height:1.6;font-family:'Space Mono',monospace;font-size:.85rem}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.btn{padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;font-weight:700;font-size:.88rem;white-space:nowrap}
+.btn:hover{border-color:var(--purple)}
+.btn.p{background:var(--gold);color:#1a1200;border-color:var(--gold)}
+.btn.g{background:var(--green);color:#052e16;border-color:var(--green)}
+.btn.r{background:transparent;color:var(--red);border-color:rgba(248,113,113,.5)}
+.btn.sm{padding:6px 10px;font-size:.8rem}
+.item{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:8px}
+.item h3{font-size:1rem;color:#fff;margin-bottom:2px}
+.item .meta{font-size:.78rem;color:var(--sub)}
+.item .chords{font-family:'Space Mono',monospace;font-size:.78rem;color:var(--sub);margin:6px 0;max-height:3.2em;overflow:hidden;word-break:break-all}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.35);font-size:.72rem;margin-right:4px;color:#ddd}
+.switch{display:flex;align-items:center;gap:8px;cursor:pointer}
+.switch input{width:18px;height:18px}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(74,222,128,.95);color:#052e16;padding:9px 16px;border-radius:10px;font-size:.85rem;font-weight:700;display:none;z-index:100;max-width:90vw}
+#editor{display:none}
+.linkbox{margin-top:8px;display:none}
+</style>
+</head>
+<body>
+<header><div class="logo">SONG DRAWER</div><div class="tag">EAIM 연주실 · 밴드실 곡 서랍 (관리자 전용)</div></header>
+<main>
+
+<div class="card">
+  <h2>🔒 이 서랍은 이 기기에만 있어요</h2>
+  <div class="note">곡은 이 브라우저 안에만 저장되고 서버에는 올라가지 않아요. <b>코드·빠르기·박자·반주 스타일·기타 스트로크·신디 음색</b>만 담고, 악보 사진·가사·멜로디는 저장하지 않습니다. 선생님께는 곡마다 <b>링크</b>로 보내 주세요. 브라우저 기록을 지우면 서랍도 지워지니 가끔 <b>백업 파일</b>을 받아 두세요.</div>
+  <label class="switch" style="margin-top:10px"><input type="checkbox" id="deviceOn" onchange="setDevice(this.checked)"> <span>이 기기를 <b>관리자 서랍 기기</b>로 쓰기 <span class="note">— 켜면 밴드실 곡 선정 화면에 "📥 관리자 서랍에 넣기" 버튼이 보여요</span></span></label>
+</div>
+
+<div class="card" id="editor">
+  <h2 id="edTitle">＋ 곡 직접 넣기</h2>
+  <div class="grid2">
+    <div><div class="lbl">곡 제목</div><input class="in" id="fTitle" placeholder="예: Drowning"></div>
+    <div><div class="lbl">메모 (원곡자 · 요청한 선생님 등)</div><input class="in" id="fMemo" placeholder="예: 우디 / 김○○ 선생님 요청"></div>
+  </div>
+  <div class="lbl">코드 진행 (공백 = 마디, C-G = 한 마디에 둘, N.C. = 쉬는 마디)</div>
+  <textarea class="in" id="fChords"></textarea>
+  <div class="grid2">
+    <div><div class="lbl">빠르기 (BPM)</div><input class="in" id="fBpm" type="number" min="40" max="220" value="90"></div>
+    <div><div class="lbl">박자</div><select class="in" id="fBeats"><option value="4">4박</option><option value="3">3박</option></select></div>
+    <div><div class="lbl">반주 스타일</div><select class="in" id="fStyle"></select></div>
+    <div><div class="lbl">신디 음색</div><select class="in" id="fTone"></select></div>
+  </div>
+  <div class="lbl">기타 스트로크 (8분음 칸마다 D 다운 · U 업 · - 쉼, 비우면 스타일 기본)</div>
+  <input class="in" id="fStrum" placeholder="예: D - D U - U D U" style="font-family:'Space Mono',monospace">
+  <div class="row" style="margin-top:12px"><button class="btn g" onclick="saveEditor()">💾 저장</button><button class="btn" onclick="closeEditor()">닫기</button><span class="note" id="edMsg"></span></div>
+</div>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between">
+    <h2 style="margin:0">📚 서랍 <span class="note" id="count"></span></h2>
+    <div class="row"><button class="btn" onclick="openEditor()">＋ 직접 넣기</button><button class="btn" onclick="backup()">💾 백업 파일 받기</button><button class="btn" onclick="$('restoreFile').click()">📂 백업에서 복원</button></div>
+  </div>
+  <input type="file" id="restoreFile" accept=".json,application/json" style="display:none" onchange="restore(this.files[0]);this.value=''">
+  <input class="in" id="q" placeholder="🔍 제목·메모·코드로 찾기" style="margin-top:10px" oninput="render()">
+  <div id="list"></div>
+</div>
+
+</main>
+<div id="toast"></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const L=window.EAIMSongLink;
+const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2600)};
+const esc=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const BAND=new URL('band-room.html',location.href.split('#')[0].split('?')[0]).href;
+
+function load(){try{return JSON.parse(localStorage.getItem(L.DRAWER_KEY)||'[]')}catch{return[]}}
+function store(list){try{localStorage.setItem(L.DRAWER_KEY,JSON.stringify(list));return true}catch(e){toast('❌ 저장하지 못했어요: '+e.message);return false}}
+function setDevice(on){try{on?localStorage.setItem(L.DEVICE_KEY,'1'):localStorage.removeItem(L.DEVICE_KEY);toast(on?'✅ 이 기기의 밴드실에 "서랍에 넣기" 버튼이 보여요':'밴드실 "서랍에 넣기" 버튼을 숨겼어요')}catch{}}
+const barsOf=c=>String(c||'').replace(/\|/g,' ').trim().split(/\s+/).filter(t=>t&&t!=='-').length;
+const strumText=s=>Array.isArray(s)&&s.some(Boolean)?s.map(x=>x==='↓'?'D':x==='↑'?'U':'-').join(' '):'';
+const parseStrumText=t=>{const a=String(t||'').trim().split(/\s+/).filter(Boolean).map(x=>/^d$/i.test(x)?'↓':/^u$/i.test(x)?'↑':'');return a.some(Boolean)?a:null};
+const date=ts=>ts?new Date(ts).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'}):'';
+
+function render(){const list=load();const q=$('q').value.trim().toLowerCase();
+ const shown=list.filter(s=>!q||[s.title,s.memo,s.chords].join(' ').toLowerCase().includes(q));
+ $('count').textContent=`${list.length}곡${q?` · 찾은 곡 ${shown.length}`:''}`;
+ if(!list.length){$('list').innerHTML='<div class="note" style="margin-top:10px">아직 비어 있어요. 밴드실 ② 곡 선정 화면에서 악보를 읽고 다듬은 뒤 "📥 관리자 서랍에 넣기"를 누르거나, "＋ 직접 넣기"로 넣어 주세요. (위에서 "관리자 서랍 기기로 쓰기"를 켜야 밴드실에 버튼이 보여요)</div>';return}
+ $('list').innerHTML=shown.map(s=>{const sent=s.sent||[];const last=sent[sent.length-1];
+  return`<div class="item" data-id="${esc(s.id)}"><h3>${esc(s.title)}</h3>
+   <div class="meta">${s.memo?esc(s.memo)+' · ':''}${barsOf(s.chords)}마디 · ${esc(s.bpm)} BPM · ${esc(s.beats)}박 · 저장 ${date(s.updatedAt||s.createdAt)}</div>
+   <div style="margin-top:4px"><span class="pill">${esc(L.STYLES[s.style]||'스타일 없음')}</span>${strumText(s.strum)?`<span class="pill">🎸 ${esc(strumText(s.strum))}</span>`:''}${s.synthTone&&s.synthTone!=='auto'?`<span class="pill">🎛️ ${esc(L.SYNTH_TONES[s.synthTone]||s.synthTone)}</span>`:''}${sent.length?`<span class="pill">📤 보낸 기록 ${sent.length}회${last?.to?' · 마지막 '+esc(last.to):''} ${date(last?.at)}</span>`:''}</div>
+   <div class="chords">${esc(s.chords)}</div>
+   <div class="row"><button class="btn p sm" onclick="makeLink('${esc(s.id)}')">🔗 링크 만들기</button><button class="btn sm" onclick="openBand('${esc(s.id)}')">🎸 밴드실에서 열기</button><button class="btn sm" onclick="openEditor('${esc(s.id)}')">✏️ 고치기</button><button class="btn r sm" onclick="removeSong('${esc(s.id)}')">지우기</button></div>
+   <div class="linkbox" id="lb-${esc(s.id)}"><input class="in" readonly onclick="this.select()"><div class="note" style="margin-top:4px">받은 선생님이 링크를 열면 밴드실 곡 선정 화면에 이 곡이 채워져요. 링크를 다시 전달하면 다른 사람도 열 수 있어요.</div></div>
+  </div>`}).join('')}
+
+async function makeLink(id){const list=load();const s=list.find(x=>x.id===id);if(!s)return;
+ const to=prompt(`"${s.title}" 링크를 누구에게 보내나요? (보낸 기록용 · 비워도 돼요)`,'');if(to===null)return;
+ let url;try{url=await L.link(s,BAND)}catch(e){toast('❌ 링크를 만들지 못했어요: '+e.message);return}
+ s.sent=(s.sent||[]).concat([{to:to.trim().slice(0,40),at:Date.now()}]);store(list);render();
+ const box=$('lb-'+id);if(box){box.style.display='block';const inp=box.querySelector('input');inp.value=url;inp.select()}
+ try{await navigator.clipboard.writeText(url);toast('🔗 링크를 복사했어요 — 카톡에 붙여 넣으세요')}catch{toast('아래 칸의 링크를 길게 눌러 복사해 주세요')}}
+async function openBand(id){const s=load().find(x=>x.id===id);if(!s)return;try{window.open(await L.link(s,BAND),'_blank')}catch(e){toast('❌ '+e.message)}}
+function removeSong(id){const list=load();const s=list.find(x=>x.id===id);if(!s||!confirm(`"${s.title}"을 서랍에서 지울까요?`))return;store(list.filter(x=>x.id!==id));render();toast('지웠어요')}
+
+let editing=null;
+function fillSelects(){$('fStyle').innerHTML=Object.entries(L.STYLES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');$('fTone').innerHTML=Object.entries(L.SYNTH_TONES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+function openEditor(id){const s=id?load().find(x=>x.id===id):null;editing=s?s.id:null;
+ $('edTitle').textContent=s?`✏️ 고치기 — ${s.title}`:'＋ 곡 직접 넣기';$('fTitle').value=s?.title||'';$('fMemo').value=s?.memo||'';$('fChords').value=s?.chords||'';
+ $('fBpm').value=s?.bpm||90;$('fBeats').value=String(s?.beats||4);$('fStyle').value=s?.style||'kpop';$('fTone').value=s?.synthTone||'auto';$('fStrum').value=strumText(s?.strum);$('edMsg').textContent='';
+ $('editor').style.display='block';$('editor').scrollIntoView({behavior:'smooth'})}
+function closeEditor(){$('editor').style.display='none';editing=null}
+function saveEditor(){const title=$('fTitle').value.trim(),chords=$('fChords').value.trim();if(!title||!chords){$('edMsg').textContent='제목과 코드를 넣어 주세요';return}
+ const beats=Number($('fBeats').value)||4;const strum=parseStrumText($('fStrum').value);
+ const data={title,memo:$('fMemo').value.trim(),chords,bpm:Math.max(40,Math.min(220,Number($('fBpm').value)||90)),beats,style:$('fStyle').value,synthTone:$('fTone').value,strum:strum?strum.slice(0,beats*2).concat(Array(Math.max(0,beats*2-strum.length)).fill('')):null,strumSrc:strum?'manual':''};
+ const list=load();const now=Date.now();
+ if(editing){const s=list.find(x=>x.id===editing);if(s){const keepSrc=s.strumSrc&&strumText(s.strum)===strumText(data.strum);Object.assign(s,data,{strumSrc:keepSrc?s.strumSrc:data.strumSrc,updatedAt:now})}}
+ else list.unshift({id:'s'+now.toString(36)+Math.random().toString(36).slice(2,6),sent:[],createdAt:now,updatedAt:now,...data});
+ if(store(list)){closeEditor();render();toast('💾 저장했어요')}}
+
+function backup(){const list=load();if(!list.length){toast('서랍이 비어 있어요');return}
+ const blob=new Blob([JSON.stringify({kind:'eaim-band-library',v:1,savedAt:Date.now(),songs:list},null,1)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`eaim-band-drawer-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);toast('💾 백업 파일을 받았어요')}
+async function restore(file){if(!file)return;try{const d=JSON.parse(await file.text());if(d.kind!=='eaim-band-library'||!Array.isArray(d.songs))throw new Error('곡 서랍 백업 파일이 아니에요');
+ const list=load();let add=0,upd=0;
+ d.songs.forEach(s=>{if(!s||typeof s.id!=='string'||!/^[A-Za-z0-9_-]{2,40}$/.test(s.id)||typeof s.chords!=='string')return;const cur=list.find(x=>x.id===s.id);if(!cur){list.push(s);add++}else if((s.updatedAt||0)>(cur.updatedAt||0)){Object.assign(cur,s);upd++}});
+ list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));if(store(list)){render();toast(`📂 복원했어요 — 새 곡 ${add} · 최신으로 바뀐 곡 ${upd}`)}}catch(e){toast('❌ '+e.message)}}
+
+fillSelects();try{$('deviceOn').checked=localStorage.getItem(L.DEVICE_KEY)==='1'}catch{}render();
+</script>
+</body>
+</html>
