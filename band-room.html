@@ -145,7 +145,7 @@ input[type=range]{accent-color:var(--gold);width:120px}
   <div id="drop" onclick="document.getElementById('file').click()">여기에 놓거나 눌러서 선택 (JPG·PNG·PDF·MID)<br><span class="note">악보 프로그램에서 MIDI로 저장해 오면 코드가 훨씬 정확해요</span><div id="prev"></div></div>
   <input type="file" id="file" accept="image/*,.pdf,.mid,.midi" style="display:none">
   <div class="row" style="margin-top:8px"><button class="btn" id="ocrBtn" onclick="readSheet()">🪄 코드 읽어오기</button><span class="st" id="ocrSt"></span></div>
-  <div class="row" style="margin-top:14px"><button class="btn g" onclick="chooseSong()">🎯 이 곡으로 정하기</button><button class="btn" id="drawerBtn" style="display:none" onclick="saveToDrawer()">📥 관리자 서랍에 넣기</button><span class="st" id="songSt"></span></div>
+  <div class="row" style="margin-top:14px"><button class="btn g" onclick="chooseSong()">🎯 이 곡으로 정하기</button><button class="btn" id="drawerBtn" style="display:none" onclick="saveToDrawer()">📥 관리자 서랍에 넣기</button><a class="btn" id="drawerOpen" href="library.html" target="_blank" style="display:none;text-decoration:none">📚 서랍 열기</a><span class="st" id="songSt"></span></div>
   <p class="note" id="shareHint" style="display:none">모둠 QR로 들어왔으면 "이 곡으로 정하기"를 누르는 순간 모둠원 모두의 화면에 이 곡이 올라가요.</p>
 </div><div class="nav"><button class="btn" onclick="go(1)">← 팀</button><button class="btn p" onclick="go(3)">악기 고르기 →</button></div></section>
 
@@ -910,7 +910,7 @@ function startApp(){ctx=new(window.AudioContext||window.webkitAudioContext)();ma
 if(!S.style)S.style='kpop';renderSongs();renderStyles();setTimeout(()=>{document.querySelectorAll('#stepChips .chip').forEach(c=>c.classList.toggle('on',Number(c.dataset.s)===S.step));renderStepBox()},0);renderTeamList();listStemSets();renderSteps();setBpm(S.bpm);setKeyLock(S.beats||4);
 if(S.team){$('teamName').value=S.team.name;$('members').value=S.team.members.map(m=>m.n).join('\n');renderTeam()}
 if(S.song){$('songTitle').value=S.song.title;$('chords').value=S.song.src||barsText(S.song.bars,stepBars(1).pref);if(S.strum===undefined){S.strum=S.song.strum||null;S.strumSrc=S.song.strumSrc||''}renderStepBox();$('songSt').textContent=`✅ "${S.song.title}" 선정됨`}
-renderStrumEdit();renderUndo();if(isDrawerDevice())$('drawerBtn').style.display='';loadSongFromLink();
+renderStrumEdit();renderUndo();if(isDrawerDevice()){$('drawerBtn').style.display='';$('drawerOpen').style.display=''}loadSongFromLink();
 showShare('');if(shared()){pullGroup(true);startPoll();const h=$('shareHint');if(h)h.style.display='block'}
 </script>
 <script src="play-shell.js"></script>

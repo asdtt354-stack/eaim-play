@@ -1,9 +1,10 @@
 /* ═══════════════════════════════════════════════════════════
-   EAIM 연주실 — AI 연결 공용 모듈 (play-key.js)  v0.2 (2026-09-17)
+   EAIM 연주실 — AI 연결 공용 모듈 (play-key.js)  v0.3 (2026-09-17)
    · Gemini 키를 브라우저에 두지 않습니다. 모든 AI 요청은 같은 주소의 서버 함수
      api/ai 로 보내고, 키는 Vercel 환경변수(GEMINI_KEY)에만 있습니다. (공통 규칙 6-1)
    · AI는 선생님 초대 링크(?teacher=UID)로 들어왔을 때만 켜집니다.
      서버가 그 선생님의 AI 켜기/끄기(meta/settings.mediaOn)를 확인합니다.
+   · 심사·시연용 체험 링크(?demo=…)도 그대로 전달합니다.
    · 방 파일들이 쓰던 이름(get, has, gemini, lyria, NO_KEY_MSG …)은 그대로 둡니다.
      get() 은 이제 키가 아니라 "AI를 쓸 수 있으면 'relay', 아니면 ''" 을 돌려줍니다.
    ═══════════════════════════════════════════════════════════ */
@@ -13,18 +14,19 @@
   const AI_URL = 'api/ai';   // 상대 경로 (공통 규칙 10-1)
   const P = new URLSearchParams(location.search);
   const teacher = P.get('teacher') || '';
+  const demo = P.get('demo') || '';   // 심사·시연용 체험 링크 (2026-09-17)
 
   /* ── 예전 방식으로 이 기기에 남아 있던 키 지우기 (더 이상 쓰지 않음) ── */
   try { localStorage.removeItem('eaim_play_api'); sessionStorage.removeItem('eaim_play_api_session'); } catch {}
 
   /* ── AI 사용 가능 여부 (서버에 물어보고 1분 기억) ── */
-  let reason = teacher ? 'AI 연결을 확인하는 중이에요. 잠시 뒤 다시 눌러 주세요.' : 'AI 기능은 선생님이 준 초대 링크(QR)로 들어왔을 때 쓸 수 있어요.';
+  let reason = (teacher || demo) ? 'AI 연결을 확인하는 중이에요. 잠시 뒤 다시 눌러 주세요.' : 'AI 기능은 선생님이 준 초대 링크(QR)로 들어왔을 때 쓸 수 있어요.';
   let statusCache = null, statusAt = 0;
   async function status() {
-    if (!teacher) return { ok: false, reason };
+    if (!teacher && !demo) return { ok: false, reason };
     if (statusCache && Date.now() - statusAt < 60000) return statusCache;
     try {
-      const r = await fetch(`${AI_URL}?action=ping&teacher=${encodeURIComponent(teacher)}`, { cache: 'no-store' });
+      const r = await fetch(`${AI_URL}?action=ping&teacher=${encodeURIComponent(teacher)}${demo ? '&demo=' + encodeURIComponent(demo) : ''}`, { cache: 'no-store' });
       const d = await r.json().catch(() => ({}));
       statusCache = r.ok ? { ok: !!d.ok, reason: d.reason || '' } : { ok: false, reason: r.status === 404 ? 'AI 서버 함수(api/ai)가 아직 배포되지 않았어요.' : 'AI 서버 응답 오류 ' + r.status };
     } catch { statusCache = { ok: false, reason: 'AI 서버에 연결하지 못했어요. 인터넷을 확인해 주세요.' }; }
@@ -34,9 +36,9 @@
   }
   async function get() { return (await status()).ok ? 'relay' : ''; }
   function set() { /* 키는 이제 서버에만 둡니다 — 기기에 저장하지 않음 */ }
-  function has() { return !!teacher; }
+  function has() { return !!(teacher || demo); }
   /** 다른 방으로 갈 때 ?teacher= 를 그대로 붙여줌 */
-  function link(href) { if (!teacher) return href; const g = P.get('group'); return href + (href.includes('?') ? '&' : '?') + 'teacher=' + encodeURIComponent(teacher) + (g ? '&group=' + encodeURIComponent(g) : ''); }
+  function link(href) { if (!teacher && !demo) return href; const g = P.get('group'); const q = [teacher ? 'teacher=' + encodeURIComponent(teacher) : '', g ? 'group=' + encodeURIComponent(g) : '', demo ? 'demo=' + encodeURIComponent(demo) : ''].filter(Boolean).join('&'); return href + (href.includes('?') ? '&' : '?') + q; }
 
   /* ── 줄 서기 + 재시도: 같은 기기에서 동시에 여러 요청이 나가지 않게, 429/503이면 기다렸다 다시 ── */
   let chain = Promise.resolve();
@@ -74,7 +76,7 @@
 
   /** 서버 함수로 보내기 → Gemini 원래 응답 JSON */
   function relay(model, contents, generationConfig) {
-    return fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teacher, model, contents, generationConfig }) });
+    return fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teacher, demo, model, contents, generationConfig }) });
   }
   async function failMsg(r, busyMsg) {
     const e = await r.json().catch(() => ({}));
@@ -161,5 +163,5 @@
   global.EAIMKey = { fileToImage, get, set, has, link, gemini, lyria, queued, withRetry, teacher, group: P.get('group') || '', ping, status };
   // 방 파일들이 쓰는 안내 문구 — 지금 AI를 못 쓰는 실제 이유를 보여줌 (규칙 6-3: 원인에 맞는 실패 문구)
   Object.defineProperty(global.EAIMKey, 'NO_KEY_MSG', { get: () => reason, enumerable: true });
-  if (teacher) status();   // 미리 확인해 두기
+  if (teacher || demo) status();   // 미리 확인해 두기
 })(window);

@@ -54,7 +54,8 @@ th{background:#faf8ff;white-space:nowrap}
 <body>
 <header><div class="hin">
   <div><h1><small>EAIM · PLAYROOM · TEACHER</small>연주실 교사 페이지</h1></div>
-  <div class="row"><span id="who" style="font-size:.82rem;color:rgba(255,255,255,.7)"></span><button id="logoutBtn" onclick="logout()" style="display:none">로그아웃</button><a href="guide.html">📘 교수법</a><a href="index.html">🎹 연주실</a></div>
+  <div class="row"><span id="who" style="font-size:.82rem;color:rgba(255,255,255,.7)"></span><button id="logoutBtn" onclick="logout()" style="display:none">로그아웃</button><a href="guide.html">📘 교수법</a><a href="index.html">🎹 연주실</a><a href="library.html" id="drawerLink" style="display:none">📚 곡 서랍</a></div>
+<script>try{if(localStorage.getItem('eaim_admin_drawer')==='1')document.getElementById('drawerLink').style.display=''}catch(e){}</script>
 </div></header>
 
 <main>
